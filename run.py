@@ -1,5 +1,3 @@
-import time
-
 import gym
 import gym_pdefense
 
@@ -19,5 +17,5 @@ while True:
     while not done:
         action, _states = model.predict(obs)
         obs, rewards, done, info = env.step(action)
-        env.render(mode='human')
-    time.sleep(0.3)
+        env.render(mode='human') # pick from ['human', 'ffmpeg']
+    print('.')
