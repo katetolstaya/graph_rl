@@ -20,7 +20,7 @@ if not os.path.exists(pkl_file):
     model = A2C(
         policy=MlpPolicy,
         env=env,
-        n_steps=16,
+        n_steps=32,
         ent_coef=0.001,
         verbose=1,
         tensorboard_log=tensorboard_log)
