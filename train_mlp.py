@@ -1,4 +1,5 @@
 import os.path
+import multiprocessing
 
 import gym
 import gym_pdefense
@@ -8,7 +9,7 @@ from stable_baselines.common.vec_env import SubprocVecEnv
 from stable_baselines import A2C
 
 # multiprocess environment
-n_cpu = 16
+n_cpu = multiprocessing.cpu_count()
 env = SubprocVecEnv([lambda: gym.make('PDefense-v0') for i in range(n_cpu)])
 
 name = 'a2c_pdefense_2_n_steps_16'

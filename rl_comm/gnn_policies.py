@@ -8,10 +8,10 @@ import tensorflow as tf
 import sonnet as snt
 from graph_nets import graphs, modules, blocks
 
-EDGE_SIZE = 16
-NODE_SIZE = 16
+# EDGE_SIZE = 16
+# NODE_SIZE = 16
 
-LATENT_SIZE = 64
+LATENT_SIZE = 32
 NUM_LAYERS = 1
 
 class MyMlpPolicy(ActorCriticPolicy):
