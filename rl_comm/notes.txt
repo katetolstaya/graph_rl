@@ -1,0 +1,24 @@
+
+Dense data from the environment.
+
+Agent-agent communication edge adjacency
+    n_batch, n_agent, n_agent
+Agent-target observation edge adjacency
+    n_batch, n_agents, n_target
+Agent-target observation edge data
+    n_batch, n_agents, n_targets, w_obs
+
+
+Form id matrix for agents
+
+
+
+
+Observations
+
+comm_adj           (N, N)
+agent_node_data    (N)
+
+
+obs_adj             (N, M)
+obs_edge_data       (N, M, W)

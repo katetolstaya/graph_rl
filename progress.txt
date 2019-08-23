@@ -1,0 +1,7 @@
+2019-08-14, Wednesday
+
+A vanilla MLP on 2v2 has a mean score of ~1. It performs poorly likely because it doesn't know which targets and agents are dead.
+
+2019-08-15, Thursday
+
+A vanilla MLP on 2v2, 16 steps has a mean score of ~1.15 with dead agents and targets masked at zero.
