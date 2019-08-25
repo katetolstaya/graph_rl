@@ -21,8 +21,9 @@ policy = gnn_policies.MyMlpPolicy
 n_cpu = multiprocessing.cpu_count()
 env = SubprocVecEnv([lambda: gym.make('PDefense-v0') for i in range(n_cpu)])
 
-pkl_file = name + '.pkl'
-tensorboard_log = './' + name + '_tensorboard/'
+folder = 'mlp'
+pkl_file = folder + '/' + name + '.pkl'
+tensorboard_log = './' + folder + '/' + name + '_tb/'
 
 if not os.path.exists(pkl_file):
     print('Creating new model ' + pkl_file + '.')
@@ -40,7 +41,7 @@ else:
 
 print('Learning...')
 model.learn(
-    total_timesteps=100000,
+    total_timesteps=10000000,
     log_interval = 500,
     reset_num_timesteps=False)
 print('Saving model...')
