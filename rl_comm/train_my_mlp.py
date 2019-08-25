@@ -1,24 +1,27 @@
 import os.path
+import multiprocessing
 
 import gym
-import gym_pdefense
-
-from gnn_policies import MyMlpPolicy
 from stable_baselines.common.vec_env import SubprocVecEnv
 from stable_baselines import A2C
 
-# multiprocess environment
-n_cpu = 16
-env = SubprocVecEnv([lambda: gym.make('PDefense-v0') for i in range(n_cpu)])
+import gym_pdefense
+import gnn_policies
 
 name = 'a2c_pdefense_2_mymlp_n_steps_16'
+policy = gnn_policies.MyMlpPolicy
+
+# multiprocess environment
+n_cpu = multiprocessing.cpu_count()
+env = SubprocVecEnv([lambda: gym.make('PDefense-v0') for i in range(n_cpu)])
+
 pkl_file = name + '.pkl'
 tensorboard_log = './' + name + '_tensorboard/'
 
 if not os.path.exists(pkl_file):
     print('Creating new model ' + pkl_file + '.')
     model = A2C(
-        policy=MyMlpPolicy,
+        policy=policy,
         env=env,
         n_steps=32,
         ent_coef=0.001,
@@ -31,7 +34,7 @@ else:
 
 print('Learning...')
 model.learn(
-    total_timesteps=40000000,
+    total_timesteps=1000,
     log_interval = 500,
     reset_num_timesteps=False)
 print('Saving model...')

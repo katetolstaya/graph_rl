@@ -16,7 +16,9 @@ NUM_LAYERS = 1
 
 class MyMlpPolicy(ActorCriticPolicy):
     """
-    Policy object that implements actor critic, using a MLP (2 layers of 64)
+
+    Policy object that implements actor critic, using a a vanilla centralized
+    MLP (2 layers of 64).
 
     :param sess: (TensorFlow session) The current TensorFlow session
     :param ob_space: (Gym Space) The observation space of the environment
@@ -27,17 +29,27 @@ class MyMlpPolicy(ActorCriticPolicy):
     :param reuse: (bool) If the policy is reusable or not
     :param net_arch: (list) Specification of the actor-critic policy network architecture (see mlp_extractor
         documentation for details).
-    :param act_fun: (tf.func) the activation function to use in the neural network.
     """
 
     def __init__(self, sess, ob_space, ac_space, n_env, n_steps, n_batch, reuse=False,
-        net_arch=[dict(vf=[64,64], pi=[64,64])], act_fun=tf.tanh):
+        net_arch=[dict(vf=[64,64], pi=[64,64])]):
 
         super(MyMlpPolicy, self).__init__(sess, ob_space, ac_space, n_env, n_steps, n_batch, reuse,
                                                 scale=False)
 
+        n_agents      = 2
+        n_targets     = 2
+        w_agent_data  = 1
+        w_target_data = 2
+        w_obs_data    = 2
+
+        (comm_adj, agent_node_data, obs_adj, target_node_data, obs_edge_data) = \
+            pdefense_env.unpack_obs_graph_coord_tf(self.processed_obs, n_agents, n_targets, w_agent_data, w_target_data, w_obs_data)
+        obs = tf.concat((tf.layers.flatten(agent_node_data), tf.layers.flatten(obs_edge_data)), axis=1)
+
         with tf.variable_scope("model", reuse=reuse):
-            pi_latent, vf_latent = mlp_extractor(tf.layers.flatten(self.processed_obs), net_arch, act_fun)
+            # Shared latent representation across entire team.
+            pi_latent, vf_latent = mlp_extractor(obs, net_arch, tf.nn.relu)
 
             self._value_fn = linear(vf_latent, 'vf', 1)
 
@@ -61,6 +73,104 @@ class MyMlpPolicy(ActorCriticPolicy):
     def value(self, obs, state=None, mask=None):
         return self.sess.run(self.value_flat, {self.obs_ph: obs})
 
+
+
+
+class OneNodePolicy(ActorCriticPolicy):
+    """
+
+    Policy object that implements actor critic, using the GraphNet API to
+    reproduce the vanilla centralized MLP result (2 layers of 64)).
+
+    :param sess: (TensorFlow session) The current TensorFlow session
+    :param ob_space: (Gym Space) The observation space of the environment
+    :param ac_space: (Gym Space) The action space of the environment
+    :param n_env: (int) The number of environments to run
+    :param n_steps: (int) The number of steps to run for each environment
+    :param n_batch: (int) The number of batch to run (n_envs * n_steps)
+    :param reuse: (bool) If the policy is reusable or not
+    :param net_arch: (list) Specification of the actor-critic policy network architecture (see mlp_extractor
+        documentation for details).
+    """
+
+    def __init__(self, sess, ob_space, ac_space, n_env, n_steps, n_batch, reuse=False,
+        net_arch=[dict(vf=[64,64], pi=[64,64])]):
+
+        super(OneNodePolicy, self).__init__(sess, ob_space, ac_space, n_env, n_steps, n_batch, reuse,
+                                                scale=False)
+
+        n_agents      = 2
+        n_targets     = 2
+        w_agent_data  = 1
+        w_target_data = 2
+        w_obs_data    = 2
+
+        (comm_adj, agent_node_data, obs_adj, target_node_data, obs_edge_data) = \
+            pdefense_env.unpack_obs_graph_coord_tf(self.processed_obs, n_agents, n_targets, w_agent_data, w_target_data, w_obs_data)
+
+        # Build observation graph. Concatenate all agent data and observation
+        # data into a single node, and include no edges.
+        B = tf.shape(obs_adj)[0]
+        nodes = tf.concat((tf.layers.flatten(agent_node_data), tf.layers.flatten(obs_edge_data)), axis=1)
+        n_node = tf.fill((B,), 1)
+        n_edge = tf.fill((B,), 0)
+        in_graph = graphs.GraphsTuple(
+            nodes=nodes,
+            edges=None,
+            globals=None,
+            receivers=None,
+            senders=None,
+            n_node=n_node,
+            n_edge=n_edge)
+
+        # Transform the single node's data.
+        state_mlp = blocks.NodeBlock(
+            node_model_fn=lambda: snt.nets.MLP([LATENT_SIZE] * NUM_LAYERS, activate_final=True),
+            use_received_edges=False,
+            use_sent_edges=False,
+            use_nodes=True,
+            use_globals=False,
+            name="pi_state_mlp")
+        pi_g = state_mlp(in_graph)
+
+        # Transform the single node's data.
+        state_mlp = blocks.NodeBlock(
+            node_model_fn=lambda: snt.nets.MLP([LATENT_SIZE] * NUM_LAYERS, activate_final=True),
+            use_received_edges=False,
+            use_sent_edges=False,
+            use_nodes=True,
+            use_globals=False,
+            name="vf_state_mlp")
+        vf_g = state_mlp(in_graph)
+
+        with tf.variable_scope("model", reuse=reuse):
+            # Shared latent representation across entire team.
+            pi_latent = tf.reshape(pi_g.nodes, (B,1*LATENT_SIZE))
+            vf_latent = tf.reshape(vf_g.nodes, (B,1*LATENT_SIZE))
+
+            self._value_fn = linear(vf_latent, 'vf', 1)
+
+            self._proba_distribution, self._policy, self.q_value = \
+                self.pdtype.proba_distribution_from_latent(pi_latent, vf_latent, init_scale=0.01)
+
+        self._setup_init()
+
+    def step(self, obs, state=None, mask=None, deterministic=False):
+        if deterministic:
+            action, value, neglogp = self.sess.run([self.deterministic_action, self.value_flat, self.neglogp],
+                                                   {self.obs_ph: obs})
+        else:
+            action, value, neglogp = self.sess.run([self.action, self.value_flat, self.neglogp],
+                                                   {self.obs_ph: obs})
+        return action, value, self.initial_state, neglogp
+
+    def proba_step(self, obs, state=None, mask=None):
+        return self.sess.run(self.policy_proba, {self.obs_ph: obs})
+
+    def value(self, obs, state=None, mask=None):
+        return self.sess.run(self.value_flat, {self.obs_ph: obs})
+
+
 class GnnCoord(ActorCriticPolicy):
     """
     Policy object that implements actor critic, using a MLP (2 layers of 64)
@@ -74,11 +184,10 @@ class GnnCoord(ActorCriticPolicy):
     :param reuse: (bool) If the policy is reusable or not
     :param net_arch: (list) Specification of the actor-critic policy network architecture (see mlp_extractor
         documentation for details).
-    :param act_fun: (tf.func) the activation function to use in the neural network.
     """
 
     def __init__(self, sess, ob_space, ac_space, n_env, n_steps, n_batch, reuse=False,
-        net_arch=[dict(vf=[64,64], pi=[64,64])], act_fun=tf.tanh):
+        net_arch=[dict(vf=[64,64], pi=[64,64])]):
 
         super(GnnCoord, self).__init__(sess, ob_space, ac_space, n_env, n_steps, n_batch, reuse,
                                                 scale=False)
@@ -130,7 +239,7 @@ class GnnCoord(ActorCriticPolicy):
             use_receiver_nodes=False,
             use_sender_nodes=False,
             use_globals=False,
-            name="obs_mlp")
+            name="pi_obs_mlp")
         # Transform each agent state node data.
         state_mlp = blocks.NodeBlock(
             # node_model_fn=lambda: snt.Linear(output_size=NODE_SIZE),
@@ -139,7 +248,7 @@ class GnnCoord(ActorCriticPolicy):
             use_sent_edges=False,
             use_nodes=True,
             use_globals=False,
-            name="state_mlp")
+            name="pi_state_mlp")
         # Reduce observations, concatenate with agent state, and apply mlp.
         agent_agg = blocks.NodeBlock(
             # node_model_fn=lambda: snt.Linear(output_size=NODE_SIZE),
@@ -149,7 +258,7 @@ class GnnCoord(ActorCriticPolicy):
             use_nodes=True,
             use_globals=False,
             received_edges_reducer=tf.unsorted_segment_sum,
-            name="agent_mlp")
+            name="pi_agent_agg")
 
         pi_g = agent_agg(state_mlp(obs_mlp(obs_graph)))
 
@@ -161,7 +270,7 @@ class GnnCoord(ActorCriticPolicy):
             use_receiver_nodes=False,
             use_sender_nodes=False,
             use_globals=False,
-            name="obs_mlp")
+            name="vf_obs_mlp")
         # Transform each agent state node data.
         state_mlp = blocks.NodeBlock(
             # node_model_fn=lambda: snt.Linear(output_size=NODE_SIZE),
@@ -170,7 +279,7 @@ class GnnCoord(ActorCriticPolicy):
             use_sent_edges=False,
             use_nodes=True,
             use_globals=False,
-            name="state_mlp")
+            name="vf_state_mlp")
         # Reduce observations, concatenate with agent state, and apply mlp.
         agent_agg = blocks.NodeBlock(
             # node_model_fn=lambda: snt.Linear(output_size=NODE_SIZE),
@@ -180,20 +289,12 @@ class GnnCoord(ActorCriticPolicy):
             use_nodes=True,
             use_globals=False,
             received_edges_reducer=tf.unsorted_segment_sum,
-            name="agent_mlp")
+            name="vf_agent_agg")
 
         vf_g = agent_agg(state_mlp(obs_mlp(obs_graph)))
 
-
-
-        # g = obs_network(obs_graph)
-
-        # graph_network = modules.GraphNetwork(
-        #     edge_model_fn=lambda: snt.Linear(output_size=EDGE_SIZE))
-
         with tf.variable_scope("model", reuse=reuse):
-            # pi_latent, vf_latent = mlp_extractor(tf.layers.flatten(agent_node_data), net_arch, act_fun)
-
+            # Shared latent representation across entire team.
             pi_latent = tf.reshape(pi_g.nodes, (B,N*LATENT_SIZE))
             vf_latent = tf.reshape(vf_g.nodes, (B,N*LATENT_SIZE))
 

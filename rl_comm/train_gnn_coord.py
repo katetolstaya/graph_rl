@@ -1,4 +1,5 @@
 import os.path
+import multiprocessing
 
 import gym
 from stable_baselines.common.vec_env import SubprocVecEnv
@@ -7,13 +8,19 @@ from stable_baselines import A2C
 import gym_pdefense
 import gnn_policies
 
-policy = gnn_policies.GnnCoord
+name = 'a2c_pdefense_2_mymlp_n_steps_16'
+policy = gnn_policies.MyMlpPolicy
+
+# name = 'a2c_pdefense_2_gnncoord_n_steps_16'
+# policy = gnn_policies.GnnCoord
+
+# name = 'a2c_pdefense_2_onenode_n_steps_16'
+# policy = gnn_policies.OneNodePolicy
 
 # multiprocess environment
-n_cpu = 16
+n_cpu = multiprocessing.cpu_count()
 env = SubprocVecEnv([lambda: gym.make('PDefense-v0') for i in range(n_cpu)])
 
-name = 'a2c_pdefense_2_gnncoord_n_steps_16'
 pkl_file = name + '.pkl'
 tensorboard_log = './' + name + '_tensorboard/'
 
@@ -33,7 +40,7 @@ else:
 
 print('Learning...')
 model.learn(
-    total_timesteps=40000000,
+    total_timesteps=100000,
     log_interval = 500,
     reset_num_timesteps=False)
 print('Saving model...')
