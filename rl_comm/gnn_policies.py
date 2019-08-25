@@ -8,11 +8,8 @@ import tensorflow as tf
 import sonnet as snt
 from graph_nets import graphs, modules, blocks
 
-# EDGE_SIZE = 16
-# NODE_SIZE = 16
 
-LATENT_SIZE = 32
-NUM_LAYERS = 1
+
 
 class MyMlpPolicy(ActorCriticPolicy):
     """
@@ -125,7 +122,7 @@ class OneNodePolicy(ActorCriticPolicy):
 
         # Transform the single node's data.
         state_mlp = blocks.NodeBlock(
-            node_model_fn=lambda: snt.nets.MLP([LATENT_SIZE] * NUM_LAYERS, activate_final=True),
+            node_model_fn=lambda: snt.nets.MLP(net_arch[0]['pi'], activate_final=True),
             use_received_edges=False,
             use_sent_edges=False,
             use_nodes=True,
@@ -135,7 +132,7 @@ class OneNodePolicy(ActorCriticPolicy):
 
         # Transform the single node's data.
         state_mlp = blocks.NodeBlock(
-            node_model_fn=lambda: snt.nets.MLP([LATENT_SIZE] * NUM_LAYERS, activate_final=True),
+            node_model_fn=lambda: snt.nets.MLP(net_arch[0]['vf'], activate_final=True),
             use_received_edges=False,
             use_sent_edges=False,
             use_nodes=True,
@@ -145,8 +142,8 @@ class OneNodePolicy(ActorCriticPolicy):
 
         with tf.variable_scope("model", reuse=reuse):
             # Shared latent representation across entire team.
-            pi_latent = tf.reshape(pi_g.nodes, (B,1*LATENT_SIZE))
-            vf_latent = tf.reshape(vf_g.nodes, (B,1*LATENT_SIZE))
+            pi_latent = tf.layers.flatten(pi_g.nodes)
+            vf_latent = tf.layers.flatten(vf_g.nodes)
 
             self._value_fn = linear(vf_latent, 'vf', 1)
 
@@ -171,6 +168,8 @@ class OneNodePolicy(ActorCriticPolicy):
         return self.sess.run(self.value_flat, {self.obs_ph: obs})
 
 
+
+
 class GnnCoord(ActorCriticPolicy):
     """
     Policy object that implements actor critic, using a MLP (2 layers of 64)
@@ -191,6 +190,9 @@ class GnnCoord(ActorCriticPolicy):
 
         super(GnnCoord, self).__init__(sess, ob_space, ac_space, n_env, n_steps, n_batch, reuse,
                                                 scale=False)
+
+        latent_size = 64
+        n_layers = 2
 
         n_agents      = 2
         n_targets     = 2
@@ -234,7 +236,7 @@ class GnnCoord(ActorCriticPolicy):
         # Transform each observation edge data.
         obs_mlp = blocks.EdgeBlock(
             # edge_model_fn=lambda: snt.Linear(output_size=EDGE_SIZE),
-            edge_model_fn=lambda: snt.nets.MLP([LATENT_SIZE] * NUM_LAYERS, activate_final=True),
+            edge_model_fn=lambda: snt.nets.MLP([latent_size] * n_layers, activate_final=True),
             use_edges=True,
             use_receiver_nodes=False,
             use_sender_nodes=False,
@@ -243,7 +245,7 @@ class GnnCoord(ActorCriticPolicy):
         # Transform each agent state node data.
         state_mlp = blocks.NodeBlock(
             # node_model_fn=lambda: snt.Linear(output_size=NODE_SIZE),
-            node_model_fn=lambda: snt.nets.MLP([LATENT_SIZE] * NUM_LAYERS, activate_final=True),
+            node_model_fn=lambda: snt.nets.MLP([latent_size] * n_layers, activate_final=True),
             use_received_edges=False,
             use_sent_edges=False,
             use_nodes=True,
@@ -252,7 +254,7 @@ class GnnCoord(ActorCriticPolicy):
         # Reduce observations, concatenate with agent state, and apply mlp.
         agent_agg = blocks.NodeBlock(
             # node_model_fn=lambda: snt.Linear(output_size=NODE_SIZE),
-            node_model_fn=lambda: snt.nets.MLP([LATENT_SIZE] * NUM_LAYERS, activate_final=True),
+            node_model_fn=lambda: snt.nets.MLP([latent_size] * n_layers, activate_final=True),
             use_received_edges=True,
             use_sent_edges=False,
             use_nodes=True,
@@ -265,7 +267,7 @@ class GnnCoord(ActorCriticPolicy):
         # Transform each observation edge data.
         obs_mlp = blocks.EdgeBlock(
             # edge_model_fn=lambda: snt.Linear(output_size=EDGE_SIZE),
-            edge_model_fn=lambda: snt.nets.MLP([LATENT_SIZE] * NUM_LAYERS, activate_final=True),
+            edge_model_fn=lambda: snt.nets.MLP([latent_size] * n_layers, activate_final=True),
             use_edges=True,
             use_receiver_nodes=False,
             use_sender_nodes=False,
@@ -274,7 +276,7 @@ class GnnCoord(ActorCriticPolicy):
         # Transform each agent state node data.
         state_mlp = blocks.NodeBlock(
             # node_model_fn=lambda: snt.Linear(output_size=NODE_SIZE),
-            node_model_fn=lambda: snt.nets.MLP([LATENT_SIZE] * NUM_LAYERS, activate_final=True),
+            node_model_fn=lambda: snt.nets.MLP([latent_size] * n_layers, activate_final=True),
             use_received_edges=False,
             use_sent_edges=False,
             use_nodes=True,
@@ -283,7 +285,7 @@ class GnnCoord(ActorCriticPolicy):
         # Reduce observations, concatenate with agent state, and apply mlp.
         agent_agg = blocks.NodeBlock(
             # node_model_fn=lambda: snt.Linear(output_size=NODE_SIZE),
-            node_model_fn=lambda: snt.nets.MLP([LATENT_SIZE] * NUM_LAYERS, activate_final=True),
+            node_model_fn=lambda: snt.nets.MLP([latent_size] * n_layers, activate_final=True),
             use_received_edges=True,
             use_sent_edges=False,
             use_nodes=True,
@@ -295,8 +297,8 @@ class GnnCoord(ActorCriticPolicy):
 
         with tf.variable_scope("model", reuse=reuse):
             # Shared latent representation across entire team.
-            pi_latent = tf.reshape(pi_g.nodes, (B,N*LATENT_SIZE))
-            vf_latent = tf.reshape(vf_g.nodes, (B,N*LATENT_SIZE))
+            pi_latent = tf.reshape(pi_g.nodes, (B,N*latent_size))
+            vf_latent = tf.reshape(vf_g.nodes, (B,N*latent_size))
 
             self._value_fn = linear(vf_latent, 'vf', 1)
 
