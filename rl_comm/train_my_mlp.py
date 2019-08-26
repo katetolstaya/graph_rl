@@ -5,25 +5,26 @@ import gym
 from stable_baselines.common.vec_env import SubprocVecEnv
 from stable_baselines import A2C
 
-import gym_pdefense
+from gym_pdefense.envs.pdefense_env import PDefenseEnv
 import gnn_policies
 
 name = 'a2c_pdefense_2_mymlp_n_steps_16'
 policy = gnn_policies.MyMlpPolicy
 
 # multiprocess environment
-n_cpu = multiprocessing.cpu_count()
-env = SubprocVecEnv([lambda: gym.make('PDefense-v0') for i in range(n_cpu)])
+n_env = 16
+env = SubprocVecEnv([lambda: PDefenseEnv(n_max_agents=2) for i in range(n_env)])
 
-pkl_file = name + '.pkl'
-tensorboard_log = './' + name + '_tensorboard/'
+folder = 'mymlp'
+pkl_file = folder + '/' + name + '.pkl'
+tensorboard_log = './' + folder + '/' + name + '_tb/'
 
 if not os.path.exists(pkl_file):
     print('Creating new model ' + pkl_file + '.')
     model = A2C(
         policy=policy,
         env=env,
-        n_steps=32,
+        n_steps=16,
         ent_coef=0.001,
         verbose=1,
         tensorboard_log=tensorboard_log)
