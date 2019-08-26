@@ -11,11 +11,11 @@ import gnn_policies
 # name = 'a2c_pdefense_2_mymlp_n_steps_16'
 # policy = gnn_policies.MyMlpPolicy
 
-name = 'a2c_pdefense_2_onenode_n_steps_16'
-policy = gnn_policies.OneNodePolicy
+# name = 'a2c_pdefense_2_onenode_n_steps_16'
+# policy = gnn_policies.OneNodePolicy
 
-# name = 'a2c_pdefense_2_gnncoord_n_steps_16'
-# policy = gnn_policies.GnnCoord
+name = 'a2c_pdefense_2_gnncoord_n_steps_16'
+policy = gnn_policies.GnnCoord
 
 n_env = 16
 env = SubprocVecEnv([lambda: PDefenseEnv(n_max_agents=2) for i in range(n_env)])
@@ -40,7 +40,7 @@ else:
 
 print('Learning...')
 model.learn(
-    total_timesteps=100000,
+    total_timesteps=10000,
     log_interval = 500,
     reset_num_timesteps=False)
 print('Saving model...')
