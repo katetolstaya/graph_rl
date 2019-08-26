@@ -34,7 +34,7 @@ class MyMlpPolicy(ActorCriticPolicy):
         super(MyMlpPolicy, self).__init__(sess, ob_space, ac_space, n_env, n_steps, n_batch, reuse,
                                                 scale=False)
 
-        n_agents      = 2
+        n_agents = ac_space.nvec.size
         n_targets     = 2
         w_agent_data  = 1
         w_target_data = 2
@@ -96,7 +96,7 @@ class OneNodePolicy(ActorCriticPolicy):
         super(OneNodePolicy, self).__init__(sess, ob_space, ac_space, n_env, n_steps, n_batch, reuse,
                                                 scale=False)
 
-        n_agents      = 2
+        n_agents = ac_space.nvec.size
         n_targets     = 2
         w_agent_data  = 1
         w_target_data = 2
@@ -210,10 +210,15 @@ class GnnCoord(ActorCriticPolicy):
         super(GnnCoord, self).__init__(sess, ob_space, ac_space, n_env, n_steps, n_batch, reuse,
                                                 scale=False)
 
+        # **Need to know w_agent_data, w_target_data, w_obs_data**
+        # Can get n_max_agents from action space.
+        # Can get n_max_targets from observation space, using other data.
+
+
         latent_size = 64
         n_layers = 1
 
-        n_agents      = 2
+        n_agents = ac_space.nvec.size
         n_targets     = 2
         w_agent_data  = 1
         w_target_data = 2
