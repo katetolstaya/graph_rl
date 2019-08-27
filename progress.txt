@@ -5,3 +5,14 @@ A vanilla MLP on 2v2 has a mean score of ~1. It performs poorly likely because i
 2019-08-15, Thursday
 
 A vanilla MLP on 2v2, 16 steps has a mean score of ~1.15 with dead agents and targets masked at zero.
+
+2019-08-26, Monday
+
+Caught a bug that was definitely stopping the GNN policies from training properly. The one node GNN test works and performs about as well as a vanilla MLP, but the first cut of a true GNN seriously underperforms.  Is there a flaw? Is the problem the "doesn't matter" actions?  Should the value vs policy graphs be more specialized?  Should I try a different training method?
+
+I should really address the problem of number of time steps not incrementing, and adopt a more structured testing framework.
+
+Implement variable agent/target numbers to help debugging. See how one agent performs.
+
+2019-08-27, Tuesday
+
