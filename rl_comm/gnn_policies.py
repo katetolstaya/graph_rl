@@ -216,7 +216,7 @@ class GnnCoord(ActorCriticPolicy):
 
 
         latent_size = 64
-        n_layers = 1
+        n_layers = 2
 
         n_agents = ac_space.nvec.size
         n_targets     = 2

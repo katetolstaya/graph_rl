@@ -18,9 +18,9 @@ import gnn_policies
 # policy = gnn_policies.GnnCoord
 
 jobs = []
-jobs.append(('a2c_pdefense_2_mymlp_n_steps_16',     gnn_policies.MyMlpPolicy))
-jobs.append(('a2c_pdefense_2_onenode_n_steps_16',   gnn_policies.OneNodePolicy))
-jobs.append(('a2c_pdefense_2_gnncoord_n_steps_16',  gnn_policies.GnnCoord))
+# jobs.append(('a2c_pdefense_2_mymlp_n_steps_16',     gnn_policies.MyMlpPolicy))
+# jobs.append(('a2c_pdefense_2_onenode_n_steps_16',   gnn_policies.OneNodePolicy))
+jobs.append(('a2c_pdefense_2_gnncoord_n_steps_16_2x64_new',  gnn_policies.GnnCoord))
 
 for name, policy in jobs:
 
@@ -39,7 +39,8 @@ for name, policy in jobs:
             n_steps=16,
             ent_coef=0.001,
             verbose=1,
-            tensorboard_log=tensorboard_log)
+            tensorboard_log=tensorboard_log,
+            full_tensorboard_log=True)
     else:
         print('Loading model ' + pkl_file + '.')
         model = A2C.load(pkl_file, env,
@@ -47,7 +48,7 @@ for name, policy in jobs:
 
     print('Learning...')
     model.learn(
-        total_timesteps=10000000,
+        total_timesteps=100000,
         log_interval = 500,
         reset_num_timesteps=False)
     print('Saving model...')
