@@ -1,3 +1,5 @@
+import numpy as np
+
 from stable_baselines.common.policies import ActorCriticPolicy
 from stable_baselines.common.policies import mlp_extractor
 from stable_baselines.a2c.utils import linear
@@ -29,19 +31,20 @@ class MyMlpPolicy(ActorCriticPolicy):
     """
 
     def __init__(self, sess, ob_space, ac_space, n_env, n_steps, n_batch, reuse=False,
-        net_arch=[dict(vf=[64,64], pi=[64,64])]):
+        net_arch=[dict(vf=[64,64], pi=[64,64])],
+        w_agent=1,
+        w_target=2,
+        w_obs=2):
 
         super(MyMlpPolicy, self).__init__(sess, ob_space, ac_space, n_env, n_steps, n_batch, reuse,
                                                 scale=False)
 
         n_agents = ac_space.nvec.size
-        n_targets     = 2
-        w_agent_data  = 1
-        w_target_data = 2
-        w_obs_data    = 2
+        n_targets = (np.prod(ob_space.shape) - n_agents**2 - n_agents*w_agent) // (n_agents + w_target + n_agents*w_obs)
+        assert np.prod(ob_space.shape) == n_agents**2 + n_agents*w_agent + n_agents*n_targets + n_targets*w_target + n_agents*n_targets*w_obs, 'Broken game size computation.'
 
         (comm_adj, agent_node_data, obs_adj, target_node_data, obs_edge_data) = \
-            pdefense_env.unpack_obs_graph_coord_tf(self.processed_obs, n_agents, n_targets, w_agent_data, w_target_data, w_obs_data)
+            pdefense_env.unpack_obs_graph_coord_tf(self.processed_obs, n_agents, n_targets, w_agent, w_target, w_obs)
         obs = tf.concat((tf.layers.flatten(agent_node_data), tf.layers.flatten(obs_edge_data)), axis=1)
 
         with tf.variable_scope("model", reuse=reuse):
@@ -91,19 +94,20 @@ class OneNodePolicy(ActorCriticPolicy):
     """
 
     def __init__(self, sess, ob_space, ac_space, n_env, n_steps, n_batch, reuse=False,
-        net_arch=[dict(vf=[64,64], pi=[64,64])]):
+        net_arch=[dict(vf=[64,64], pi=[64,64])],
+        w_agent=1,
+        w_target=2,
+        w_obs=2):
 
         super(OneNodePolicy, self).__init__(sess, ob_space, ac_space, n_env, n_steps, n_batch, reuse,
                                                 scale=False)
 
         n_agents = ac_space.nvec.size
-        n_targets     = 2
-        w_agent_data  = 1
-        w_target_data = 2
-        w_obs_data    = 2
+        n_targets = (np.prod(ob_space.shape) - n_agents**2 - n_agents*w_agent) // (n_agents + w_target + n_agents*w_obs)
+        assert np.prod(ob_space.shape) == n_agents**2 + n_agents*w_agent + n_agents*n_targets + n_targets*w_target + n_agents*n_targets*w_obs, 'Broken game size computation.'
 
         (comm_adj, agent_node_data, obs_adj, target_node_data, obs_edge_data) = \
-            pdefense_env.unpack_obs_graph_coord_tf(self.processed_obs, n_agents, n_targets, w_agent_data, w_target_data, w_obs_data)
+            pdefense_env.unpack_obs_graph_coord_tf(self.processed_obs, n_agents, n_targets, w_agent, w_target, w_obs)
 
         # Build observation graph. Concatenate all agent data and observation
         # data into a single node, and include no edges.
@@ -205,12 +209,15 @@ class GnnCoord(ActorCriticPolicy):
     """
 
     def __init__(self, sess, ob_space, ac_space, n_env, n_steps, n_batch, reuse=False,
-        net_arch=[dict(vf=[64,64], pi=[64,64])]):
+        net_arch=[dict(vf=[64,64], pi=[64,64])],
+        w_agent=1,
+        w_target=2,
+        w_obs=2):
 
         super(GnnCoord, self).__init__(sess, ob_space, ac_space, n_env, n_steps, n_batch, reuse,
                                                 scale=False)
 
-        # **Need to know w_agent_data, w_target_data, w_obs_data**
+        # **Need to know w_agent, w_target, w_obs**
         # Can get n_max_agents from action space.
         # Can get n_max_targets from observation space, using other data.
 
@@ -219,13 +226,11 @@ class GnnCoord(ActorCriticPolicy):
         n_layers = 2
 
         n_agents = ac_space.nvec.size
-        n_targets     = 2
-        w_agent_data  = 1
-        w_target_data = 2
-        w_obs_data    = 2
+        n_targets = (np.prod(ob_space.shape) - n_agents**2 - n_agents*w_agent) // (n_agents + w_target + n_agents*w_obs)
+        assert np.prod(ob_space.shape) == n_agents**2 + n_agents*w_agent + n_agents*n_targets + n_targets*w_target + n_agents*n_targets*w_obs, 'Broken game size computation.'
 
         (comm_adj, agent_node_data, obs_adj, target_node_data, obs_edge_data) = \
-            pdefense_env.unpack_obs_graph_coord_tf(self.processed_obs, n_agents, n_targets, w_agent_data, w_target_data, w_obs_data)
+            pdefense_env.unpack_obs_graph_coord_tf(self.processed_obs, n_agents, n_targets, w_agent, w_target, w_obs)
 
         # Build observation graph.
         B = tf.shape(obs_adj)[0]
