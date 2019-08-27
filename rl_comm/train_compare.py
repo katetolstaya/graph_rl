@@ -8,39 +8,57 @@ from stable_baselines import A2C
 from gym_pdefense.envs.pdefense_env import PDefenseEnv
 import gnn_policies
 
-# name = 'a2c_pdefense_2_mymlp_n_steps_16'
-# policy = gnn_policies.MyMlpPolicy
+jobs = [] # string name, policy class, policy_kwargs
 
-# name = 'a2c_pdefense_2_onenode_n_steps_16'
-# policy = gnn_policies.OneNodePolicy
+jobs.append({
+    'name':'mymlp',
+    'policy':gnn_policies.MyMlpPolicy,
+    'policy_kwargs':{}
+    })
 
-# name = 'a2c_pdefense_2_gnncoord_n_steps_16'
-# policy = gnn_policies.GnnCoord
+jobs.append({
+    'name':'onenode',
+    'policy':gnn_policies.OneNodePolicy,
+    'policy_kwargs':{}
+    })
 
-jobs = []
-# jobs.append(('a2c_pdefense_2_mymlp_n_steps_16',     gnn_policies.MyMlpPolicy))
-# jobs.append(('a2c_pdefense_2_onenode_n_steps_16',   gnn_policies.OneNodePolicy))
-jobs.append(('a2c_pdefense_2_gnncoord_n_steps_16_2x64_new',  gnn_policies.GnnCoord))
+jobs.append({
+    'name':'gnncoord_input_64-64_agg_64-64',
+    'policy':gnn_policies.GnnCoord,
+    'policy_kwargs':{
+        'input_feat_layers':(64,64),
+        'feat_agg_layers':(64,64)}
+    })
 
-for name, policy in jobs:
+jobs.append({
+    'name':'gnncoord_input__agg_64-64',
+    'policy':gnn_policies.GnnCoord,
+    'policy_kwargs':{
+        'input_feat_layers':(),
+        'feat_agg_layers':(64,64)}
+    })
+
+
+for j in jobs:
 
     n_env = 16
     env = SubprocVecEnv([lambda: PDefenseEnv(n_max_agents=2) for i in range(n_env)])
 
-    folder = 'compare'
-    pkl_file = folder + '/' + name + '.pkl'
-    tensorboard_log = './' + folder + '/' + name + '_tb/'
+    folder = 'agents_1_steps_32'
+    pkl_file = folder + '/' + j['name'] + '.pkl'
+    tensorboard_log = './' + folder + '/' + j['name'] + '_tb/'
 
     if not os.path.exists(pkl_file):
         print('Creating new model ' + pkl_file + '.')
         model = A2C(
-            policy=policy,
+            policy=j['policy'],
+            policy_kwargs=j['policy_kwargs'],
             env=env,
-            n_steps=16,
+            n_steps=32,
             ent_coef=0.001,
             verbose=1,
             tensorboard_log=tensorboard_log,
-            full_tensorboard_log=True)
+            full_tensorboard_log=False)
     else:
         print('Loading model ' + pkl_file + '.')
         model = A2C.load(pkl_file, env,
@@ -48,7 +66,7 @@ for name, policy in jobs:
 
     print('Learning...')
     model.learn(
-        total_timesteps=100000,
+        total_timesteps=10000000,
         log_interval = 500,
         reset_num_timesteps=False)
     print('Saving model...')

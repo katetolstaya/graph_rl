@@ -156,7 +156,7 @@ class OneNodePolicy(ActorCriticPolicy):
                 name='vf_state_agg')
             state_value_g = vf_state_agg(vf_g)
 
-            # Reduce to per-agent action values.
+            # Reduce to per-agent action values. Not needed by A2C.
             vf_action_agg = blocks.NodeBlock(
                 node_model_fn=lambda: snt.Linear(output_size=2),
                 use_received_edges=False,
@@ -212,19 +212,12 @@ class GnnCoord(ActorCriticPolicy):
         net_arch=[dict(vf=[64,64], pi=[64,64])],
         w_agent=1,
         w_target=2,
-        w_obs=2):
+        w_obs=2,
+        input_feat_layers=(64,64),
+        feat_agg_layers=(64,64)):
 
         super(GnnCoord, self).__init__(sess, ob_space, ac_space, n_env, n_steps, n_batch, reuse,
                                                 scale=False)
-
-        # **Need to know w_agent, w_target, w_obs**
-        # Can get n_max_agents from action space.
-        # Can get n_max_targets from observation space, using other data.
-
-
-        latent_size = 64
-        n_layers = 2
-
         n_agents = ac_space.nvec.size
         n_targets = (np.prod(ob_space.shape) - n_agents**2 - n_agents*w_agent) // (n_agents + w_target + n_agents*w_obs)
         assert np.prod(ob_space.shape) == n_agents**2 + n_agents*w_agent + n_agents*n_targets + n_targets*w_target + n_agents*n_targets*w_obs, 'Broken game size computation.'
@@ -253,7 +246,7 @@ class GnnCoord(ActorCriticPolicy):
         n_node = tf.fill((B,), obs_adj.shape[1])
         n_edge = tf.reduce_sum(tf.reduce_sum(obs_adj, -1), -1)
 
-        obs_graph = graphs.GraphsTuple(
+        obs_g = graphs.GraphsTuple(
             nodes=nodes,
             edges=edges,
             globals=None,
@@ -264,82 +257,62 @@ class GnnCoord(ActorCriticPolicy):
 
         with tf.variable_scope("model", reuse=reuse):
 
-            # Transform each observation edge data.
-            obs_mlp = blocks.EdgeBlock(
-                edge_model_fn=lambda: snt.nets.MLP((latent_size,) * n_layers, activate_final=True),
-                use_edges=True,
-                use_receiver_nodes=False,
-                use_sender_nodes=False,
-                use_globals=False,
-                name="pi_obs_mlp")
-            # Transform each agent state node data.
-            state_mlp = blocks.NodeBlock(
-                node_model_fn=lambda: snt.nets.MLP((latent_size,) * n_layers, activate_final=True),
-                use_received_edges=False,
-                use_sent_edges=False,
-                use_nodes=True,
-                use_globals=False,
-                name="pi_state_mlp")
-            # Reduce observations, concatenate with agent state, and apply mlp.
-            agent_agg = blocks.NodeBlock(
-                node_model_fn=lambda: snt.nets.MLP((latent_size,) * n_layers + (2,), activate_final=False),
+            # Transform independent environment input features.
+            model_fn = None
+            if len(input_feat_layers) != 0:
+                model_fn=lambda: snt.nets.MLP(input_feat_layers, activate_final=True)
+            input_feat = modules.GraphIndependent(
+                edge_model_fn=model_fn,
+                node_model_fn=model_fn,
+                name='input_feat'
+                )
+
+            # Aggregate local features.
+            feat_agg = blocks.NodeBlock(
+                node_model_fn=lambda: snt.nets.MLP(feat_agg_layers, activate_final=True),
                 use_received_edges=True,
                 use_sent_edges=False,
                 use_nodes=True,
                 use_globals=False,
                 received_edges_reducer=tf.unsorted_segment_sum,
-                name="pi_agent_agg")
-            pi_g = agent_agg(state_mlp(obs_mlp(obs_graph)))
+                name="feat_agg")
 
-            # Transform each observation edge data.
-            obs_mlp = blocks.EdgeBlock(
-                edge_model_fn=lambda: snt.nets.MLP((latent_size,) * n_layers, activate_final=True),
-                use_edges=True,
-                use_receiver_nodes=False,
-                use_sender_nodes=False,
-                use_globals=False,
-                name="vf_obs_mlp")
-            # Transform each agent state node data.
-            state_mlp = blocks.NodeBlock(
-                node_model_fn=lambda: snt.nets.MLP((latent_size,) * n_layers, activate_final=True),
-                use_received_edges=False,
-                use_sent_edges=False,
-                use_nodes=True,
-                use_globals=False,
-                name="vf_state_mlp")
-            # Reduce observations, concatenate with agent state, and apply mlp.
-            agent_agg = blocks.NodeBlock(
-                node_model_fn=lambda: snt.nets.MLP((latent_size,) * n_layers, activate_final=True),
+            # Local policy outputs.
+            pi_mlp = blocks.NodeBlock(
+                # node_model_fn=lambda: snt.nets.MLP((2,), activate_final=False),
+                node_model_fn=lambda: snt.Linear(output_size=2),
                 use_received_edges=True,
                 use_sent_edges=False,
                 use_nodes=True,
                 use_globals=False,
                 received_edges_reducer=tf.unsorted_segment_sum,
-                name="vf_agent_agg")
-            vf_g = agent_agg(state_mlp(obs_mlp(obs_graph)))
+                name="pi_mlp")
 
-            # Reduce to single global value.
+            # Local action value output. Not needed by A2C.
+            vf_action_mlp = blocks.NodeBlock(
+                node_model_fn=lambda: snt.Linear(output_size=2),
+                use_received_edges=False,
+                use_sent_edges=False,
+                use_nodes=True,
+                use_globals=False,
+                name='vf_action_mlp')
+
+            # Global state value output.
             vf_state_agg = blocks.GlobalBlock(
                 global_model_fn=lambda: snt.Linear(output_size=1),
                 use_nodes=True,
                 use_edges=False,
                 use_globals=False,
                 name='vf_state_agg')
-            state_value_g = vf_state_agg(vf_g)
 
-            # Reduce to per-agent action values.
-            vf_action_agg = blocks.NodeBlock(
-                node_model_fn=lambda: snt.Linear(output_size=2),
-                use_received_edges=False,
-                use_sent_edges=False,
-                use_nodes=True,
-                use_globals=False,
-                name='vf_action_agg')
-            action_value_g = vf_action_agg(vf_g)
+            latent_g = feat_agg(input_feat(obs_g))
+            pi_g = pi_mlp(latent_g)
+            vf_action_g = vf_action_mlp(latent_g)
+            vf_state_g = vf_state_agg(latent_g)
 
             # Value.
-            self._value_fn = state_value_g.globals
-            self.q_value   = tf.reshape(action_value_g.nodes, (B, N*2))
+            self._value_fn = vf_state_g.globals
+            self.q_value   = tf.reshape(vf_action_g.nodes, (B, N*2))
             # Policy.
             self._policy = tf.reshape(pi_g.nodes, (B, N*2))
             self._proba_distribution = self.pdtype.proba_distribution_from_flat(self._policy)
