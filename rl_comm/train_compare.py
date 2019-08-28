@@ -2,7 +2,7 @@ import os.path
 import multiprocessing
 
 import gym
-from stable_baselines.common.vec_env import SubprocVecEnv
+from stable_baselines.common.vec_env import SubprocVecEnv, DummyVecEnv
 from stable_baselines import A2C
 
 from gym_pdefense.envs.pdefense_env import PDefenseEnv
@@ -60,17 +60,19 @@ jobs.append({
 #     })
 
 
+env_param = {'max_n_agents':3}
+train_param = {'n_env':16, 'n_steps':32}
 
+# def train_param_string(train_param):
+#     'ne_{}_ns_{}'.format(train_param['n_env'], train_param['n_steps'])
 
 for j in jobs:
 
-    n_env = 16
-
     # Single process version.
-    env = DummyVecEnv([lambda: PDefenseEnv(n_max_agents=2) for i in range(n_env)])
+    # env = DummyVecEnv([lambda: PDefenseEnv(n_max_agents=env_param['max_n_agents']) for _ in range(train_param['n_env'])])
 
     # Multi process version.
-    # env = SubprocVecEnv([lambda: PDefenseEnv(n_max_agents=2) for i in range(n_env)])
+    env = SubprocVecEnv([lambda: PDefenseEnv(n_max_agents=env_param['max_n_agents']) for _ in range(train_param['n_env'])])
 
     folder = 'agents_3_steps_32_replicate'
     pkl_file = folder + '/' + j['name'] + '.pkl'
@@ -82,7 +84,7 @@ for j in jobs:
             policy=j['policy'],
             policy_kwargs=j['policy_kwargs'],
             env=env,
-            n_steps=32,
+            n_steps=train_param['n_env'],
             ent_coef=0.001,
             verbose=1,
             tensorboard_log=tensorboard_log,
