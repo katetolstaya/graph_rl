@@ -30,64 +30,64 @@ def train_param_string(p):
 def env_param_string(p):
     """Return identifier string for PDefenseEnv environment parameter dict."""
     return 'na_{na}_rc_{rc}'.format(
-        na=p['max_n_agents'],
-        rc=p['capture_r'])
+        na=p['n_max_agents'],
+        rc=p['r_capture'])
 
 jobs = [] # string name, policy class, policy_kwargs
 
 # MLP for fixed size games with separate pi/vf layers.
-jobs.append({
-    'name':'mymlp',
-    'policy':gnn_policies.MyMlpPolicy,
-    'policy_kwargs':{}
-    })
+j = {}
+j['policy'] = gnn_policies.MyMlpPolicy
+j['policy_param'] = {}
+j['name'] = 'mymlp'
+jobs.append(j)
 
 # Replicates MyMlpPolicy with separate pi/vf layers.
-jobs.append({
-    'name':'onenode',
-    'policy':gnn_policies.OneNodePolicy,
-    'policy_kwargs':{}
-    })
+j = {}
+j['policy'] = gnn_policies.OneNodePolicy
+j['policy_param'] = {}
+j['name'] = 'onenode'
+jobs.append(j)
 
-# Replicates MyMlpPolicy with shared pi/vf layers in special case of 1v1 games.
-jobs.append({
-    'name':'gnncoord_in__ag_64-64_pi__vfl__vfg_',
-    'policy':gnn_policies.GnnCoord,
-    'policy_kwargs':{
-        'input_feat_layers':(),
-        'feat_agg_layers':(64,64),
-        'pi_head_layers':(),
-        'vf_local_head_layers':(),
-        'vf_global_head_layers':()}
-    })
+# In the special case of 1v1 games, replicates MyMlpPolicy with shared pi/vf layers.
+j = {}
+j['policy'] = gnn_policies.GnnCoord
+j['policy_param'] = {
+    'input_feat_layers':    (),
+    'feat_agg_layers':      (64,64),
+    'pi_head_layers':       (),
+    'vf_local_head_layers': (),
+    'vf_global_head_layers':()}
+j['name'] = policy_param_string(j['policy_param'])
+jobs.append(j)
 
-# Replicates MyMlpPolicy with separate pi/vf layers in special case of 1v1 games.
-jobs.append({
-    'name':'gnncoord_in__ag__pi_64-64_vfl_64-64_vfg_',
-    'policy':gnn_policies.GnnCoord,
-    'policy_kwargs':{
-        'input_feat_layers':(),
-        'feat_agg_layers':(),
-        'pi_head_layers':(64,64),
-        'vf_local_head_layers':(64,64),
-        'vf_global_head_layers':()}
-    })
+# In the special case of 1v1 games, replicates MyMlpPolicy with separate pi/vf layers.
+j = {}
+j['policy'] = gnn_policies.GnnCoord
+j['policy_param'] = {
+    'input_feat_layers':    (),
+    'feat_agg_layers':      (),
+    'pi_head_layers':       (64,64),
+    'vf_local_head_layers': (64,64),
+    'vf_global_head_layers':()}
+j['name'] = policy_param_string(j['policy_param'])
+jobs.append(j)
 
-# jobs.append({
-#     'name':'gnncoord_in_64-64_ag_64-64_pi__vfl__vfg_',
-#     'policy':gnn_policies.GnnCoord,
-#     'policy_kwargs':{
-#         'input_feat_layers':(64,64),
-#         'feat_agg_layers':(64,64),
-#         'pi_head_layers':(),
-#         'vf_local_head_layers':(),
-#         'vf_global_head_layers':()}
-#     })
-
+# Input feature processing with all parameters shared.
+j = {}
+j['policy'] = gnn_policies.GnnCoord
+j['policy_param'] = {
+    'input_feat_layers':    (64,64),
+    'feat_agg_layers':      (64,64),
+    'pi_head_layers':       (),
+    'vf_local_head_layers': (),
+    'vf_global_head_layers':()}
+j['name'] = policy_param_string(j['policy_param'])
+jobs.append(j)
 
 env_param = {
-    'max_n_agents':3,
-    'capture_r':   0.5
+    'n_max_agents':3,
+    'r_capture':   1.0
 }
 
 train_param = {
@@ -95,25 +95,27 @@ train_param = {
     'n_steps':32
 }
 
-
-
 for j in jobs:
 
     # Single process version.
-    # env = DummyVecEnv([lambda: PDefenseEnv(n_max_agents=env_param['max_n_agents']) for _ in range(train_param['n_env'])])
+    # env = DummyVecEnv([lambda: PDefenseEnv(
+    #     n_max_agents=env_param['n_max_agents'],
+    #     r_capture=env_param['r_capture']) for _ in range(train_param['n_env'])])
 
     # Multi process version.
-    env = SubprocVecEnv([lambda: PDefenseEnv(n_max_agents=env_param['max_n_agents']) for _ in range(train_param['n_env'])])
+    env = SubprocVecEnv([lambda: PDefenseEnv(
+        n_max_agents=env_param['n_max_agents'],
+        r_capture=env_param['r_capture']) for _ in range(train_param['n_env'])])
 
-    folder = 'agents_3_steps_32_replicate'
+    folder = 'test/' + env_param_string(env_param) + '_' + train_param_string(train_param)
     pkl_file = folder + '/' + j['name'] + '.pkl'
-    tensorboard_log = './' + folder + '/' + j['name'] + '_tb/'
+    tensorboard_log = './' + folder + '/' + j['name']
 
     if not os.path.exists(pkl_file):
         print('Creating new model ' + pkl_file + '.')
         model = A2C(
             policy=j['policy'],
-            policy_kwargs=j['policy_kwargs'],
+            policy_kwargs=j['policy_param'],
             env=env,
             n_steps=train_param['n_env'],
             ent_coef=0.001,
@@ -127,7 +129,7 @@ for j in jobs:
 
     print('Learning...')
     model.learn(
-        total_timesteps=30000000,
+        total_timesteps=1000000,
         log_interval = 500,
         reset_num_timesteps=False)
     print('Saving model...')
