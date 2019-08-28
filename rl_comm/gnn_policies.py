@@ -10,8 +10,16 @@ import tensorflow as tf
 import sonnet as snt
 from graph_nets import graphs, modules, blocks
 
-
-
+def mlp_model_fn(layers, default, activate_final):
+    """
+    Return model_fn for mlp, or default if len(layers) == 0. Typical
+    defaults are None or lambda: tf.identity.
+    """
+    if len(layers) != 0:
+        model_fn=lambda: snt.nets.MLP(layers, activate_final=activate_final)
+    else:
+        model_fn=default
+    return model_fn
 
 class MyMlpPolicy(ActorCriticPolicy):
     """
@@ -267,23 +275,15 @@ class GnnCoord(ActorCriticPolicy):
         with tf.variable_scope("model", reuse=reuse):
 
             # Independently transform all input features.
-            model_fn = None
-            if len(input_feat_layers) != 0:
-                model_fn=lambda: snt.nets.MLP(input_feat_layers, activate_final=True)
             input_feat = modules.GraphIndependent(
-                edge_model_fn=model_fn,
-                node_model_fn=model_fn,
+                edge_model_fn=mlp_model_fn(input_feat_layers, default=None, activate_final=True),
+                node_model_fn=mlp_model_fn(input_feat_layers, default=None, activate_final=True),
                 name='input_feat'
                 )
 
             # Aggregate local features.
-            model_fn = None
-            if len(feat_agg_layers) != 0:
-                model_fn=lambda: snt.nets.MLP(feat_agg_layers, activate_final=True)
-            else:
-                model_fn=lambda: tf.identity
             feat_agg = blocks.NodeBlock(
-                node_model_fn=model_fn,
+                node_model_fn=mlp_model_fn(feat_agg_layers, default=lambda: tf.identity, activate_final=True),
                 use_received_edges=True,
                 use_sent_edges=False,
                 use_nodes=True,
@@ -298,11 +298,8 @@ class GnnCoord(ActorCriticPolicy):
                 )
 
             # Local latent value.
-            model_fn = None
-            if len(vf_local_head_layers) != 0:
-                model_fn=lambda: snt.nets.MLP(vf_local_head_layers, activate_final=True)
             vf_latent_mlp = modules.GraphIndependent(
-                node_model_fn=model_fn,
+                node_model_fn=mlp_model_fn(vf_local_head_layers, default=None, activate_final=True),
                 name='vf_latent_mlp'
                 )
 
