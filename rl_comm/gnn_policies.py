@@ -328,9 +328,9 @@ class GnnCoord(ActorCriticPolicy):
             self._value_fn = vf_state_g.globals
             self.q_value   = tf.reshape(vf_action_g.nodes, (B, N*2))
             # Policy.
-            with tf.control_dependencies([print_obs_g]):
-                self._policy = tf.reshape(pi_g.nodes, (B, N*2))
-                self._proba_distribution = self.pdtype.proba_distribution_from_flat(self._policy)
+            # with tf.control_dependencies([print_obs_g]):
+            self._policy = tf.reshape(pi_g.nodes, (B, N*2))
+            self._proba_distribution = self.pdtype.proba_distribution_from_flat(self._policy)
 
         self._setup_init()
 

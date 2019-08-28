@@ -16,3 +16,15 @@ Implement variable agent/target numbers to help debugging. See how one agent per
 
 2019-08-27, Tuesday
 
+What are the state_value and action_value actually being used for?
+-- action_value is not used by A2C.
+
+Is the GPU being used?
+
+How should I feel about the three different losses?
+
+How is the value loss defined? How big should it be?
+
+What the the discounted rewards (and real rewards)? Why can the GNN sometimes get discounted rewards higher than the actual rewards?
+
+Determined that 'receivers' is not being filled correctly for batches > 1, and possibly for game sizes > 2.
