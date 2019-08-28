@@ -1,7 +1,5 @@
 import os.path
-import multiprocessing
 
-import gym
 from stable_baselines.common.vec_env import SubprocVecEnv, DummyVecEnv
 from stable_baselines import A2C
 
@@ -86,8 +84,8 @@ j['name'] = policy_param_string(j['policy_param'])
 jobs.append(j)
 
 env_param = {
-    'n_max_agents':3,
-    'r_capture':   1.0
+    'n_max_agents':1,
+    'r_capture':   0.1
 }
 
 train_param = {
@@ -129,7 +127,7 @@ for j in jobs:
 
     print('Learning...')
     model.learn(
-        total_timesteps=1000000,
+        total_timesteps=10000000,
         log_interval = 500,
         reset_num_timesteps=False)
     print('Saving model...')
