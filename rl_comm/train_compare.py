@@ -8,6 +8,31 @@ from stable_baselines import A2C
 from gym_pdefense.envs.pdefense_env import PDefenseEnv
 import gnn_policies
 
+def layers_string(layers):
+    return '-'.join(str(l) for l in layers)
+
+def policy_param_string(p):
+    """Return identifier string for GnnCoord policy parameter dict."""
+    return 'gnncoord_in_{inf}_ag_{ag}_pi_{pi}_vfl_{vfl}_vfg_{vfg}'.format(
+        inf=layers_string(p['input_feat_layers']),
+        ag= layers_string(p['feat_agg_layers']),
+        pi= layers_string(p['pi_head_layers']),
+        vfl=layers_string(p['vf_local_head_layers']),
+        vfg=layers_string(p['vf_global_head_layers'])
+        )
+
+def train_param_string(p):
+    """Return identifier string for A2C training parameter dict."""
+    return 'ne_{ne}_ns_{ns}'.format(
+        ne=p['n_env'],
+        ns=p['n_steps'])
+
+def env_param_string(p):
+    """Return identifier string for PDefenseEnv environment parameter dict."""
+    return 'na_{na}_rc_{rc}'.format(
+        na=p['max_n_agents'],
+        rc=p['capture_r'])
+
 jobs = [] # string name, policy class, policy_kwargs
 
 # MLP for fixed size games with separate pi/vf layers.
@@ -60,11 +85,17 @@ jobs.append({
 #     })
 
 
-env_param = {'max_n_agents':3}
-train_param = {'n_env':16, 'n_steps':32}
+env_param = {
+    'max_n_agents':3,
+    'capture_r':   0.5
+}
 
-# def train_param_string(train_param):
-#     'ne_{}_ns_{}'.format(train_param['n_env'], train_param['n_steps'])
+train_param = {
+    'n_env':16,
+    'n_steps':32
+}
+
+
 
 for j in jobs:
 

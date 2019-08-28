@@ -44,3 +44,6 @@ Need to fix training steps in TensorBoard.
 Interested in:
   episode reward
   episode length
+
+Conclusions:
+    SubprocVecEnv vs. DummyVecEnv doesn't make much different on the laptop.
