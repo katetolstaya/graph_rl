@@ -236,7 +236,11 @@ class GnnCoord(ActorCriticPolicy):
 
         # Identify dense edge data and receiver and node data.
         edges     = tf.reshape(obs_edge_data, (-1, WO))
-        receivers = tf.reshape(tf.tile(tf.reshape(tf.range(N),(1,-1,1)), (B,1,M)), (-1,))
+        receivers = tf.reshape( # receiver index of entry obs_adj[b][n][m] is N*b + n.
+                        tf.tile(tf.reshape(N*tf.range(B),(-1,1,1)), (1,N,M)) + \
+                        tf.tile(tf.reshape(tf.range(N),(1,-1,1)), (B,1,M)),
+                        (-1,)
+                    )
         nodes = tf.reshape(agent_node_data, (-1, WA))
 
         # Sparse edge data and receiver.
@@ -245,7 +249,7 @@ class GnnCoord(ActorCriticPolicy):
         receivers = tf.boolean_mask(receivers, edge_mask)
 
         # Count nodes and edges.
-        n_node = tf.fill((B,), obs_adj.shape[1])
+        n_node = tf.fill((B,), N)
         n_edge = tf.reduce_sum(tf.reduce_sum(obs_adj, -1), -1)
 
         obs_g = graphs.GraphsTuple(
