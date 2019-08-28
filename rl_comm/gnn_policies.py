@@ -214,7 +214,9 @@ class GnnCoord(ActorCriticPolicy):
         w_target=2,
         w_obs=2,
         input_feat_layers=(64,64),
-        feat_agg_layers=(64,64)):
+        feat_agg_layers=(64,64),
+        pi_head_layers=(),
+        vf_head_layers=()):
 
         super(GnnCoord, self).__init__(sess, ob_space, ac_space, n_env, n_steps, n_batch, reuse,
                                                 scale=False)
@@ -255,9 +257,11 @@ class GnnCoord(ActorCriticPolicy):
             n_node=n_node,
             n_edge=n_edge)
 
+        print_obs_g = tf.print(obs_g)
+
         with tf.variable_scope("model", reuse=reuse):
 
-            # Transform independent environment input features.
+            # Independently transform all input features.
             model_fn = None
             if len(input_feat_layers) != 0:
                 model_fn=lambda: snt.nets.MLP(input_feat_layers, activate_final=True)
@@ -268,8 +272,13 @@ class GnnCoord(ActorCriticPolicy):
                 )
 
             # Aggregate local features.
+            model_fn = None
+            if len(feat_agg_layers) != 0:
+                model_fn=lambda: snt.nets.MLP(feat_agg_layers, activate_final=True)
+            else:
+                model_fn=lambda: tf.identity
             feat_agg = blocks.NodeBlock(
-                node_model_fn=lambda: snt.nets.MLP(feat_agg_layers, activate_final=True),
+                node_model_fn=model_fn,
                 use_received_edges=True,
                 use_sent_edges=False,
                 use_nodes=True,
@@ -277,25 +286,26 @@ class GnnCoord(ActorCriticPolicy):
                 received_edges_reducer=tf.unsorted_segment_sum,
                 name="feat_agg")
 
-            # Local policy outputs.
-            pi_mlp = blocks.NodeBlock(
-                # node_model_fn=lambda: snt.nets.MLP((2,), activate_final=False),
-                node_model_fn=lambda: snt.Linear(output_size=2),
-                use_received_edges=True,
-                use_sent_edges=False,
-                use_nodes=True,
-                use_globals=False,
-                received_edges_reducer=tf.unsorted_segment_sum,
-                name="pi_mlp")
+            # Local policy output.
+            pi_mlp = modules.GraphIndependent(
+                node_model_fn=lambda: snt.nets.MLP(pi_head_layers + (2,), activate_final=False),
+                name='pi_mlp'
+                )
+
+            # Local latent value.
+            model_fn = None
+            if len(vf_head_layers) != 0:
+                model_fn=lambda: snt.nets.MLP(vf_head_layers, activate_final=True)
+            vf_latent_mlp = modules.GraphIndependent(
+                node_model_fn=model_fn,
+                name='vf_latent_mlp'
+                )
 
             # Local action value output. Not needed by A2C.
-            vf_action_mlp = blocks.NodeBlock(
+            vf_action_mlp = modules.GraphIndependent(
                 node_model_fn=lambda: snt.Linear(output_size=2),
-                use_received_edges=False,
-                use_sent_edges=False,
-                use_nodes=True,
-                use_globals=False,
-                name='vf_action_mlp')
+                name='vf_action_mlp'
+                )
 
             # Global state value output.
             vf_state_agg = blocks.GlobalBlock(
@@ -307,15 +317,16 @@ class GnnCoord(ActorCriticPolicy):
 
             latent_g = feat_agg(input_feat(obs_g))
             pi_g = pi_mlp(latent_g)
-            vf_action_g = vf_action_mlp(latent_g)
-            vf_state_g = vf_state_agg(latent_g)
+            vf_action_g = vf_action_mlp(vf_latent_mlp(latent_g))
+            vf_state_g = vf_state_agg(vf_latent_mlp(latent_g))
 
             # Value.
             self._value_fn = vf_state_g.globals
             self.q_value   = tf.reshape(vf_action_g.nodes, (B, N*2))
             # Policy.
-            self._policy = tf.reshape(pi_g.nodes, (B, N*2))
-            self._proba_distribution = self.pdtype.proba_distribution_from_flat(self._policy)
+            with tf.control_dependencies([print_obs_g]):
+                self._policy = tf.reshape(pi_g.nodes, (B, N*2))
+                self._proba_distribution = self.pdtype.proba_distribution_from_flat(self._policy)
 
         self._setup_init()
 

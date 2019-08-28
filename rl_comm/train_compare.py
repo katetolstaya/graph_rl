@@ -22,20 +22,34 @@ jobs.append({
     'policy_kwargs':{}
     })
 
-jobs.append({
-    'name':'gnncoord_input_64-64_agg_64-64',
-    'policy':gnn_policies.GnnCoord,
-    'policy_kwargs':{
-        'input_feat_layers':(64,64),
-        'feat_agg_layers':(64,64)}
-    })
+# jobs.append({
+#     'name':'gnncoord_in_64-64_ag_64-64_pi__vf__',
+#     'policy':gnn_policies.GnnCoord,
+#     'policy_kwargs':{
+#         'input_feat_layers':(64,64),
+#         'feat_agg_layers':(64,64),
+#         'pi_head_layers':(),
+#         'vf_head_layers':()}
+#     })
+
+# jobs.append({
+#     'name':'gnncoord_in__ag_64-64_pi__vf__',
+#     'policy':gnn_policies.GnnCoord,
+#     'policy_kwargs':{
+#         'input_feat_layers':(),
+#         'feat_agg_layers':(64,64),
+#         'pi_head_layers':(),
+#         'vf_head_layers':()}
+#     })
 
 jobs.append({
-    'name':'gnncoord_input__agg_64-64',
+    'name':'gnncoord_in__ag__pi_64-64_vf_64-64',
     'policy':gnn_policies.GnnCoord,
     'policy_kwargs':{
         'input_feat_layers':(),
-        'feat_agg_layers':(64,64)}
+        'feat_agg_layers':(),
+        'pi_head_layers':(64,64),
+        'vf_head_layers':(64,64)}
     })
 
 
@@ -44,7 +58,7 @@ for j in jobs:
     n_env = 16
     env = SubprocVecEnv([lambda: PDefenseEnv(n_max_agents=2) for i in range(n_env)])
 
-    folder = 'agents_1_steps_32'
+    folder = 'agents_1_steps_32_repeat_a'
     pkl_file = folder + '/' + j['name'] + '.pkl'
     tensorboard_log = './' + folder + '/' + j['name'] + '_tb/'
 
