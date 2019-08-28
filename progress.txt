@@ -1,12 +1,12 @@
-2019-08-14, Wednesday
+*** 2019-08-14, Wednesday
 
 A vanilla MLP on 2v2 has a mean score of ~1. It performs poorly likely because it doesn't know which targets and agents are dead.
 
-2019-08-15, Thursday
+*** 2019-08-15, Thursday
 
 A vanilla MLP on 2v2, 16 steps has a mean score of ~1.15 with dead agents and targets masked at zero.
 
-2019-08-26, Monday
+*** 2019-08-26, Monday
 
 Caught a bug that was definitely stopping the GNN policies from training properly. The one node GNN test works and performs about as well as a vanilla MLP, but the first cut of a true GNN seriously underperforms.  Is there a flaw? Is the problem the "doesn't matter" actions?  Should the value vs policy graphs be more specialized?  Should I try a different training method?
 
@@ -14,10 +14,10 @@ I should really address the problem of number of time steps not incrementing, an
 
 Implement variable agent/target numbers to help debugging. See how one agent performs.
 
-2019-08-27, Tuesday
+*** 2019-08-27, Tuesday
 
 What are the state_value and action_value actually being used for?
--- action_value is not used by A2C.
+-- The action_value is not used by A2C.
 
 Is the GPU being used?
 
@@ -26,5 +26,21 @@ How should I feel about the three different losses?
 How is the value loss defined? How big should it be?
 
 What the the discounted rewards (and real rewards)? Why can the GNN sometimes get discounted rewards higher than the actual rewards?
+-- I think the discounted rewards logged in TensorBoard are based on the estimated reward, not the true reward.
 
-Determined that 'receivers' is not being filled correctly for batches > 1, and possibly for game sizes > 2.
+Determined that 'receivers' is not being filled correctly for batches > 1, and possibly for game sizes > 2. It looks like I've fixed this, and training is now stable.  All flavors of MLP / OneNode / GnnCoord joint and separate get about the same results after 30M steps, and haven't converged before then (reward 0.4).
+
+
+*** 2019-08-28, Wednesday
+
+Need to standardize record keeping for policies/simulations/test results.
+Need to implement test reward during training.
+Need to implement offline test evaluation.
+Need to implement expert policy for score comparisons.
+Need to implement game parameterization.
+Need to implement randomized game sizes.
+Need to fix training steps in TensorBoard.
+
+Interested in:
+  episode reward
+  episode length

@@ -216,7 +216,8 @@ class GnnCoord(ActorCriticPolicy):
         input_feat_layers=(64,64),
         feat_agg_layers=(64,64),
         pi_head_layers=(),
-        vf_head_layers=()):
+        vf_local_head_layers=(),
+        vf_global_head_layers=()):
 
         super(GnnCoord, self).__init__(sess, ob_space, ac_space, n_env, n_steps, n_batch, reuse,
                                                 scale=False)
@@ -298,8 +299,8 @@ class GnnCoord(ActorCriticPolicy):
 
             # Local latent value.
             model_fn = None
-            if len(vf_head_layers) != 0:
-                model_fn=lambda: snt.nets.MLP(vf_head_layers, activate_final=True)
+            if len(vf_local_head_layers) != 0:
+                model_fn=lambda: snt.nets.MLP(vf_local_head_layers, activate_final=True)
             vf_latent_mlp = modules.GraphIndependent(
                 node_model_fn=model_fn,
                 name='vf_latent_mlp'
@@ -313,7 +314,7 @@ class GnnCoord(ActorCriticPolicy):
 
             # Global state value output.
             vf_state_agg = blocks.GlobalBlock(
-                global_model_fn=lambda: snt.Linear(output_size=1),
+                global_model_fn=lambda: snt.nets.MLP(vf_global_head_layers + (1,), activate_final=False),
                 use_nodes=True,
                 use_edges=False,
                 use_globals=False,
