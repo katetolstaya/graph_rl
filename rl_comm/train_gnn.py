@@ -81,17 +81,49 @@ j['policy_param'] = {
 j['name'] = j['policy'].policy_param_string(j['policy_param'])
 jobs.append(j)
 
+# Miniature ICRA 2018 with msg_size = 8.
+j = {}
+j['policy'] = gnn_fwd.GnnFwd
+j['policy_param'] = {
+    'input_feat_layers':    (64,64),
+    'feat_agg_layers':      (),
+    'msg_enc_layers':       (64,64),
+    'msg_size':             8,
+    'msg_dec_layers':       (64,64),
+    'msg_agg_layers':       (64,64),
+    'pi_head_layers':       (),
+    'vf_local_head_layers': (),
+    'vf_global_head_layers':()}
+j['name'] = j['policy'].policy_param_string(j['policy_param'])
+jobs.append(j)
+
+# Miniature ICRA 2018 with msg_size = 0.
+j = {}
+j['policy'] = gnn_fwd.GnnFwd
+j['policy_param'] = {
+    'input_feat_layers':    (64,64),
+    'feat_agg_layers':      (),
+    'msg_enc_layers':       (64,64),
+    'msg_size':             0,
+    'msg_dec_layers':       (64,64),
+    'msg_agg_layers':       (64,64),
+    'pi_head_layers':       (),
+    'vf_local_head_layers': (),
+    'vf_global_head_layers':()}
+j['name'] = j['policy'].policy_param_string(j['policy_param'])
+jobs.append(j)
+
 env_param = {
     'n_max_agents':3,
     'r_capture':   0.5
 }
 
 train_param = {
-    'n_env':16,
+    'n_env':32,
     'n_steps':32
 }
 
-root = 'models/2019-08-28'
+root = 'models/2019-08-29'
 
 for j in jobs:
 
@@ -110,7 +142,7 @@ for j in jobs:
             policy=j['policy'],
             policy_kwargs=j['policy_param'],
             env=env,
-            n_steps=train_param['n_env'],
+            n_steps=train_param['n_steps'],
             ent_coef=0.001,
             verbose=1,
             tensorboard_log=tensorboard_log,

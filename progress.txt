@@ -52,69 +52,47 @@ Conclusions:
 Observations:
     r_capture=0.1 is awfully small, but not totally impossible for n=1. Had very little luck with n=4.
 
-The model has a problem:
+*** 2019-08-29, Thursday
 
-gnnfwd_in_64-64_ag_64-64_enc__msg_0_dec_64_ag_64_pi__vfl__vfg_.pkl
+* DummyVec is slow.
+* Increasing the number of steps doesn't much affect GPU use efficiency.
+* Increasing the number of environments (even naively) improved GPU efficiency.
 
-Traceback (most recent call last):                                                                                              [48/1861]
-  File "train_gnn.py", line 117, in <module>
-    full_tensorboard_log=False)
-  File "/home/jpaulos/venv/rl_comm/lib/python3.6/site-packages/stable_baselines/a2c/a2c.py", line 86, in __init__
-    self.setup_model()
-  File "/home/jpaulos/venv/rl_comm/lib/python3.6/site-packages/stable_baselines/a2c/a2c.py", line 113, in setup_model
-    n_batch_step, reuse=False, **self.policy_kwargs)
-  File "/home/jpaulos/code/mrsl/communication/local_code/rl_comm/rl_comm/gnn_fwd.py", line 186, in __init__
-    latent_g = msg_agg(msg_dec(msg_g))
-  File "/home/jpaulos/venv/rl_comm/lib/python3.6/site-packages/sonnet/python/modules/base.py", line 396, in __call__
-    return self._call(*args, **kwargs)
-  File "/home/jpaulos/venv/rl_comm/lib/python3.6/site-packages/sonnet/python/modules/base.py", line 418, in _call
-    outputs, subgraph_name_scope = self._template(*args, **kwargs)
-  File "/home/jpaulos/venv/rl_comm/lib/python3.6/site-packages/tensorflow/python/ops/template.py", line 384, in __call__
-    return self._call_func(args, kwargs)
-  File "/home/jpaulos/venv/rl_comm/lib/python3.6/site-packages/tensorflow/python/ops/template.py", line 354, in _call_func
-    result = self._func(*args, **kwargs)
-  File "/home/jpaulos/venv/rl_comm/lib/python3.6/site-packages/sonnet/python/modules/base.py", line 226, in _build_wrapper
-    output = self._build(*args, **kwargs)
-  File "/home/jpaulos/venv/rl_comm/lib/python3.6/site-packages/graph_nets/modules.py", line 366, in _build
-    edges=self._edge_model(graph.edges),
-  File "/home/jpaulos/venv/rl_comm/lib/python3.6/site-packages/sonnet/python/modules/base.py", line 396, in __call__
-    return self._call(*args, **kwargs)
-  File "/home/jpaulos/venv/rl_comm/lib/python3.6/site-packages/sonnet/python/modules/base.py", line 418, in _call
-    outputs, subgraph_name_scope = self._template(*args, **kwargs)
-  File "/home/jpaulos/venv/rl_comm/lib/python3.6/site-packages/tensorflow/python/ops/template.py", line 384, in __call__
-    return self._call_func(args, kwargs)
-  File "/home/jpaulos/venv/rl_comm/lib/python3.6/site-packages/tensorflow/python/ops/template.py", line 354, in _call_func
-    result = self._func(*args, **kwargs)
-  File "/home/jpaulos/venv/rl_comm/lib/python3.6/site-packages/sonnet/python/modules/base.py", line 226, in _build_wrapper
-    output = self._build(*args, **kwargs)
-  File "/home/jpaulos/venv/rl_comm/lib/python3.6/site-packages/sonnet/python/modules/base.py", line 831, in _build
-    return self._build_function(*args, **kwargs)
-  File "/home/jpaulos/venv/rl_comm/lib/python3.6/site-packages/graph_nets/modules.py", line 342, in <lambda>
-    lambda x: edge_model_fn()(x), name="edge_model")  # pylint: disable=unnecessary-lambda
-  File "/home/jpaulos/venv/rl_comm/lib/python3.6/site-packages/sonnet/python/modules/base.py", line 396, in __call__
-    return self._call(*args, **kwargs)
-  File "/home/jpaulos/venv/rl_comm/lib/python3.6/site-packages/sonnet/python/modules/base.py", line 418, in _call
-    outputs, subgraph_name_scope = self._template(*args, **kwargs)
-  File "/home/jpaulos/venv/rl_comm/lib/python3.6/site-packages/tensorflow/python/ops/template.py", line 384, in __call__
-    return self._call_func(args, kwargs)
-  File "/home/jpaulos/venv/rl_comm/lib/python3.6/site-packages/tensorflow/python/ops/template.py", line 354, in _call_func
-    result = self._func(*args, **kwargs)
-  File "/home/jpaulos/venv/rl_comm/lib/python3.6/site-packages/sonnet/python/modules/base.py", line 226, in _build_wrapper
-    output = self._build(*args, **kwargs)
-  File "/home/jpaulos/venv/rl_comm/lib/python3.6/site-packages/sonnet/python/modules/nets/mlp.py", line 162, in _build
-    net = self._layers[layer_id](net)
-  File "/home/jpaulos/venv/rl_comm/lib/python3.6/site-packages/sonnet/python/modules/base.py", line 396, in __call__
-    return self._call(*args, **kwargs)
-  File "/home/jpaulos/venv/rl_comm/lib/python3.6/site-packages/sonnet/python/modules/base.py", line 418, in _call
-    outputs, subgraph_name_scope = self._template(*args, **kwargs)
-  File "/home/jpaulos/venv/rl_comm/lib/python3.6/site-packages/tensorflow/python/ops/template.py", line 384, in __call__
-    return self._call_func(args, kwargs)
-  File "/home/jpaulos/venv/rl_comm/lib/python3.6/site-packages/tensorflow/python/ops/template.py", line 354, in _call_func
-    result = self._func(*args, **kwargs)
-  File "/home/jpaulos/venv/rl_comm/lib/python3.6/site-packages/sonnet/python/modules/base.py", line 226, in _build_wrapper
-    output = self._build(*args, **kwargs)
-  File "/home/jpaulos/venv/rl_comm/lib/python3.6/site-packages/sonnet/python/modules/basic.py", line 240, in _build
-    dtype)
-  File "/home/jpaulos/venv/rl_comm/lib/python3.6/site-packages/sonnet/python/modules/basic.py", line 125, in create_linear_initializer
-    stddev = 1 / math.sqrt(input_size)
-ZeroDivisionError: float division by zero
+Throughput testing with this model:
+
+# Miniature ICRA 2018 with msg_size = 8.
+j = {}
+j['policy'] = gnn_fwd.GnnFwd
+j['policy_param'] = {
+    'input_feat_layers':    (64,64),
+    'feat_agg_layers':      (),
+    'msg_enc_layers':       (64,64),
+    'msg_size':             8,
+    'msg_dec_layers':       (64,64),
+    'msg_agg_layers':       (64,64),
+    'pi_head_layers':       (),
+    'vf_local_head_layers': (),
+    'vf_global_head_layers':()}
+j['name'] = j['policy'].policy_param_string(j['policy_param'])
+jobs.append(j)
+
+>> n_env = 16
+
+n_steps, S-fps
+8,  4200
+16, 4640
+32, 4500
+64, 4900
+
+Varying n_steps doesn't much affect throughput.
+
+>> n_steps = 32
+
+n_env, S-fps, D-fps
+8,   2750
+16,  4640
+32,  6150
+64,  6600
+128, 8300
+
+Increasing n_env increased throughput, even past n_cpu
