@@ -1,3 +1,5 @@
+import warnings
+
 import numpy as np
 import sonnet as snt
 import tensorflow as tf
@@ -32,12 +34,9 @@ class GnnFwd(ActorCriticPolicy):
     :param n_steps: (int) The number of steps to run for each environment
     :param n_batch: (int) The number of batch to run (n_envs * n_steps)
     :param reuse: (bool) If the policy is reusable or not
-    :param net_arch: (list) Specification of the actor-critic policy network architecture (see mlp_extractor
-        documentation for details).
     """
 
     def __init__(self, sess, ob_space, ac_space, n_env, n_steps, n_batch, reuse=False,
-        net_arch=[dict(vf=[64,64], pi=[64,64])],
         w_agent=1,
         w_target=2,
         w_obs=2,
@@ -53,6 +52,12 @@ class GnnFwd(ActorCriticPolicy):
 
         super(GnnFwd, self).__init__(sess, ob_space, ac_space, n_env, n_steps, n_batch, reuse,
                                                 scale=False)
+
+        # Argument consistency checking.
+        if msg_size == 0:
+            msg_dec_layers = ()
+            warnings.warn("Overriding msg_dec_layers; decoding is disabled because msg_size = 0.")
+
         n_agents = ac_space.nvec.size
         n_targets = (np.prod(ob_space.shape) - n_agents**2 - n_agents*w_agent) // (n_agents + w_target + n_agents*w_obs)
         assert np.prod(ob_space.shape) == n_agents**2 + n_agents*w_agent + n_agents*n_targets + n_targets*w_target + n_agents*n_targets*w_obs, 'Broken game size computation.'
@@ -219,6 +224,10 @@ class GnnFwd(ActorCriticPolicy):
     @staticmethod
     def policy_param_string(p):
         """Return identifier string for policy parameter dict."""
+
+        if p['msg_size'] == 0:
+            p['msg_dec_layers'] = ()
+
         return 'gnnfwd_in_{inf}_ag_{oag}_enc_{enc}_msg_{msg}_dec_{dec}_ag_{mag}_pi_{pi}_vfl_{vfl}_vfg_{vfg}'.format(
             inf=layers_string(p['input_feat_layers']),
             oag=layers_string(p['feat_agg_layers']),
