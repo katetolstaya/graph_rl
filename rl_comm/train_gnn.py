@@ -49,6 +49,38 @@ j['policy_param'] = {
 j['name'] = j['policy'].policy_param_string(j['policy_param'])
 jobs.append(j)
 
+# Input feature processing with all parameters shared, msg_size = 0.
+j = {}
+j['policy'] = gnn_fwd.GnnFwd
+j['policy_param'] = {
+    'input_feat_layers':    (64,64),
+    'feat_agg_layers':      (64,64),
+    'msg_enc_layers':       (),
+    'msg_size':             0,
+    'msg_dec_layers':       (64,),
+    'msg_agg_layers':       (64,),
+    'pi_head_layers':       (),
+    'vf_local_head_layers': (),
+    'vf_global_head_layers':()}
+j['name'] = j['policy'].policy_param_string(j['policy_param'])
+jobs.append(j)
+
+# Input feature processing with all parameters shared, msg_size = 8.
+j = {}
+j['policy'] = gnn_fwd.GnnFwd
+j['policy_param'] = {
+    'input_feat_layers':    (64,64),
+    'feat_agg_layers':      (64,64),
+    'msg_enc_layers':       (),
+    'msg_size':             8,
+    'msg_dec_layers':       (64,),
+    'msg_agg_layers':       (64,),
+    'pi_head_layers':       (),
+    'vf_local_head_layers': (),
+    'vf_global_head_layers':()}
+j['name'] = j['policy'].policy_param_string(j['policy_param'])
+jobs.append(j)
+
 env_param = {
     'n_max_agents':3,
     'r_capture':   0.5
@@ -59,7 +91,7 @@ train_param = {
     'n_steps':32
 }
 
-root = 'debug'
+root = 'models/2019-08-28'
 
 for j in jobs:
 
@@ -90,7 +122,7 @@ for j in jobs:
 
     print('Learning...')
     model.learn(
-        total_timesteps=10000000,
+        total_timesteps=30000000,
         log_interval = 500,
         reset_num_timesteps=False)
     print('Saving model...')
