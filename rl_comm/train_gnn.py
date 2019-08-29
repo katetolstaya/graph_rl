@@ -4,20 +4,8 @@ from stable_baselines.common.vec_env import SubprocVecEnv, DummyVecEnv
 from stable_baselines import A2C
 
 from gym_pdefense.envs.pdefense_env import PDefenseEnv
-import gnn_policies
-
-def layers_string(layers):
-    return '-'.join(str(l) for l in layers)
-
-def policy_param_string(p):
-    """Return identifier string for GnnCoord policy parameter dict."""
-    return 'gnncoord_in_{inf}_ag_{ag}_pi_{pi}_vfl_{vfl}_vfg_{vfg}'.format(
-        inf=layers_string(p['input_feat_layers']),
-        ag= layers_string(p['feat_agg_layers']),
-        pi= layers_string(p['pi_head_layers']),
-        vfl=layers_string(p['vf_local_head_layers']),
-        vfg=layers_string(p['vf_global_head_layers'])
-        )
+import gnn_obs
+import gnn_fwd
 
 def train_param_string(p):
     """Return identifier string for A2C training parameter dict."""
@@ -33,21 +21,37 @@ def env_param_string(p):
 
 jobs = [] # string name, policy class, policy_kwargs
 
-# Input feature processing with all parameters shared.
+# Input feature processing with all parameters shared, no messages.
 j = {}
-j['policy'] = gnn_policies.GnnCoord
+j['policy'] = gnn_obs.GnnObs
 j['policy_param'] = {
     'input_feat_layers':    (64,64),
-    'feat_agg_layers':      (),
-    'pi_head_layers':       (64,64),
-    'vf_local_head_layers': (64,64),
+    'feat_agg_layers':      (64,64),
+    'pi_head_layers':       (),
+    'vf_local_head_layers': (),
     'vf_global_head_layers':()}
-j['name'] = policy_param_string(j['policy_param'])
+j['name'] = j['policy'].policy_param_string(j['policy_param'])
+jobs.append(j)
+
+# Input feature processing with all parameters shared, msg_size = 0.
+j = {}
+j['policy'] = gnn_fwd.GnnFwd
+j['policy_param'] = {
+    'input_feat_layers':    (64,64),
+    'feat_agg_layers':      (64,64),
+    'msg_enc_layers':       (),
+    'msg_size':             0,
+    'msg_dec_layers':       (),
+    'msg_agg_layers':       (),
+    'pi_head_layers':       (),
+    'vf_local_head_layers': (),
+    'vf_global_head_layers':()}
+j['name'] = j['policy'].policy_param_string(j['policy_param'])
 jobs.append(j)
 
 env_param = {
-    'n_max_agents':4,
-    'r_capture':   0.1
+    'n_max_agents':3,
+    'r_capture':   0.5
 }
 
 train_param = {
@@ -55,7 +59,7 @@ train_param = {
     'n_steps':32
 }
 
-root = 'model'
+root = 'debug'
 
 for j in jobs:
 
@@ -86,7 +90,7 @@ for j in jobs:
 
     print('Learning...')
     model.learn(
-        total_timesteps=30000000,
+        total_timesteps=10000000,
         log_interval = 500,
         reset_num_timesteps=False)
     print('Saving model...')
