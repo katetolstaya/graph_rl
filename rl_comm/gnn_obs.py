@@ -18,6 +18,9 @@ def mlp_model_fn(layers, default, activate_final):
         model_fn=default
     return model_fn
 
+def layers_string(layers):
+    return '-'.join(str(l) for l in layers)
+
 class GnnObs(ActorCriticPolicy):
     """
     Policy object that implements actor critic, using a MLP (2 layers of 64)
@@ -61,8 +64,8 @@ class GnnObs(ActorCriticPolicy):
         WA = agent_node_data.shape[-1]
 
         # Identify dense edge data and receiver and node data.
-        edges     = tf.reshape(obs_edge_data, (-1, WO))
-        receivers = tf.reshape( # receiver index of entry obs_adj[b][n][m] is N*b + n.
+        obs_edges     = tf.reshape(obs_edge_data, (-1, WO))
+        obs_receivers = tf.reshape( # receiver index of entry obs_adj[b][n][m] is N*b + n.
                         tf.tile(tf.reshape(N*tf.range(B),(-1,1,1)), (1,N,M)) + \
                         tf.tile(tf.reshape(tf.range(N),(1,-1,1)), (B,1,M)),
                         (-1,)
@@ -70,20 +73,20 @@ class GnnObs(ActorCriticPolicy):
         nodes = tf.reshape(agent_node_data, (-1, WA))
 
         # Sparse edge data and receiver.
-        edge_mask = tf.reshape(obs_adj, (-1,))
-        edges     = tf.boolean_mask(edges,     edge_mask, axis=0)
-        receivers = tf.boolean_mask(receivers, edge_mask)
+        obs_edge_mask = tf.reshape(obs_adj, (-1,))
+        obs_edges     = tf.boolean_mask(obs_edges,     obs_edge_mask, axis=0)
+        obs_receivers = tf.boolean_mask(obs_receivers, obs_edge_mask)
 
-        # Count nodes and edges.
+        # Count nodes and obs_edges.
         n_node = tf.fill((B,), N)
         n_edge = tf.reduce_sum(tf.reduce_sum(obs_adj, -1), -1)
 
         obs_g = graphs.GraphsTuple(
             nodes=nodes,
-            edges=edges,
+            edges=obs_edges,
             globals=None,
-            receivers=receivers,
-            senders=receivers, # irrelevant; arbitrary self-loops
+            receivers=obs_receivers,
+            senders=obs_receivers, # irrelevant; arbitrary self-loops
             n_node=n_node,
             n_edge=n_edge)
 
@@ -111,20 +114,17 @@ class GnnObs(ActorCriticPolicy):
             # Local policy output.
             pi_mlp = modules.GraphIndependent(
                 node_model_fn=lambda: snt.nets.MLP(pi_head_layers + (2,), activate_final=False),
-                name='pi_mlp'
-                )
+                name='pi_mlp')
 
             # Local latent value.
             vf_latent_mlp = modules.GraphIndependent(
                 node_model_fn=mlp_model_fn(vf_local_head_layers, default=None, activate_final=True),
-                name='vf_latent_mlp'
-                )
+                name='vf_latent_mlp')
 
             # Local action value output. Not needed by A2C.
             vf_action_mlp = modules.GraphIndependent(
                 node_model_fn=lambda: snt.Linear(output_size=2),
-                name='vf_action_mlp'
-                )
+                name='vf_action_mlp')
 
             # Global state value output.
             vf_state_agg = blocks.GlobalBlock(
@@ -134,7 +134,10 @@ class GnnObs(ActorCriticPolicy):
                 use_globals=False,
                 name='vf_state_agg')
 
+            # Compute latent features based on observability graph.
             latent_g = feat_agg(input_feat(obs_g))
+
+            # Compute policy and value.
             pi_g = pi_mlp(latent_g)
             vf_action_g = vf_action_mlp(vf_latent_mlp(latent_g))
             vf_state_g = vf_state_agg(vf_latent_mlp(latent_g))
@@ -143,8 +146,9 @@ class GnnObs(ActorCriticPolicy):
             self._value_fn = vf_state_g.globals
             self.q_value   = tf.reshape(vf_action_g.nodes, (B, N*2))
             # Policy.
-            # with tf.control_dependencies([print_obs_g]):
-            self._policy = tf.reshape(pi_g.nodes, (B, N*2))
+            print_ops = []
+            with tf.control_dependencies(print_ops):
+                self._policy = tf.reshape(pi_g.nodes, (B, N*2))
             self._proba_distribution = self.pdtype.proba_distribution_from_flat(self._policy)
 
         self._setup_init()
@@ -163,3 +167,13 @@ class GnnObs(ActorCriticPolicy):
 
     def value(self, obs, state=None, mask=None):
         return self.sess.run(self.value_flat, {self.obs_ph: obs})
+
+    @staticmethod
+    def policy_param_string(p):
+        """Return identifier string for policy parameter dict."""
+        return 'gnnobs_in_{inf}_ag_{ag}_pi_{pi}_vfl_{vfl}_vfg_{vfg}'.format(
+            inf=layers_string(p['input_feat_layers']),
+            ag= layers_string(p['feat_agg_layers']),
+            pi= layers_string(p['pi_head_layers']),
+            vfl=layers_string(p['vf_local_head_layers']),
+            vfg=layers_string(p['vf_global_head_layers']))

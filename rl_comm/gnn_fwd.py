@@ -18,6 +18,9 @@ def mlp_model_fn(layers, default, activate_final):
         model_fn=default
     return model_fn
 
+def layers_string(layers):
+    return '-'.join(str(l) for l in layers)
+
 class GnnFwd(ActorCriticPolicy):
     """
     Policy object that implements actor critic, using a MLP (2 layers of 64)
@@ -196,10 +199,10 @@ class GnnFwd(ActorCriticPolicy):
             self._value_fn = vf_state_g.globals
             self.q_value   = tf.reshape(vf_action_g.nodes, (B, N*2))
             # Policy.
-            # with tf.control_dependencies([print_msg_g]):
-            with tf.control_dependencies([]):
+            print_ops = []
+            with tf.control_dependencies(print_ops):
                 self._policy = tf.reshape(pi_g.nodes, (B, N*2))
-                self._proba_distribution = self.pdtype.proba_distribution_from_flat(self._policy)
+            self._proba_distribution = self.pdtype.proba_distribution_from_flat(self._policy)
 
         self._setup_init()
 
@@ -217,3 +220,17 @@ class GnnFwd(ActorCriticPolicy):
 
     def value(self, obs, state=None, mask=None):
         return self.sess.run(self.value_flat, {self.obs_ph: obs})
+
+    @staticmethod
+    def policy_param_string(p):
+        """Return identifier string for policy parameter dict."""
+        return 'gnnfwd_in_{inf}_ag_{oag}_enc_{enc}_msg_{msg}_dec_{dec}_ag_{mag}_pi_{pi}_vfl_{vfl}_vfg_{vfg}'.format(
+            inf=layers_string(p['input_feat_layers']),
+            oag=layers_string(p['feat_agg_layers']),
+            enc=layers_string(p['msg_enc_layers']),
+            msg=p['msg_size'],
+            dec=layers_string(p['msg_dec_layers']),
+            mag=layers_string(p['msg_agg_layers']),
+            pi =layers_string(p['pi_head_layers']),
+            vfl=layers_string(p['vf_local_head_layers']),
+            vfg=layers_string(p['vf_global_head_layers']))
