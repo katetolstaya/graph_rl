@@ -20,6 +20,7 @@ What are the state_value and action_value actually being used for?
 -- The action_value is not used by A2C.
 
 Is the GPU being used?
+-- Kind of.  We're basically doing GPU batches of 32, with a full round of CPU game compute between each round. How big a bottleneck is the CPU?
 
 How should I feel about the three different losses?
 
@@ -30,7 +31,6 @@ What the the discounted rewards (and real rewards)? Why can the GNN sometimes ge
 
 Determined that 'receivers' is not being filled correctly for batches > 1, and possibly for game sizes > 2. It looks like I've fixed this, and training is now stable.  All flavors of MLP / OneNode / GnnCoord joint and separate get about the same results after 30M steps, and haven't converged before then (reward 0.4).
 
-
 *** 2019-08-28, Wednesday
 
 Need to standardize record keeping for policies/simulations/test results.
@@ -38,6 +38,7 @@ Need to implement test reward during training.
 Need to implement offline test evaluation.
 Need to implement expert policy for score comparisons.
 Need to implement game parameterization.
+-- Added n_max_agents, r_capture
 Need to implement randomized game sizes.
 Need to fix training steps in TensorBoard.
 
@@ -47,3 +48,73 @@ Interested in:
 
 Conclusions:
     SubprocVecEnv vs. DummyVecEnv doesn't make much different on the laptop.
+
+Observations:
+    r_capture=0.1 is awfully small, but not totally impossible for n=1. Had very little luck with n=4.
+
+The model has a problem:
+
+gnnfwd_in_64-64_ag_64-64_enc__msg_0_dec_64_ag_64_pi__vfl__vfg_.pkl
+
+Traceback (most recent call last):                                                                                              [48/1861]
+  File "train_gnn.py", line 117, in <module>
+    full_tensorboard_log=False)
+  File "/home/jpaulos/venv/rl_comm/lib/python3.6/site-packages/stable_baselines/a2c/a2c.py", line 86, in __init__
+    self.setup_model()
+  File "/home/jpaulos/venv/rl_comm/lib/python3.6/site-packages/stable_baselines/a2c/a2c.py", line 113, in setup_model
+    n_batch_step, reuse=False, **self.policy_kwargs)
+  File "/home/jpaulos/code/mrsl/communication/local_code/rl_comm/rl_comm/gnn_fwd.py", line 186, in __init__
+    latent_g = msg_agg(msg_dec(msg_g))
+  File "/home/jpaulos/venv/rl_comm/lib/python3.6/site-packages/sonnet/python/modules/base.py", line 396, in __call__
+    return self._call(*args, **kwargs)
+  File "/home/jpaulos/venv/rl_comm/lib/python3.6/site-packages/sonnet/python/modules/base.py", line 418, in _call
+    outputs, subgraph_name_scope = self._template(*args, **kwargs)
+  File "/home/jpaulos/venv/rl_comm/lib/python3.6/site-packages/tensorflow/python/ops/template.py", line 384, in __call__
+    return self._call_func(args, kwargs)
+  File "/home/jpaulos/venv/rl_comm/lib/python3.6/site-packages/tensorflow/python/ops/template.py", line 354, in _call_func
+    result = self._func(*args, **kwargs)
+  File "/home/jpaulos/venv/rl_comm/lib/python3.6/site-packages/sonnet/python/modules/base.py", line 226, in _build_wrapper
+    output = self._build(*args, **kwargs)
+  File "/home/jpaulos/venv/rl_comm/lib/python3.6/site-packages/graph_nets/modules.py", line 366, in _build
+    edges=self._edge_model(graph.edges),
+  File "/home/jpaulos/venv/rl_comm/lib/python3.6/site-packages/sonnet/python/modules/base.py", line 396, in __call__
+    return self._call(*args, **kwargs)
+  File "/home/jpaulos/venv/rl_comm/lib/python3.6/site-packages/sonnet/python/modules/base.py", line 418, in _call
+    outputs, subgraph_name_scope = self._template(*args, **kwargs)
+  File "/home/jpaulos/venv/rl_comm/lib/python3.6/site-packages/tensorflow/python/ops/template.py", line 384, in __call__
+    return self._call_func(args, kwargs)
+  File "/home/jpaulos/venv/rl_comm/lib/python3.6/site-packages/tensorflow/python/ops/template.py", line 354, in _call_func
+    result = self._func(*args, **kwargs)
+  File "/home/jpaulos/venv/rl_comm/lib/python3.6/site-packages/sonnet/python/modules/base.py", line 226, in _build_wrapper
+    output = self._build(*args, **kwargs)
+  File "/home/jpaulos/venv/rl_comm/lib/python3.6/site-packages/sonnet/python/modules/base.py", line 831, in _build
+    return self._build_function(*args, **kwargs)
+  File "/home/jpaulos/venv/rl_comm/lib/python3.6/site-packages/graph_nets/modules.py", line 342, in <lambda>
+    lambda x: edge_model_fn()(x), name="edge_model")  # pylint: disable=unnecessary-lambda
+  File "/home/jpaulos/venv/rl_comm/lib/python3.6/site-packages/sonnet/python/modules/base.py", line 396, in __call__
+    return self._call(*args, **kwargs)
+  File "/home/jpaulos/venv/rl_comm/lib/python3.6/site-packages/sonnet/python/modules/base.py", line 418, in _call
+    outputs, subgraph_name_scope = self._template(*args, **kwargs)
+  File "/home/jpaulos/venv/rl_comm/lib/python3.6/site-packages/tensorflow/python/ops/template.py", line 384, in __call__
+    return self._call_func(args, kwargs)
+  File "/home/jpaulos/venv/rl_comm/lib/python3.6/site-packages/tensorflow/python/ops/template.py", line 354, in _call_func
+    result = self._func(*args, **kwargs)
+  File "/home/jpaulos/venv/rl_comm/lib/python3.6/site-packages/sonnet/python/modules/base.py", line 226, in _build_wrapper
+    output = self._build(*args, **kwargs)
+  File "/home/jpaulos/venv/rl_comm/lib/python3.6/site-packages/sonnet/python/modules/nets/mlp.py", line 162, in _build
+    net = self._layers[layer_id](net)
+  File "/home/jpaulos/venv/rl_comm/lib/python3.6/site-packages/sonnet/python/modules/base.py", line 396, in __call__
+    return self._call(*args, **kwargs)
+  File "/home/jpaulos/venv/rl_comm/lib/python3.6/site-packages/sonnet/python/modules/base.py", line 418, in _call
+    outputs, subgraph_name_scope = self._template(*args, **kwargs)
+  File "/home/jpaulos/venv/rl_comm/lib/python3.6/site-packages/tensorflow/python/ops/template.py", line 384, in __call__
+    return self._call_func(args, kwargs)
+  File "/home/jpaulos/venv/rl_comm/lib/python3.6/site-packages/tensorflow/python/ops/template.py", line 354, in _call_func
+    result = self._func(*args, **kwargs)
+  File "/home/jpaulos/venv/rl_comm/lib/python3.6/site-packages/sonnet/python/modules/base.py", line 226, in _build_wrapper
+    output = self._build(*args, **kwargs)
+  File "/home/jpaulos/venv/rl_comm/lib/python3.6/site-packages/sonnet/python/modules/basic.py", line 240, in _build
+    dtype)
+  File "/home/jpaulos/venv/rl_comm/lib/python3.6/site-packages/sonnet/python/modules/basic.py", line 125, in create_linear_initializer
+    stddev = 1 / math.sqrt(input_size)
+ZeroDivisionError: float division by zero
