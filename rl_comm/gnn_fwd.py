@@ -67,23 +67,22 @@ class GnnFwd(ActorCriticPolicy):
         WO = obs_edge_data.shape[-1]
         WA = agent_node_data.shape[-1]
 
-        # Identify dense edge data and receiver and node data.
+        # Nodes associated with agents.
+        nodes = tf.reshape(agent_node_data, (-1, WA))
+        n_node = tf.fill((B,), N)
+
+        # Dense observation edges.
         obs_edges     = tf.reshape(obs_edge_data, (-1, WO))
         obs_receivers = tf.reshape( # receiver index of entry obs_adj[b][n][m] is N*b + n.
-                        tf.tile(tf.reshape(N*tf.range(B),(-1,1,1)), (1,N,M)) + \
-                        tf.tile(tf.reshape(tf.range(N),(1,-1,1)), (B,1,M)),
-                        (-1,)
-                    )
-        nodes = tf.reshape(agent_node_data, (-1, WA))
+            tf.tile(tf.reshape(N*tf.range(B),(-1,1,1)), (1,N,M)) + \
+            tf.tile(tf.reshape(tf.range(N),(1,-1,1)), (B,1,M)),
+            (-1,))
 
         # Sparse edge data and receiver.
         obs_edge_mask = tf.reshape(obs_adj, (-1,))
         obs_edges     = tf.boolean_mask(obs_edges,     obs_edge_mask, axis=0)
         obs_receivers = tf.boolean_mask(obs_receivers, obs_edge_mask)
-
-        # Count nodes and obs_edges.
-        n_node = tf.fill((B,), N)
-        n_edge = tf.reduce_sum(tf.reduce_sum(obs_adj, -1), -1)
+        obs_n_edge = tf.reduce_sum(tf.reduce_sum(obs_adj, -1), -1)
 
         obs_g = graphs.GraphsTuple(
             nodes=nodes,
@@ -92,26 +91,22 @@ class GnnFwd(ActorCriticPolicy):
             receivers=obs_receivers,
             senders=obs_receivers, # irrelevant; arbitrary self-loops
             n_node=n_node,
-            n_edge=n_edge)
+            n_edge=obs_n_edge)
 
-        # Build communication edges over same nodes.
+        # Dense communication edges over same nodes.
         comm_receivers = tf.reshape( # receiver index of entry comm_adj[b][n_rx][n_tx] is N*b + n_rx.
-                        tf.tile(tf.reshape(N*tf.range(B),(-1,1,1)), (1,N,N)) + \
-                        tf.tile(tf.reshape(tf.range(N),(1,-1,1)), (B,1,N)),
-                        (-1,)
-                    )
+            tf.tile(tf.reshape(N*tf.range(B),(-1,1,1)), (1,N,N)) + \
+            tf.tile(tf.reshape(tf.range(N),(1,-1,1)), (B,1,N)),
+            (-1,))
         comm_senders = tf.reshape( # sender index of entry comm_adj[b][n_rx][n_tx] is N*b + n_tx.
-                        tf.tile(tf.reshape(N*tf.range(B),(-1,1,1)), (1,N,N)) + \
-                        tf.tile(tf.reshape(tf.range(N),(1,1,-1)), (B,N,1)),
-                        (-1,)
-                    )
+            tf.tile(tf.reshape(N*tf.range(B),(-1,1,1)), (1,N,N)) + \
+            tf.tile(tf.reshape(tf.range(N),(1,1,-1)), (B,N,1)),
+            (-1,))
 
-        # Sparse edge data and receiver.
+        # Sparse communication edges.
         comm_edge_mask = tf.reshape(comm_adj, (-1,))
         comm_receivers = tf.boolean_mask(comm_receivers, comm_edge_mask)
         comm_senders   = tf.boolean_mask(comm_senders,   comm_edge_mask)
-
-        # Count nodes and comm_edges.
         comm_n_edge = tf.reduce_sum(tf.reduce_sum(comm_adj, -1), -1)
 
         print_obs_g = tf.print(obs_g)
