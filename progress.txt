@@ -88,7 +88,7 @@ Varying n_steps doesn't much affect throughput.
 
 >> n_steps = 32
 
-n_env, S-fps, D-fps
+n_env, S-fps
 8,   2750
 16,  4640
 32,  6150
@@ -96,3 +96,14 @@ n_env, S-fps, D-fps
 128, 8300
 
 Increasing n_env increased throughput, even past n_cpu
+
+* Implement comm_adj flavors and parameterize environment.
+* Implement bitwise communication.
+* Implement recurrent communication.
+* Implement smart reward.
+* Record optimal play scores.
+* Pretraining?
+* Scheduled difficulty?
+* Compare with supervised training?
+
+* Implement vectorized environment -> possibly not worth it.
