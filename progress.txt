@@ -107,3 +107,11 @@ Increasing n_env increased throughput, even past n_cpu
 * Compare with supervised training?
 
 * Implement vectorized environment -> possibly not worth it.
+
+*** 2019-09-04, Wednesday
+
+Working LGR scoring, with possible a few sub-optimal scores due to a bug in mwis_circle for open intervals. Significantly slows down simulation, could shorten games.
+
+-- Terminate game at first 'mistake'
+-- Terminate game when no one rewards are expected?
+-- Add capture radius to LGR analysis.
