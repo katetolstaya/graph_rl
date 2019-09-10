@@ -1,24 +1,22 @@
+Test apparatus
+-- policy supports variable team sizes
+-- write testing function
+-- integrate testing into training loop
+-- statistics testing
+-- reduce tensorboard log interval
 
-Dense data from the environment.
+Network
+-- implement binary message encoding
+  -- sigmoid at train time, binary option at test time
+-- recurrent network
+-- different network topologies
 
-Agent-agent communication edge adjacency
-    n_batch, n_agent, n_agent
-Agent-target observation edge adjacency
-    n_batch, n_agents, n_target
-Agent-target observation edge data
-    n_batch, n_agents, n_targets, w_obs
+Comparison policies
+-- MM algorithm policy
+-- MM imitation policy
+-- left-going policy
 
-
-Form id matrix for agents
-
-
-
-
-Observations
-
-comm_adj           (N, N)
-agent_node_data    (N)
-
-
-obs_adj             (N, M)
-obs_edge_data       (N, M, W)
+Visualization ideas:
+-- histogram of score outcomes
+-- spatial activation of message bits
+-- temporal activation of message bits
