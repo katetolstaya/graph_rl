@@ -115,3 +115,10 @@ Working LGR scoring, with possible a few sub-optimal scores due to a bug in mwis
 -- Terminate game at first 'mistake'
 -- Terminate game when no one rewards are expected?
 -- Add capture radius to LGR analysis.
+
+*** 2019-09-09, Monday
+
+-- Visual RL results for full obs actually look pretty ok. Need to implement testing, because early-termination rewards are hard to evaluate.
+-- Should try to make TensorBoard log less.
+-- Want to train in smaller chunks.
+-- Want to continue tensorboard logs.
