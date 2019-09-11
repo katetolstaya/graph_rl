@@ -72,6 +72,7 @@ def eval_pdefense_env(env, model, N, render_mode='none'):
         results['lgr_score'][k] = info['lgr_score']
         results['initial_lgr_score'][k] = info['initial_lgr_score']
 
+    print()
     print('testing...')
     print('score,          mean = {:.1f}, std = {:.1f}'.format(np.mean(results['score']), np.std(results['score'])))
     print('init_lgr_score, mean = {:.1f}, std = {:.1f}'.format(np.mean(results['initial_lgr_score']), np.std(results['initial_lgr_score'])))
