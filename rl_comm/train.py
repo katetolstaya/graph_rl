@@ -40,6 +40,9 @@ def eval_pdefense_env(env, model, N, render_mode='none'):
     """
     Evaluate a model against an environment over N games.
     """
+    print()
+    print('testing')
+
     results = {
         'steps': np.zeros(N),
         'score': np.zeros(N),
@@ -48,6 +51,7 @@ def eval_pdefense_env(env, model, N, render_mode='none'):
     }
 
     for k in range(N):
+        print('.', end='', flush=True)
         done = False
         obs = env.reset()
         # Run one game.
@@ -72,8 +76,7 @@ def eval_pdefense_env(env, model, N, render_mode='none'):
         results['lgr_score'][k] = info['lgr_score']
         results['initial_lgr_score'][k] = info['initial_lgr_score']
 
-    print()
-    print('testing...')
+    print('')
     print('score,          mean = {:.1f}, std = {:.1f}'.format(np.mean(results['score']), np.std(results['score'])))
     print('init_lgr_score, mean = {:.1f}, std = {:.1f}'.format(np.mean(results['initial_lgr_score']), np.std(results['initial_lgr_score'])))
     print('steps,          mean = {:.1f}, std = {:.1f}'.format(np.mean(results['steps']), np.std(results['steps'])))
@@ -87,17 +90,18 @@ def callback(locals_, globals_, test_env):
         score = eval_pdefense_env(test_env, self_, 200, render_mode='none')
         summary = tf.Summary(value=[tf.Summary.Value(tag='score', simple_value=score)])
         locals_['writer'].add_summary(summary, self_.num_timesteps)
-        self_.next_test_eval += 100000
+        self_.next_test_eval += 1000000
     return True
 
 def train_helper(env_param, test_env_param, train_param, policy_fn, policy_param, directory, name):
 
     env = SubprocVecEnv([lambda: PDefenseEnv(
-        n_max_agents=env_param['n_max_agents'],
-        r_capture=env_param['r_capture'],
-        early_termination=env_param['early_termination'],
-        comm_adj_type=env_param['comm_adj_type'],
-        comm_adj_r=env_param.get('comm_adj_r', None)) for _ in range(train_param['n_env'])])
+                            n_max_agents=env_param['n_max_agents'],
+                            r_capture=env_param['r_capture'],
+                            early_termination=env_param['early_termination'],
+                            comm_adj_type=env_param['comm_adj_type'],
+                            comm_adj_r=env_param.get('comm_adj_r', None)) for _ in range(train_param['n_env'])],
+                        start_method='forkserver')
 
     test_env = PDefenseEnv(
         n_max_agents=test_env_param['n_max_agents'],
@@ -272,7 +276,7 @@ if __name__ == '__main__':
         'total_timesteps':50000000
     }
 
-    root = 'models/2019-09-11/9v9/'
+    root = 'models/2019-09-11/sigmoid/'
 
     for j in jobs:
 

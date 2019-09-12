@@ -1,15 +1,19 @@
 Test apparatus
+X  integrate testing into training loop
+X  statistics testing
 -- policy supports variable team sizes
 -- write testing function
--- integrate testing into training loop
--- statistics testing
 -- reduce tensorboard log interval
+-- save model snapshots
+-- track training time vs testing time
+-- implement observability constraints
+-- log histogram of message values (raw, sigma'd)
 
 Network
+X  different communication topologies
 -- implement binary message encoding
   -- sigmoid at train time, binary option at test time
 -- recurrent network
--- different network topologies
 
 Comparison policies
 -- MM algorithm policy
@@ -17,6 +21,7 @@ Comparison policies
 -- left-going policy
 
 Visualization ideas:
--- histogram of score outcomes
+-- histogram of score outcomes (overlayed histograms?)
 -- spatial activation of message bits
 -- temporal activation of message bits
+-- network flow line drawings

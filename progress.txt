@@ -122,3 +122,12 @@ Working LGR scoring, with possible a few sub-optimal scores due to a bug in mwis
 -- Should try to make TensorBoard log less.
 -- Want to train in smaller chunks.
 -- Want to continue tensorboard logs.
+
+*** 2019-09-11, Wednesday
+
+-- Overnight test crashed after six hours, don't know why.
+-- Implemented clique, circulant, and range communication networks and visualization.
+-- Improved logging regularity.
+-- Tested crashed again during the evaluation loop.
+-- Circulant x8 got to score=2.7 in 30M frames before crashing (3:20).
+-- Implemented soft binarization, not verified. Hard binarization not tested.

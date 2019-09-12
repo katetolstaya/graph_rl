@@ -23,6 +23,34 @@ def mlp_model_fn(layers, default, activate_final):
 def layers_string(layers):
     return '-'.join(str(l) for l in layers)
 
+class RegularizeMsg(snt.AbstractModule):
+  """ Add Gaussian noise and apply sigmoid. Noise only if training. """
+  def __init__(self, training, name='reg_msg'):
+    super(RegularizeMsg, self).__init__(name=name)
+    self.training = training
+
+  def _build(self, in_tensor):
+    """Compute output Tensor from input Tensor."""
+    if self.training:
+        out_tensor = tf.sigmoid(in_tensor + tf.random.normal(shape=tf.shape(in_tensor)))
+    else:
+        out_tensor = tf.sigmoid(in_tensor)
+    return out_tensor
+
+class BinarizeMsg(snt.AbstractModule):
+  """ Binarize value. """
+  def __init__(self, training, name='dis_msg'):
+    super(BinarizeMsg, self).__init__(name=name)
+    self.training = training
+
+  def _build(self, in_tensor):
+    """Compute output Tensor from input Tensor."""
+    if self.training:
+        out_tensor = in_tensor
+    else:
+        out_tensor = tf.cast(in_tensor > 0.5, tf.uint8)
+    return out_tensor
+
 class GnnFwd(ActorCriticPolicy):
     """
     Policy object that implements actor critic, using a MLP (2 layers of 64)
@@ -135,14 +163,21 @@ class GnnFwd(ActorCriticPolicy):
                 received_edges_reducer=tf.unsorted_segment_sum,
                 name="feat_agg")
 
-            # Encode and broadcast messages.
+            # Encode and regularize messages.
             msg_enc = blocks.EdgeBlock(
-                edge_model_fn=lambda: snt.nets.MLP(msg_enc_layers + (msg_size,), activate_final=False),
+                edge_model_fn=lambda: snt.Sequential([
+                                            snt.nets.MLP(msg_enc_layers + (msg_size,), activate_final=False),
+                                            RegularizeMsg(training=True)]),
                 use_edges=False,
                 use_receiver_nodes=False,
                 use_sender_nodes=True,
                 use_globals=False,
                 name='msg_enc')
+
+            # Binarize messages and broadcast.
+            msg_bin = modules.GraphIndependent(
+                edge_model_fn=lambda: BinarizeMsg(training=True),
+                name='msg_bin')
 
             # Decode and aggregate messages.
             msg_dec = modules.GraphIndependent(
@@ -186,9 +221,9 @@ class GnnFwd(ActorCriticPolicy):
             # Exchange information over communication graph.
             latent_g = latent_g.replace(
                 edges=None, senders=comm_senders, receivers=comm_receivers, n_edge=comm_n_edge)
-            msg_g = msg_enc(latent_g)
-            print_msg_g = tf.print(tf.shape(msg_g.edges))
-            latent_g = msg_agg(msg_dec(msg_g))
+            msg_enc_g = msg_enc(latent_g)
+            msg_bin_g = msg_bin(msg_enc_g)
+            latent_g = msg_agg(msg_dec(msg_bin_g))
 
             # Compute policy and value.
             pi_g = pi_mlp(latent_g)
@@ -199,6 +234,7 @@ class GnnFwd(ActorCriticPolicy):
             self._value_fn = vf_state_g.globals
             self.q_value   = tf.reshape(vf_action_g.nodes, (B, N*2))
             # Policy.
+            # print_msg_bin_g = tf.print(msg_bin_g.edges)
             print_ops = []
             with tf.control_dependencies(print_ops):
                 self._policy = tf.reshape(pi_g.nodes, (B, N*2))
