@@ -5,6 +5,7 @@ import functools
 from pathlib import Path
 
 import tensorflow as tf
+from progress.bar import Bar
 
 from stable_baselines.common.vec_env import SubprocVecEnv
 from stable_baselines import PPO2
@@ -49,19 +50,21 @@ def eval_pdefense_env(env, model, N, render_mode='none'):
         'score': np.zeros(N),
         'lgr_score': np.zeros(N),
         'initial_lgr_score': np.zeros(N)}
-    for k in range(N):
-        done = False
-        obs = env.reset()
-        # Run one game.
-        while not done:
-            action, states = model.predict(obs, deterministic=True)
-            obs, rewards, done, info = env.step(action)
-            env.render(mode=render_mode)
-        # Record results.
-        results['steps'][k] = info['steps']
-        results['score'][k] = info['score']
-        results['lgr_score'][k] = info['lgr_score']
-        results['initial_lgr_score'][k] = info['initial_lgr_score']
+    with Bar('Eval', max=N) as bar:
+        for k in range(N):
+            done = False
+            obs = env.reset()
+            # Run one game.
+            while not done:
+                action, states = model.predict(obs, deterministic=True)
+                obs, rewards, done, info = env.step(action)
+                env.render(mode=render_mode)
+            # Record results.
+            results['steps'][k] = info['steps']
+            results['score'][k] = info['score']
+            results['lgr_score'][k] = info['lgr_score']
+            results['initial_lgr_score'][k] = info['initial_lgr_score']
+            bar.next()
     return results
 
 def callback(locals_, globals_, test_env):
@@ -83,10 +86,8 @@ def callback(locals_, globals_, test_env):
     if not hasattr(self_, 'next_test_eval'):
         self_.next_test_eval = 0
     if self_.num_timesteps >= self_.next_test_eval:
-        print('running eval_pdefense_env in callback... ', end='')
+        print('\nTesting...')
         results = eval_pdefense_env(test_env, self_, 200, render_mode='none')
-        print('done.')
-        print('')
         print('score,          mean = {:.1f}, std = {:.1f}'.format(np.mean(results['score']), np.std(results['score'])))
         print('init_lgr_score, mean = {:.1f}, std = {:.1f}'.format(np.mean(results['initial_lgr_score']), np.std(results['initial_lgr_score'])))
         print('steps,          mean = {:.1f}, std = {:.1f}'.format(np.mean(results['steps']), np.std(results['steps'])))
@@ -163,16 +164,6 @@ def train_helper(env_param, test_env_param, train_param, policy_fn, policy_param
         print('\nSaving model {}.\n'.format(ckpt_file(ckpt_dir, ckpt_idx).name))
         model.save(str(ckpt_file(ckpt_dir, ckpt_idx)))
         ckpt_idx += 1
-
-        # print('\nEvaluating...\n')
-        # results = eval_pdefense_env(test_env, model, 200, render_mode='none')
-        # print('')
-        # print('score,          mean = {:.1f}, std = {:.1f}'.format(np.mean(results['score']), np.std(results['score'])))
-        # print('init_lgr_score, mean = {:.1f}, std = {:.1f}'.format(np.mean(results['initial_lgr_score']), np.std(results['initial_lgr_score'])))
-        # print('steps,          mean = {:.1f}, std = {:.1f}'.format(np.mean(results['steps']), np.std(results['steps'])))
-        # print('')
-        # summary = tf.Summary(value=[tf.Summary.Value(tag='score', simple_value=np.mean(results['score']))])
-        # model.writer.add_summary(summary, model.num_timesteps)
 
     print('Finished.')
 
