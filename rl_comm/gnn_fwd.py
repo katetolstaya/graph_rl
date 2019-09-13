@@ -142,8 +142,6 @@ class GnnFwd(ActorCriticPolicy):
         comm_senders   = tf.boolean_mask(comm_senders,   comm_edge_mask)
         comm_n_edge = tf.reduce_sum(tf.reduce_sum(comm_adj, -1), -1)
 
-        print_obs_g = tf.print(obs_g)
-
         with tf.variable_scope("model", reuse=reuse):
 
             # Independently transform all input features.
@@ -234,7 +232,6 @@ class GnnFwd(ActorCriticPolicy):
             self._value_fn = vf_state_g.globals
             self.q_value   = tf.reshape(vf_action_g.nodes, (B, N*2))
             # Policy.
-            # print_msg_bin_g = tf.print(msg_bin_g.edges)
             print_ops = []
             with tf.control_dependencies(print_ops):
                 self._policy = tf.reshape(pi_g.nodes, (B, N*2))
