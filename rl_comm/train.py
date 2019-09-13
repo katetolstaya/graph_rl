@@ -150,8 +150,7 @@ def train_helper(env_param, test_env_param, train_param, policy_fn, policy_param
 
     # Training loop.
     print('\nBegin training.\n')
-    total_timesteps = 0
-    while total_timesteps <= train_param['total_timesteps']:
+    while model.num_timesteps <= train_param['total_timesteps']:
 
         print('\nLearning...\n')
         model.learn(
@@ -159,7 +158,6 @@ def train_helper(env_param, test_env_param, train_param, policy_fn, policy_param
             log_interval=500,
             reset_num_timesteps=False,
             callback=functools.partial(callback, test_env=test_env))
-        total_timesteps += train_param['checkpoint_timesteps']
 
         print('\nSaving model {}.\n'.format(ckpt_file(ckpt_dir, ckpt_idx).name))
         model.save(str(ckpt_file(ckpt_dir, ckpt_idx)))
@@ -291,7 +289,7 @@ if __name__ == '__main__':
         'r_capture':         0.2,
         'early_termination': True,
         'comm_adj_type':     'circulant',
-        'fov':               180
+        'fov':               360
     }
 
     test_env_param = copy.deepcopy(env_param)
@@ -301,10 +299,10 @@ if __name__ == '__main__':
         'n_env':32,
         'n_steps':32,
         'checkpoint_timesteps':1000000,
-        'total_timesteps':100000000
+        'total_timesteps':50000000
     }
 
-    root = Path('models/2019-09-12')
+    root = Path('models/2019-09-13')
 
     for j in jobs:
 
