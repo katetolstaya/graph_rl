@@ -111,7 +111,7 @@ def train_helper(env_param, test_env_param, train_param, policy_fn, policy_param
         early_termination=env_param['early_termination'],
         comm_adj_type=env_param['comm_adj_type'],
         comm_adj_r=env_param.get('comm_adj_r', None),
-        fov=env_param.get('fov')) for _ in range(train_param['n_env'])],
+        fov=env_param['fov']) for _ in range(train_param['n_env'])],
             start_method='forkserver')
 
     test_env = PDefenseEnv(
