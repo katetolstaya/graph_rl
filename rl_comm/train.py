@@ -66,6 +66,20 @@ def eval_pdefense_env(env, model, N, render_mode='none'):
 
 def callback(locals_, globals_, test_env):
     self_ = locals_['self']
+
+    # Add extra tensors to normal logging.
+    # Can't do it like this, because the existing summary is not invoked during the policy run.
+    # if not hasattr(self_, 'is_tb_set'):
+    #     print('Only once.')
+    #     with self_.graph.as_default():
+    #         print('Once.')
+    #         # print(self_.act_model.msg_enc_g.edges.shape)
+    #         tf.summary.histogram('msg_enc', self_.act_model.msg_enc_g.edges)
+    #         # tf.summary.histogram('msg_bin', self_.act_model.msg_bin_g.edges)
+    #         self_.summary = tf.summary.merge_all()
+    #     self_.is_tb_set = True
+
+    # Periodically run extra test evaluation.
     if not hasattr(self_, 'next_test_eval'):
         self_.next_test_eval = 0
     if self_.num_timesteps >= self_.next_test_eval:
@@ -80,7 +94,7 @@ def callback(locals_, globals_, test_env):
         score = np.mean(results['score'])
         summary = tf.Summary(value=[tf.Summary.Value(tag='score', simple_value=score)])
         locals_['writer'].add_summary(summary, self_.num_timesteps)
-        self_.next_test_eval += 100000
+        self_.next_test_eval += 1000000
     return True
 
 def train_helper(env_param, test_env_param, train_param, policy_fn, policy_param, directory):

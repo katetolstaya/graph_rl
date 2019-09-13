@@ -1,19 +1,25 @@
 Test apparatus
 X  integrate testing into training loop
 X  statistics testing
+X  save model snapshots
+X  implement observability constraints
+-- implement cooperative intrusion
 -- policy supports variable team sizes
 -- write testing function
 -- reduce tensorboard log interval
--- save model snapshots
 -- track training time vs testing time
--- implement observability constraints
 -- log histogram of message values (raw, sigma'd)
 
 Network
 X  different communication topologies
 -- implement binary message encoding
-  -- sigmoid at train time, binary option at test time
+  X  sigmoid at train time
+  -- binary option at test time
 -- recurrent network
+
+Paranoia
+-- verify observability
+-- verify binary message encoding
 
 Comparison policies
 -- MM algorithm policy

@@ -221,9 +221,9 @@ class GnnFwd(ActorCriticPolicy):
             # Exchange information over communication graph.
             latent_g = latent_g.replace(
                 edges=None, senders=comm_senders, receivers=comm_receivers, n_edge=comm_n_edge)
-            msg_enc_g = msg_enc(latent_g)
-            msg_bin_g = msg_bin(msg_enc_g)
-            latent_g = msg_agg(msg_dec(msg_bin_g))
+            self.msg_enc_g = msg_enc(latent_g)
+            self.msg_bin_g = msg_bin(self.msg_enc_g)
+            latent_g = msg_agg(msg_dec(self.msg_bin_g))
 
             # Compute policy and value.
             pi_g = pi_mlp(latent_g)
