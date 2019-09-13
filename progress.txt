@@ -131,3 +131,10 @@ Working LGR scoring, with possible a few sub-optimal scores due to a bug in mwis
 -- Tested crashed again during the evaluation loop.
 -- Circulant x8 got to score=2.7 in 30M frames before crashing (3:20).
 -- Implemented soft binarization, not verified. Hard binarization not tested.
+
+*** 2019-09-13, Friday
+
+-- Fixed hanging training due to bug in intrusion detection.
+-- Implemented fov observations, but might be underperforming.
+    -- is fov not working?
+    -- is binarization not working / too hard?

@@ -31,3 +31,10 @@ Visualization ideas:
 -- spatial activation of message bits
 -- temporal activation of message bits
 -- network flow line drawings
+
+
+
+Thinking:
+  -- Value function doesn't need suffer message noise.
+  -- Do everything in callback.
+  -- After saving a checkpoint, load separate versions of the model for binarized,
