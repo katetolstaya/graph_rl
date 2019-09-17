@@ -1,0 +1,7 @@
+graph_nets
+ipython
+jupyter
+matplotlib
+progress
+stable-baselines
+tensorflow_probability
