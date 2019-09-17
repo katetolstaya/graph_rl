@@ -41,7 +41,7 @@ pip install -e ~/path/to/rl_comm
 Optional. The previous installations should automatically include the minimum dependencies for each of these packages. The additional packages listed in requirements.txt will provide a more complete development environment ([requirements.txt docs](https://packaging.python.org/discussions/install-requires-vs-requirements/)).
 
 ```
-pip install -re ~/path/to/rl_comm/requirements.txt
+pip install -r ~/path/to/rl_comm/requirements.txt
 ```
 
 # Demo Testing with Pre-Trained Model
