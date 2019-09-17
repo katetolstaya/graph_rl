@@ -1,5 +1,5 @@
 # Reinforcement Learning Communication
-learned communication in multiagent reinforcement learning
+Learned communication in multiagent reinforcement learning.
 
 # Recommended Installation
 
@@ -43,5 +43,25 @@ Optional. The previous installations should automatically include the minimum de
 ```
 pip install -re ~/path/to/rl_comm/requirements.txt
 ```
+
+# Demo Testing with Pre-Trained Model
+
+Download the pretrained checkpoint file and save in the next to demo_test.py.
+
+https://www.dropbox.com/s/mdqjbi79kc9cwj8/ckpt_050.pkl?dl=0
+
+Run demo_test.py to see the final results of 100 games, followed by live visualizations of games.
+
+```
+python demo_test.py
+```
+
+This is a brittle demo requiring the checkpoint file and current version of the model code to be somewhat in sync, and is likely to be broken before the code base stabalizes. A more consistent workflow for organizing and versioning trained models is needed.
+
+# Info
+
+The team policy is built using graph network primitives from DeepMind's [Graph Nets](https://github.com/deepmind/graph_nets) library, which is built on top of Tensorflow and [Sonnet](https://github.com/deepmind/sonnet/tree/master).
+
+# Contributing
 
 Suggestions to improve this documentation or workflow are welcomed.
