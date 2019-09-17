@@ -1,6 +1,8 @@
 # Reinforcement Learning Communication
 Learned communication in multiagent reinforcement learning.
 
+<img src="https://user-images.githubusercontent.com/2522557/65058418-36aeb900-d942-11e9-8ad4-bb34ffd9eb1a.jpg" width="300">
+
 # Recommended Installation
 
 Create and activate a new virtual environment, ([venv docs](https://docs.python.org/3/tutorial/venv.html)) then upgrade pip for the venv.
