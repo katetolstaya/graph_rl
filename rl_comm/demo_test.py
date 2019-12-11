@@ -32,7 +32,7 @@ if __name__ == '__main__':
     from stable_baselines import PPO2
     from stable_baselines.common.vec_env import SubprocVecEnv
 
-    from gym_pdefense.envs.pdefense_env_lgr import PDefenseEnv
+    from gym_pdefense.envs.pdefense_env import PDefenseEnv
 
     # Specify environment.
     env_param = {
