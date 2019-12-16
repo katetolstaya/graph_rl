@@ -9,16 +9,18 @@ from stable_baselines.a2c.utils import linear
 
 from gym_pdefense.envs import pdefense_env
 
+
 def mlp_model_fn(layers, default, activate_final):
     """
     Return model_fn for mlp, or default if len(layers) == 0. Typical
     defaults are None or lambda: tf.identity.
     """
     if len(layers) != 0:
-        model_fn=lambda: snt.nets.MLP(layers, activate_final=activate_final)
+        model_fn = lambda: snt.nets.MLP(layers, activate_final=activate_final)
     else:
-        model_fn=default
+        model_fn = default
     return model_fn
+
 
 class MyMlpPolicy(ActorCriticPolicy):
     """
@@ -38,17 +40,19 @@ class MyMlpPolicy(ActorCriticPolicy):
     """
 
     def __init__(self, sess, ob_space, ac_space, n_env, n_steps, n_batch, reuse=False,
-        net_arch=[dict(vf=[64,64], pi=[64,64])],
-        w_agent=1,
-        w_target=2,
-        w_obs=2):
+                 net_arch=[dict(vf=[64, 64], pi=[64, 64])],
+                 w_agent=1,
+                 w_target=2,
+                 w_obs=2):
 
         super(MyMlpPolicy, self).__init__(sess, ob_space, ac_space, n_env, n_steps, n_batch, reuse,
-                                                scale=False)
+                                          scale=False)
 
         n_agents = ac_space.nvec.size
-        n_targets = (np.prod(ob_space.shape) - n_agents**2 - n_agents*w_agent) // (n_agents + w_target + n_agents*w_obs)
-        assert np.prod(ob_space.shape) == n_agents**2 + n_agents*w_agent + n_agents*n_targets + n_targets*w_target + n_agents*n_targets*w_obs, 'Broken game size computation.'
+        n_targets = (np.prod(ob_space.shape) - n_agents ** 2 - n_agents * w_agent) // (
+                    n_agents + w_target + n_agents * w_obs)
+        assert np.prod(
+            ob_space.shape) == n_agents ** 2 + n_agents * w_agent + n_agents * n_targets + n_targets * w_target + n_agents * n_targets * w_obs, 'Broken game size computation.'
 
         (comm_adj, agent_node_data, obs_adj, target_node_data, obs_edge_data) = \
             pdefense_env.unpack_obs_graph_coord_tf(self.processed_obs, n_agents, n_targets, w_agent, w_target, w_obs)
@@ -81,8 +85,6 @@ class MyMlpPolicy(ActorCriticPolicy):
         return self.sess.run(self.value_flat, {self.obs_ph: obs})
 
 
-
-
 class OneNodePolicy(ActorCriticPolicy):
     """
 
@@ -101,17 +103,19 @@ class OneNodePolicy(ActorCriticPolicy):
     """
 
     def __init__(self, sess, ob_space, ac_space, n_env, n_steps, n_batch, reuse=False,
-        net_arch=[dict(vf=[64,64], pi=[64,64])],
-        w_agent=1,
-        w_target=2,
-        w_obs=2):
+                 net_arch=[dict(vf=[64, 64], pi=[64, 64])],
+                 w_agent=1,
+                 w_target=2,
+                 w_obs=2):
 
         super(OneNodePolicy, self).__init__(sess, ob_space, ac_space, n_env, n_steps, n_batch, reuse,
-                                                scale=False)
+                                            scale=False)
 
         n_agents = ac_space.nvec.size
-        n_targets = (np.prod(ob_space.shape) - n_agents**2 - n_agents*w_agent) // (n_agents + w_target + n_agents*w_obs)
-        assert np.prod(ob_space.shape) == n_agents**2 + n_agents*w_agent + n_agents*n_targets + n_targets*w_target + n_agents*n_targets*w_obs, 'Broken game size computation.'
+        n_targets = (np.prod(ob_space.shape) - n_agents ** 2 - n_agents * w_agent) // (
+                    n_agents + w_target + n_agents * w_obs)
+        assert np.prod(
+            ob_space.shape) == n_agents ** 2 + n_agents * w_agent + n_agents * n_targets + n_targets * w_target + n_agents * n_targets * w_obs, 'Broken game size computation.'
 
         (comm_adj, agent_node_data, obs_adj, target_node_data, obs_edge_data) = \
             pdefense_env.unpack_obs_graph_coord_tf(self.processed_obs, n_agents, n_targets, w_agent, w_target, w_obs)
@@ -133,10 +137,9 @@ class OneNodePolicy(ActorCriticPolicy):
             n_edge=n_edge)
 
         with tf.variable_scope("model", reuse=reuse):
-
             # Transform the single node's data.
             state_mlp = blocks.NodeBlock(
-                node_model_fn=lambda: snt.nets.MLP(tuple(net_arch[0]['pi']) + (N*2,), activate_final=False),
+                node_model_fn=lambda: snt.nets.MLP(tuple(net_arch[0]['pi']) + (N * 2,), activate_final=False),
                 use_received_edges=False,
                 use_sent_edges=False,
                 use_nodes=True,
@@ -175,9 +178,9 @@ class OneNodePolicy(ActorCriticPolicy):
 
             # Team value.
             self._value_fn = state_value_g.globals
-            self.q_value   = tf.reshape(action_value_g.nodes, (B, N*2))
+            self.q_value = tf.reshape(action_value_g.nodes, (B, N * 2))
             # Team policy.
-            self._policy = tf.reshape(pi_g.nodes, (B, N*2))
+            self._policy = tf.reshape(pi_g.nodes, (B, N * 2))
             self._proba_distribution = self.pdtype.proba_distribution_from_flat(self._policy)
 
         self._setup_init()

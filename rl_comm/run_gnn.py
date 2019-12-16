@@ -1,12 +1,14 @@
 import numpy as np
 
+
 def print_key_if_true(dictionary, key):
     """
     Print each key string whose value in dictionary is True.
     """
-    if dictionary[key] == True:
+    if dictionary[key]:
         return key + ', '
     return ''
+
 
 def eval_pdefense_env(env, model, N, render_mode='none'):
     """
@@ -26,11 +28,11 @@ def eval_pdefense_env(env, model, N, render_mode='none'):
         while not done:
             action, _states = model.predict(obs, deterministic=True)
             obs, rewards, done, info = env.step(action)
-            env.render(mode=render_mode) # pick from ['none', human', 'ffmpeg']
+            env.render(mode=render_mode)  # pick from ['none', human', 'ffmpeg']
 
         # Display results.
         cause = ''.join([print_key_if_true(info, key) for key in
-            ['all_agents_dead', 'all_targets_dead', 'lgr_score_increased', 'no_more_rewards']])
+                         ['all_agents_dead', 'all_targets_dead', 'lgr_score_increased', 'no_more_rewards']])
         print('{:>2} {}={}+{} {}'.format(
             info['steps'],
             info['initial_lgr_score'],
@@ -46,11 +48,12 @@ def eval_pdefense_env(env, model, N, render_mode='none'):
 
     print()
     print('score,          mean = {:.1f}, std = {:.1f}'.format(np.mean(results['score']), np.std(results['score'])))
-    print('init_lgr_score, mean = {:.1f}, std = {:.1f}'.format(np.mean(results['initial_lgr_score']), np.std(results['initial_lgr_score'])))
+    print('init_lgr_score, mean = {:.1f}, std = {:.1f}'.format(np.mean(results['initial_lgr_score']),
+                                                               np.std(results['initial_lgr_score'])))
     return np.mean(results['score'])
 
-if __name__ == '__main__':
 
+if __name__ == '__main__':
     from stable_baselines import A2C
     from stable_baselines.common.vec_env import SubprocVecEnv
 
@@ -58,8 +61,8 @@ if __name__ == '__main__':
 
     # Specify environment.
     env_param = {
-        'n_max_agents':      9,
-        'r_capture':         0.2,
+        'n_max_agents': 9,
+        'r_capture': 0.2,
         'early_termination': False
     }
 

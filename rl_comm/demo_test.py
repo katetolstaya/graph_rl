@@ -1,6 +1,7 @@
 import numpy as np
 from progress.bar import Bar
 
+
 def eval_pdefense_env(env, model, N, render_mode='none'):
     """
     Evaluate a model against an environment over N games.
@@ -27,8 +28,8 @@ def eval_pdefense_env(env, model, N, render_mode='none'):
             bar.next()
     return results
 
-if __name__ == '__main__':
 
+if __name__ == '__main__':
     from stable_baselines import PPO2
     from stable_baselines.common.vec_env import SubprocVecEnv
 
@@ -36,12 +37,12 @@ if __name__ == '__main__':
 
     # Specify environment.
     env_param = {
-        'n_max_agents':      9,
-        'r_capture':         0.2,
+        'n_max_agents': 9,
+        'r_capture': 0.2,
         'early_termination': False,
-        'comm_adj_type':     'circulant',
-        'comm_adj_r':        None,
-        'fov':               360
+        'comm_adj_type': 'circulant',
+        'comm_adj_r': None,
+        'fov': 360
     }
 
     env = PDefenseEnv(
@@ -60,9 +61,10 @@ if __name__ == '__main__':
     print('\nPlay 100 games and return scores...')
     results = eval_pdefense_env(env, model, 1, render_mode='none')
     print('score,          mean = {:.1f}, std = {:.1f}'.format(np.mean(results['score']), np.std(results['score'])))
-    print('init_lgr_score, mean = {:.1f}, std = {:.1f}'.format(np.mean(results['initial_lgr_score']), np.std(results['initial_lgr_score'])))
+    print('init_lgr_score, mean = {:.1f}, std = {:.1f}'.format(np.mean(results['initial_lgr_score']),
+                                                               np.std(results['initial_lgr_score'])))
     print('steps,          mean = {:.1f}, std = {:.1f}'.format(np.mean(results['steps']), np.std(results['steps'])))
     print('')
 
     print('\nPlay games with live visualization...')
-    eval_pdefense_env(env, model, 3, render_mode='human') # also support ffmpeg
+    eval_pdefense_env(env, model, 3, render_mode='human')  # also support ffmpeg

@@ -6,5 +6,8 @@ setup(
     install_requires=[
        'stable-baselines',
        'graph_nets',
-       'progress']
+       'progress',
+       'numpy',
+       'tensorflow'
+    ]
 )

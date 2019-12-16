@@ -1,4 +1,3 @@
-import os.path
 import glob
 import numpy as np
 import functools
@@ -13,15 +12,17 @@ from stable_baselines import PPO2
 from gym_pdefense.envs.pdefense_env import PDefenseEnv
 import gnn_fwd
 
+
 def train_param_string(p):
     """Return identifier string for A2C training parameter dict."""
     return 'ne_{ne}_ns_{ns}'.format(
         ne=p['n_env'],
         ns=p['n_steps'])
 
+
 def env_param_string(p):
     """Return identifier string for PDefenseEnv environment parameter dict."""
-    comm = {'clique':'clq', 'circulant':'cir', 'range':'rng'}[p['comm_adj_type']]
+    comm = {'clique': 'clq', 'circulant': 'cir', 'range': 'rng'}[p['comm_adj_type']]
     if p['comm_adj_type'] == 'range':
         comm = comm + '_{}'.format(p['comm_adj_r'])
     return 'na_{na}_rc_{rc}_fov_{fv}_{comm}'.format(
@@ -30,8 +31,10 @@ def env_param_string(p):
         fv=p['fov'],
         comm=comm)
 
+
 def ckpt_file(ckpt_dir, ckpt_idx):
     return ckpt_dir / 'ckpt_{:03}.pkl'.format(ckpt_idx)
+
 
 def print_key_if_true(dictionary, key):
     """
@@ -40,6 +43,7 @@ def print_key_if_true(dictionary, key):
     if dictionary[key] == True:
         return key + ', '
     return ''
+
 
 def eval_pdefense_env(env, model, N, render_mode='none'):
     """
@@ -67,6 +71,7 @@ def eval_pdefense_env(env, model, N, render_mode='none'):
             bar.next()
     return results
 
+
 def callback(locals_, globals_, test_env):
     self_ = locals_['self']
 
@@ -89,7 +94,8 @@ def callback(locals_, globals_, test_env):
         print('\nTesting...')
         results = eval_pdefense_env(test_env, self_, 200, render_mode='none')
         print('score,          mean = {:.1f}, std = {:.1f}'.format(np.mean(results['score']), np.std(results['score'])))
-        print('init_lgr_score, mean = {:.1f}, std = {:.1f}'.format(np.mean(results['initial_lgr_score']), np.std(results['initial_lgr_score'])))
+        print('init_lgr_score, mean = {:.1f}, std = {:.1f}'.format(np.mean(results['initial_lgr_score']),
+                                                                   np.std(results['initial_lgr_score'])))
         print('steps,          mean = {:.1f}, std = {:.1f}'.format(np.mean(results['steps']), np.std(results['steps'])))
         print('')
         score = np.mean(results['score'])
@@ -98,10 +104,10 @@ def callback(locals_, globals_, test_env):
         self_.next_test_eval += 1000000
     return True
 
-def train_helper(env_param, test_env_param, train_param, policy_fn, policy_param, directory):
 
+def train_helper(env_param, test_env_param, train_param, policy_fn, policy_param, directory):
     save_dir = Path(directory)
-    tb_dir   = save_dir / 'tb'
+    tb_dir = save_dir / 'tb'
     ckpt_dir = save_dir / 'ckpt'
     for d in [save_dir, tb_dir, ckpt_dir]:
         d.mkdir(parents=True, exist_ok=True)
@@ -113,7 +119,7 @@ def train_helper(env_param, test_env_param, train_param, policy_fn, policy_param
         comm_adj_type=env_param['comm_adj_type'],
         comm_adj_r=env_param.get('comm_adj_r', None),
         fov=env_param['fov']) for _ in range(train_param['n_env'])],
-            start_method='forkserver')
+                        start_method='forkserver')
 
     test_env = PDefenseEnv(
         n_max_agents=test_env_param['n_max_agents'],
@@ -124,7 +130,7 @@ def train_helper(env_param, test_env_param, train_param, policy_fn, policy_param
         fov=test_env_param['fov'])
 
     # Find latest checkpoint index.
-    ckpt_list = sorted(glob.glob(str(ckpt_dir)+'/*.pkl'))
+    ckpt_list = sorted(glob.glob(str(ckpt_dir) + '/*.pkl'))
     if len(ckpt_list) == 0:
         ckpt_idx = None
     else:
@@ -151,7 +157,6 @@ def train_helper(env_param, test_env_param, train_param, policy_fn, policy_param
     # Training loop.
     print('\nBegin training.\n')
     while model.num_timesteps <= train_param['total_timesteps']:
-
         print('\nLearning...\n')
         model.learn(
             total_timesteps=train_param['checkpoint_timesteps'],
@@ -165,11 +170,12 @@ def train_helper(env_param, test_env_param, train_param, policy_fn, policy_param
 
     print('Finished.')
 
+
 if __name__ == '__main__':
 
     import copy
 
-    jobs = [] # string name, policy class, policy_kwargs
+    jobs = []  # string name, policy class, policy_kwargs
 
     # # Input feature processing with all parameters shared, msg_size = 0.
     # j = {}
@@ -239,15 +245,15 @@ if __name__ == '__main__':
     j = {}
     j['policy'] = gnn_fwd.GnnFwd
     j['policy_param'] = {
-        'input_feat_layers':    (64,64),
-        'feat_agg_layers':      (),
-        'msg_enc_layers':       (64,64),
-        'msg_size':             8,
-        'msg_dec_layers':       (64,64),
-        'msg_agg_layers':       (64,64),
-        'pi_head_layers':       (),
+        'input_feat_layers': (64, 64),
+        'feat_agg_layers': (),
+        'msg_enc_layers': (64, 64),
+        'msg_size': 8,
+        'msg_dec_layers': (64, 64),
+        'msg_agg_layers': (64, 64),
+        'pi_head_layers': (),
         'vf_local_head_layers': (),
-        'vf_global_head_layers':(64,)}
+        'vf_global_head_layers': (64,)}
     j['name'] = j['policy'].policy_param_string(j['policy_param'])
     jobs.append(j)
 
@@ -255,15 +261,15 @@ if __name__ == '__main__':
     j = {}
     j['policy'] = gnn_fwd.GnnFwd
     j['policy_param'] = {
-        'input_feat_layers':    (64,64),
-        'feat_agg_layers':      (),
-        'msg_enc_layers':       (64,64),
-        'msg_size':             0,
-        'msg_dec_layers':       (64,64),
-        'msg_agg_layers':       (64,64),
-        'pi_head_layers':       (),
+        'input_feat_layers': (64, 64),
+        'feat_agg_layers': (),
+        'msg_enc_layers': (64, 64),
+        'msg_size': 0,
+        'msg_dec_layers': (64, 64),
+        'msg_agg_layers': (64, 64),
+        'pi_head_layers': (),
         'vf_local_head_layers': (),
-        'vf_global_head_layers':(64,)}
+        'vf_global_head_layers': (64,)}
     j['name'] = j['policy'].policy_param_string(j['policy_param'])
     jobs.append(j)
 
@@ -283,35 +289,33 @@ if __name__ == '__main__':
     # j['name'] = j['policy'].policy_param_string(j['policy_param'])
     # jobs.append(j)
 
-
     env_param = {
-        'n_max_agents':      9,
-        'r_capture':         0.2,
+        'n_max_agents': 9,
+        'r_capture': 0.2,
         'early_termination': True,
-        'comm_adj_type':     'circulant',
-        'fov':               360
+        'comm_adj_type': 'circulant',
+        'fov': 360
     }
 
     test_env_param = copy.deepcopy(env_param)
     test_env_param['early_termination'] = False
 
     train_param = {
-        'n_env':32,
-        'n_steps':32,
-        'checkpoint_timesteps':1000000,
-        'total_timesteps':50000000
+        'n_env': 32,
+        'n_steps': 32,
+        'checkpoint_timesteps': 1000000,
+        'total_timesteps': 50000000
     }
 
     root = Path('models/2019-09-13')
 
     for j in jobs:
-
         directory = root / env_param_string(env_param) / train_param_string(train_param) / j['name']
 
         train_helper(
-            env_param       = env_param,
-            test_env_param  = test_env_param,
-            train_param     = train_param,
-            policy_fn       = j['policy'],
-            policy_param    = j['policy_param'],
-            directory       = directory)
+            env_param=env_param,
+            test_env_param=test_env_param,
+            train_param=train_param,
+            policy_fn=j['policy'],
+            policy_param=j['policy_param'],
+            directory=directory)
