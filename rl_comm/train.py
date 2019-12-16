@@ -3,33 +3,39 @@ import numpy as np
 import functools
 from pathlib import Path
 
+import gym
+env_dict = gym.envs.registration.registry.env_specs.copy()
+for env in env_dict:
+    print('Remove {} from registry'.format(env))
+    del gym.envs.registration.registry.env_specs[env]
+
+
 import tensorflow as tf
 from progress.bar import Bar
 
 from stable_baselines.common.vec_env import SubprocVecEnv
 from stable_baselines import PPO2
 
-from gym_pdefense.envs.pdefense_env import PDefenseEnv
 import gnn_fwd
 
 
-def train_param_string(p):
-    """Return identifier string for A2C training parameter dict."""
-    return 'ne_{ne}_ns_{ns}'.format(
-        ne=p['n_env'],
-        ns=p['n_steps'])
+# def train_param_string(p):
+#     """Return identifier string for A2C training parameter dict."""
+#     return 'ne_{ne}_ns_{ns}'.format(
+#         ne=p['n_env'],
+#         ns=p['n_steps'])
+#
 
-
-def env_param_string(p):
-    """Return identifier string for PDefenseEnv environment parameter dict."""
-    comm = {'clique': 'clq', 'circulant': 'cir', 'range': 'rng'}[p['comm_adj_type']]
-    if p['comm_adj_type'] == 'range':
-        comm = comm + '_{}'.format(p['comm_adj_r'])
-    return 'na_{na}_rc_{rc}_fov_{fv}_{comm}'.format(
-        na=p['n_max_agents'],
-        rc=p['r_capture'],
-        fv=p['fov'],
-        comm=comm)
+# def env_param_string(p):
+#     """Return identifier string for PDefenseEnv environment parameter dict."""
+#     comm = {'clique': 'clq', 'circulant': 'cir', 'range': 'rng'}[p['comm_adj_type']]
+#     if p['comm_adj_type'] == 'range':
+#         comm = comm + '_{}'.format(p['comm_adj_r'])
+#     return 'na_{na}_rc_{rc}_fov_{fv}_{comm}'.format(
+#         na=p['n_max_agents'],
+#         rc=p['r_capture'],
+#         fv=p['fov'],
+#         comm=comm)
 
 
 def ckpt_file(ckpt_dir, ckpt_idx):
@@ -45,7 +51,7 @@ def print_key_if_true(dictionary, key):
     return ''
 
 
-def eval_pdefense_env(env, model, N, render_mode='none'):
+def eval_env(env, model, N, render_mode='none'):
     """
     Evaluate a model against an environment over N games.
     """
@@ -60,7 +66,7 @@ def eval_pdefense_env(env, model, N, render_mode='none'):
             obs = env.reset()
             # Run one game.
             while not done:
-                action, states = model.predict(obs, deterministic=True)
+                action, states = model.predict(obs, deterministic=True)  # TODO need to reformat here?
                 obs, rewards, done, info = env.step(action)
                 env.render(mode=render_mode)
             # Record results.
@@ -92,7 +98,7 @@ def callback(locals_, globals_, test_env):
         self_.next_test_eval = 0
     if self_.num_timesteps >= self_.next_test_eval:
         print('\nTesting...')
-        results = eval_pdefense_env(test_env, self_, 200, render_mode='none')
+        results = eval_env(test_env, self_, 200, render_mode='none')
         print('score,          mean = {:.1f}, std = {:.1f}'.format(np.mean(results['score']), np.std(results['score'])))
         print('init_lgr_score, mean = {:.1f}, std = {:.1f}'.format(np.mean(results['initial_lgr_score']),
                                                                    np.std(results['initial_lgr_score'])))
@@ -112,22 +118,11 @@ def train_helper(env_param, test_env_param, train_param, policy_fn, policy_param
     for d in [save_dir, tb_dir, ckpt_dir]:
         d.mkdir(parents=True, exist_ok=True)
 
-    env = SubprocVecEnv([lambda: PDefenseEnv(
-        n_max_agents=env_param['n_max_agents'],
-        r_capture=env_param['r_capture'],
-        early_termination=env_param['early_termination'],
-        comm_adj_type=env_param['comm_adj_type'],
-        comm_adj_r=env_param.get('comm_adj_r', None),
-        fov=env_param['fov']) for _ in range(train_param['n_env'])],
-                        start_method='forkserver')
+    env_name = "MappingRad-v0"
+    env = SubprocVecEnv(gym.make(env_name))
 
-    test_env = PDefenseEnv(
-        n_max_agents=test_env_param['n_max_agents'],
-        r_capture=test_env_param['r_capture'],
-        early_termination=test_env_param['early_termination'],
-        comm_adj_type=test_env_param['comm_adj_type'],
-        comm_adj_r=test_env_param.get('comm_adj_r', None),
-        fov=test_env_param['fov'])
+    env_name = "MappingRad-v0"
+    test_env = SubprocVecEnv(gym.make(env_name))
 
     # Find latest checkpoint index.
     ckpt_list = sorted(glob.glob(str(ckpt_dir) + '/*.pkl'))
@@ -177,85 +172,21 @@ if __name__ == '__main__':
 
     jobs = []  # string name, policy class, policy_kwargs
 
-    # # Input feature processing with all parameters shared, msg_size = 0.
-    # j = {}
-    # j['policy'] = gnn_fwd.GnnFwd
-    # j['policy_param'] = {
-    #     'input_feat_layers':    (64,64),
-    #     'feat_agg_layers':      (64,64),
-    #     'msg_enc_layers':       (),
-    #     'msg_size':             0,
-    #     'msg_dec_layers':       (),
-    #     'msg_agg_layers':       (),
-    #     'pi_head_layers':       (),
-    #     'vf_local_head_layers': (),
-    #     'vf_global_head_layers':()}
-    # j['name'] = j['policy'].policy_param_string(j['policy_param'])
-    # jobs.append(j)
-
-    # # Input feature processing with all parameters shared, msg_size = 0.
-    # j = {}
-    # j['policy'] = gnn_fwd.GnnFwd
-    # j['policy_param'] = {
-    #     'input_feat_layers':    (64,64),
-    #     'feat_agg_layers':      (64,64),
-    #     'msg_enc_layers':       (),
-    #     'msg_size':             0,
-    #     'msg_dec_layers':       (64,),
-    #     'msg_agg_layers':       (64,),
-    #     'pi_head_layers':       (),
-    #     'vf_local_head_layers': (),
-    #     'vf_global_head_layers':()}
-    # j['name'] = j['policy'].policy_param_string(j['policy_param'])
-    # jobs.append(j)
-
-    # # Input feature processing with all parameters shared, msg_size = 8.
-    # j = {}
-    # j['policy'] = gnn_fwd.GnnFwd
-    # j['policy_param'] = {
-    #     'input_feat_layers':    (64,64),
-    #     'feat_agg_layers':      (64,64),
-    #     'msg_enc_layers':       (),
-    #     'msg_size':             8,
-    #     'msg_dec_layers':       (64,),
-    #     'msg_agg_layers':       (64,),
-    #     'pi_head_layers':       (),
-    #     'vf_local_head_layers': (),
-    #     'vf_global_head_layers':()}
-    # j['name'] = j['policy'].policy_param_string(j['policy_param'])
-    # jobs.append(j)
-
-    # Miniature ICRA 2018 with msg_size = 8.
-    # j = {}
-    # j['policy'] = gnn_fwd.GnnFwd
-    # j['policy_param'] = {
-    #     'input_feat_layers':    (64,64),
-    #     'feat_agg_layers':      (),
-    #     'msg_enc_layers':       (64,64),
-    #     'msg_size':             8,
-    #     'msg_dec_layers':       (64,64),
-    #     'msg_agg_layers':       (64,64),
-    #     'pi_head_layers':       (),
-    #     'vf_local_head_layers': (),
-    #     'vf_global_head_layers':()}
-    # j['name'] = j['policy'].policy_param_string(j['policy_param'])
-    # jobs.append(j)
-
     # Miniature ICRA 2018 with msg_size = 8 and global vf head.
-    j = {}
-    j['policy'] = gnn_fwd.GnnFwd
-    j['policy_param'] = {
-        'input_feat_layers': (64, 64),
-        'feat_agg_layers': (),
-        'msg_enc_layers': (64, 64),
-        'msg_size': 8,
-        'msg_dec_layers': (64, 64),
-        'msg_agg_layers': (64, 64),
-        'pi_head_layers': (),
-        'vf_local_head_layers': (),
-        'vf_global_head_layers': (64,)}
-    j['name'] = j['policy'].policy_param_string(j['policy_param'])
-    jobs.append(j)
+    # j = {}
+    # j['policy'] = gnn_fwd.GnnFwd
+    # j['policy_param'] = {
+    #     'input_feat_layers': (64, 64),
+    #     'feat_agg_layers': (),
+    #     'msg_enc_layers': (64, 64),
+    #     'msg_size': 8,
+    #     'msg_dec_layers': (64, 64),
+    #     'msg_agg_layers': (64, 64),
+    #     'pi_head_layers': (),
+    #     'vf_local_head_layers': (),
+    #     'vf_global_head_layers': (64,)}
+    # j['name'] = j['policy'].policy_param_string(j['policy_param'])
+    # jobs.append(j)
 
     # Miniature ICRA 2018 with msg_size = 0 and global vf head.
     j = {}
@@ -273,32 +204,8 @@ if __name__ == '__main__':
     j['name'] = j['policy'].policy_param_string(j['policy_param'])
     jobs.append(j)
 
-    # # Miniature ICRA 2018 with msg_size = 8 and global vf head.
-    # j = {}
-    # j['policy'] = gnn_fwd.GnnFwd
-    # j['policy_param'] = {
-    #     'input_feat_layers':    (128,128),
-    #     'feat_agg_layers':      (),
-    #     'msg_enc_layers':       (128,128),
-    #     'msg_size':             8,
-    #     'msg_dec_layers':       (128,128),
-    #     'msg_agg_layers':       (128,128),
-    #     'pi_head_layers':       (),
-    #     'vf_local_head_layers': (),
-    #     'vf_global_head_layers':(128,)}
-    # j['name'] = j['policy'].policy_param_string(j['policy_param'])
-    # jobs.append(j)
-
-    env_param = {
-        'n_max_agents': 9,
-        'r_capture': 0.2,
-        'early_termination': True,
-        'comm_adj_type': 'circulant',
-        'fov': 360
-    }
-
+    env_param = {}
     test_env_param = copy.deepcopy(env_param)
-    test_env_param['early_termination'] = False
 
     train_param = {
         'n_env': 32,
@@ -310,7 +217,7 @@ if __name__ == '__main__':
     root = Path('models/2019-09-13')
 
     for j in jobs:
-        directory = root / env_param_string(env_param) / train_param_string(train_param) / j['name']
+        directory = root / j['name']  # env_param_string(env_param) / train_param_string(train_param) / j['name']
 
         train_helper(
             env_param=env_param,
