@@ -37,7 +37,6 @@ class GnnFwd(ActorCriticPolicy):
             n_node=nodes.shape[0],
             n_edge=edges.shape[0])
 
-
         # https://stable-baselines.readthedocs.io/en/master/guide/custom_policy.html
         with tf.variable_scope("model", reuse=reuse):
 
@@ -47,9 +46,8 @@ class GnnFwd(ActorCriticPolicy):
             # compute value and policy
             self._value_fn = result_graph.globals
             self._policy = result_graph.edges  # TODO convert to logits over edges of node
-
-
             self._proba_distribution = self.pdtype.proba_distribution_from_flat(self._policy)
+            self._q_value = None
 
         self._setup_init()
 

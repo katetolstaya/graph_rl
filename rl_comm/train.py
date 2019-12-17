@@ -16,7 +16,7 @@ from progress.bar import Bar
 from stable_baselines.common.vec_env import SubprocVecEnv
 from stable_baselines import PPO2
 
-import gnn_fwd
+import rl_comm.gnn_fwd as gnn_fwd
 
 
 # def train_param_string(p):
