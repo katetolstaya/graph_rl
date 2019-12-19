@@ -4,12 +4,12 @@ import functools
 from pathlib import Path
 
 import gym
-env_dict = gym.envs.registration.registry.env_specs.copy()
-for env in env_dict:
-    print('Remove {} from registry'.format(env))
-    del gym.envs.registration.registry.env_specs[env]
+# env_dict = gym.envs.registration.registry.env_specs.copy()
+# for env in env_dict:
+#     print('Remove {} from registry'.format(env))
+#     del gym.envs.registration.registry.env_specs[env]
 
-
+import gym_flock
 import tensorflow as tf
 from progress.bar import Bar
 
@@ -56,24 +56,27 @@ def eval_env(env, model, N, render_mode='none'):
     Evaluate a model against an environment over N games.
     """
     results = {
-        'steps': np.zeros(N),
-        'score': np.zeros(N),
-        'lgr_score': np.zeros(N),
-        'initial_lgr_score': np.zeros(N)}
+        'reward': np.zeros(N),
+        # 'score': np.zeros(N),
+        # 'lgr_score': np.zeros(N),
+        # 'initial_lgr_score': np.zeros(N)
+    }
     with Bar('Eval', max=N) as bar:
         for k in range(N):
             done = False
             obs = env.reset()
+            ep_reward = 0
             # Run one game.
             while not done:
                 action, states = model.predict(obs, deterministic=True)  # TODO need to reformat here?
-                obs, rewards, done, info = env.step(action)
-                env.render(mode=render_mode)
+                obs, r, done, _ = env.step(action)
+                ep_reward += r
+                # env.render(mode=render_mode)
             # Record results.
-            results['steps'][k] = info['steps']
-            results['score'][k] = info['score']
-            results['lgr_score'][k] = info['lgr_score']
-            results['initial_lgr_score'][k] = info['initial_lgr_score']
+            results['reward'][k] = ep_reward
+            # results['score'][k] = info['score']
+            # results['lgr_score'][k] = info['lgr_score']
+            # results['initial_lgr_score'][k] = info['initial_lgr_score']
             bar.next()
     return results
 
@@ -99,10 +102,10 @@ def callback(locals_, globals_, test_env):
     if self_.num_timesteps >= self_.next_test_eval:
         print('\nTesting...')
         results = eval_env(test_env, self_, 200, render_mode='none')
-        print('score,          mean = {:.1f}, std = {:.1f}'.format(np.mean(results['score']), np.std(results['score'])))
-        print('init_lgr_score, mean = {:.1f}, std = {:.1f}'.format(np.mean(results['initial_lgr_score']),
-                                                                   np.std(results['initial_lgr_score'])))
-        print('steps,          mean = {:.1f}, std = {:.1f}'.format(np.mean(results['steps']), np.std(results['steps'])))
+        print('reward,          mean = {:.1f}, std = {:.1f}'.format(np.mean(results['reward']), np.std(results['reward'])))
+        # print('init_lgr_score, mean = {:.1f}, std = {:.1f}'.format(np.mean(results['initial_lgr_score']),
+        #                                                            np.std(results['initial_lgr_score'])))
+        # print('steps,          mean = {:.1f}, std = {:.1f}'.format(np.mean(results['steps']), np.std(results['steps'])))
         print('')
         score = np.mean(results['score'])
         summary = tf.Summary(value=[tf.Summary.Value(tag='score', simple_value=score)])
@@ -119,10 +122,15 @@ def train_helper(env_param, test_env_param, train_param, policy_fn, policy_param
         d.mkdir(parents=True, exist_ok=True)
 
     env_name = "MappingRad-v0"
-    env = SubprocVecEnv(gym.make(env_name))
+    keys = ['nodes', 'edges', 'senders', 'receivers']
+    env = gym.make(env_name)
+    env = gym.wrappers.FlattenDictWrapper(env, dict_keys=keys)
+    env = SubprocVecEnv([lambda: env])
 
-    env_name = "MappingRad-v0"
-    test_env = SubprocVecEnv(gym.make(env_name))
+    test_env = gym.make(env_name)
+    test_env = gym.wrappers.FlattenDictWrapper(test_env, dict_keys=keys)
+    test_env = SubprocVecEnv([lambda: test_env])
+    # test_env = SubprocVecEnv([gym.make(env_name)])
 
     # Find latest checkpoint index.
     ckpt_list = sorted(glob.glob(str(ckpt_dir) + '/*.pkl'))
@@ -143,6 +151,7 @@ def train_helper(env_param, test_env_param, train_param, policy_fn, policy_param
             policy_kwargs=policy_param,
             env=env,
             n_steps=train_param['n_steps'],
+
             ent_coef=0.001,
             verbose=1,
             tensorboard_log=str(tb_dir),
@@ -191,17 +200,18 @@ if __name__ == '__main__':
     # Miniature ICRA 2018 with msg_size = 0 and global vf head.
     j = {}
     j['policy'] = gnn_fwd.GnnFwd
-    j['policy_param'] = {
-        'input_feat_layers': (64, 64),
-        'feat_agg_layers': (),
-        'msg_enc_layers': (64, 64),
-        'msg_size': 0,
-        'msg_dec_layers': (64, 64),
-        'msg_agg_layers': (64, 64),
-        'pi_head_layers': (),
-        'vf_local_head_layers': (),
-        'vf_global_head_layers': (64,)}
-    j['name'] = j['policy'].policy_param_string(j['policy_param'])
+    # j['policy_param'] = {
+    #     'input_feat_layers': (64, 64),
+    #     'feat_agg_layers': (),
+    #     'msg_enc_layers': (64, 64),
+    #     'msg_size': 0,
+    #     'msg_dec_layers': (64, 64),
+    #     'msg_agg_layers': (64, 64),
+    #     'pi_head_layers': (),
+    #     'vf_local_head_layers': (),
+    #     'vf_global_head_layers': (64,)}
+    # j['name'] = j['policy'].policy_param_string(j['policy_param'])
+    j['name'] = '2019-09-13'
     jobs.append(j)
 
     env_param = {}
@@ -224,5 +234,5 @@ if __name__ == '__main__':
             test_env_param=test_env_param,
             train_param=train_param,
             policy_fn=j['policy'],
-            policy_param=j['policy_param'],
+            policy_param=None,  # j['policy_param'],
             directory=directory)
