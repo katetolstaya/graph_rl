@@ -54,9 +54,6 @@ def unpack_obs(obs):
     return batch_size, n_node, nodes, n_edge, edges, senders, receivers, globs
 
 
-
-
-
 class GnnFwd(ActorCriticPolicy):
     """
     Policy object that implements actor critic, using a MLP (2 layers of 64)
@@ -109,32 +106,17 @@ class GnnFwd(ActorCriticPolicy):
             orig_senders = tf.subtract(result_graph.senders, remap_node_index)
             orig_receivers = tf.subtract(result_graph.receivers, remap_node_index)
 
-
-
             # keep only edges in to controlled agents and out of uncontrolled agents
             mask = tf.logical_and(tf.less(orig_receivers, n_robots), tf.greater_equal(orig_senders, n_robots))
-            # mask = orig_receivers < n_robots
             mask = tf.reshape(mask, (-1,))
             # masked_senders = tf.boolean_mask(orig_senders, mask)
             masked_edges = tf.boolean_mask(result_graph.edges, mask, axis=0)
 
+            # TODO assumed unchanged order of edges here - is this OK?
+
+            # TODO this fails. why? because the mask is wrong, seems to correctly mask only the first batch?
+            # TODO alternatively, I can use the node data (nodes) to filter!
             self.logits = tf.reshape(masked_edges, (batch_size, n_robots * n_agents))
-
-
-            # # receivers2 needs to uniquely index the robots across all graphs
-            # cumsum2 = tf.reshape(tf.math.cumsum(tf.math.subtract(n_node, n_robots), exclusive=True), (batch_size,))
-            # remap_node_index2 = repeat(cumsum2, n_edge, axis=0)
-            # receivers2 = tf.boolean_mask(result_graph.receivers - remap_node_index2, mask)
-            # masked_edges = tf.reshape(masked_edges, (-1,))
-            #
-            # # collect edge values and senders for each robot
-            # ragged_senders = tf.RaggedTensor.from_value_rowids(values=masked_senders, value_rowids=receivers2, nrows=n_robots)
-            # ragged_edges = tf.RaggedTensor.from_value_rowids(values=masked_edges, value_rowids=receivers2, nrows=n_robots)
-            #
-            # self.logits = ragged_edges.to_tensor(default_value=0)
-            # self.senders = ragged_senders.to_tensor(default_value=0)
-
-            # self.logits = tf.reshape(self.logits, (-1, n_robots * n_agents))
 
             self._policy = self.logits
             self._proba_distribution = self.pdtype.proba_distribution_from_flat(self.logits)
@@ -148,13 +130,6 @@ class GnnFwd(ActorCriticPolicy):
         else:
             action, value, neglogp = self.sess.run([self.action, self.value_flat, self.neglogp],
                                                    {self.obs_ph: obs})
-
-        # # TODO cannot iterate, and fix based on sizes of policy and proba
-        # neighbor_action = []
-        # for (a, n) in zip(self.nodes, action):
-        #     neighbor_action.append(n[a])
-
-        # tf.gather or tf.batch_gather here
 
         return action, value, self.initial_state, neglogp
 
