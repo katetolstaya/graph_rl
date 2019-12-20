@@ -4,54 +4,7 @@ from stable_baselines.common.policies import ActorCriticPolicy
 import rl_comm.models as models
 import numpy as np
 from tensorflow.python.ops.array_ops import repeat_with_axis
-
-
-def unpack_obs(obs):
-    # TODO move this to the environment
-    # these params are already in the env
-    n_nodes = 925
-    dim_nodes = 2
-    max_edges = 5
-    max_n_edges = n_nodes * max_edges
-    dim_edges = 1
-
-    # unpack node and edge data from flattened array
-    shapes = ((n_nodes, dim_nodes), (max_n_edges, dim_edges), (max_n_edges, 1), (max_n_edges, 1))
-    sizes = [np.prod(s) for s in shapes]
-    tensors = tf.split(obs, sizes, axis=1)
-    tensors = [tf.reshape(t, (-1,) + s) for (t, s) in zip(tensors, shapes)]
-    nodes, edges, senders, receivers = tensors
-    batch_size = tf.shape(nodes)[0]
-
-    # TODO mask nodes too - assumes num. of landmarks is fixed (BAD)
-    n_node = tf.fill((batch_size,), n_nodes)  # assume n nodes is fixed
-    nodes = tf.reshape(nodes, (-1, dim_nodes))
-
-    # compute edge mask and number of edges per graph
-    mask = tf.reshape(tf.not_equal(senders, -1), (batch_size, -1))  # padded edges have sender = -1
-    n_edge = tf.reduce_sum(tf.cast(mask, tf.float32), axis=1)
-    mask = tf.reshape(mask, (-1,))
-
-    # flatten edge data
-    edges = tf.reshape(edges, (-1, dim_edges))
-    senders = tf.reshape(senders, (-1,))
-    receivers = tf.reshape(receivers, (-1,))
-
-    # mask edges
-    edges = tf.boolean_mask(edges, mask, axis=0)
-    senders = tf.boolean_mask(senders, mask)
-    receivers = tf.boolean_mask(receivers, mask)
-
-    # cast all indices to int
-    n_node = tf.cast(n_node, tf.int32)
-    n_edge = tf.cast(n_edge, tf.int32)
-    senders = tf.cast(senders, tf.int32)
-    receivers = tf.cast(receivers, tf.int32)
-
-    # TODO this is a hack - want global outputs, but have no global inputs
-    globs = tf.fill((batch_size, 1), 0.0)
-
-    return batch_size, n_node, nodes, n_edge, edges, senders, receivers, globs
+from gym_flock.envs.mapping_rad import MappingRadEnv
 
 
 class GnnFwd(ActorCriticPolicy):
@@ -73,7 +26,7 @@ class GnnFwd(ActorCriticPolicy):
         super(GnnFwd, self).__init__(sess, ob_space, ac_space, n_env, n_steps, n_batch, reuse,
                                      scale=False)
 
-        batch_size, n_node, nodes, n_edge, edges, senders, receivers, globs = unpack_obs(self.processed_obs)
+        batch_size, n_node, nodes, n_edge, edges, senders, receivers, globs = MappingRadEnv.unpack_obs(self.processed_obs)
 
         agent_graph = graphs.GraphsTuple(
             nodes=nodes,
