@@ -110,7 +110,7 @@ def callback(locals_, globals_, test_env):
         score = np.mean(results['reward'])
         summary = tf.Summary(value=[tf.Summary.Value(tag='reward', simple_value=score)])
         locals_['writer'].add_summary(summary, self_.num_timesteps)
-        self_.next_test_eval += 1000000
+        self_.next_test_eval += 10000
     return True
 
 
