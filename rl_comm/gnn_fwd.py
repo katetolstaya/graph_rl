@@ -3,8 +3,8 @@ from graph_nets import graphs
 from stable_baselines.common.policies import ActorCriticPolicy
 import rl_comm.models as models
 import numpy as np
-from tensorflow.python.ops.ragged.ragged_util import repeat
-from rl_comm.sparse_distribution import SparseMultiCategoricalProbabilityDistribution as SparseDistribution
+from tensorflow.python.ops.array_ops import repeat_with_axis
+
 
 def unpack_obs(obs):
     # TODO move this to the environment
@@ -54,6 +54,9 @@ def unpack_obs(obs):
     return batch_size, n_node, nodes, n_edge, edges, senders, receivers, globs
 
 
+
+
+
 class GnnFwd(ActorCriticPolicy):
     """
     Policy object that implements actor critic, using a MLP (2 layers of 64)
@@ -92,9 +95,6 @@ class GnnFwd(ActorCriticPolicy):
             result_graph = graph_model(agent_graph, num_processing_steps=num_processing_steps)
             result_graph = result_graph[-1]  # the last op is the decoded final processing step
 
-            # can any of these help me?
-            # https://github.com/deepmind/graph_nets/blob/f4ad83975276520e411befe5b9731057c6f57d7d/graph_nets/utils_tf.py
-
             # compute value
             self._value_fn = result_graph.globals
             self.q_value = None  # unused by PPO2
@@ -102,57 +102,42 @@ class GnnFwd(ActorCriticPolicy):
             n_agents = ac_space.nvec[0]
             n_robots = len(ac_space.nvec)
             n_edge = tf.reshape(n_edge, (batch_size,))
-            tf.print(n_edge)
 
             # remap node indices back from batch to intra-graph indexes
-            # remap_node_index = tf_repeat(, n_edge)
             cumsum = tf.reshape(tf.math.cumsum(n_node, exclusive=True), (batch_size,))
-            remap_node_index = repeat(cumsum, n_edge, axis=0)
+            remap_node_index = tf.reshape(repeat_with_axis(cumsum, n_edge, axis=0), (-1,))
+            orig_senders = tf.subtract(result_graph.senders, remap_node_index)
+            orig_receivers = tf.subtract(result_graph.receivers, remap_node_index)
 
-            orig_senders = result_graph.senders - remap_node_index
-            orig_receivers = result_graph.receivers - remap_node_index
 
-            # keep only edges in to controlled agents, out of uncontrolled agents
-            mask = tf.logical_and(orig_receivers < n_robots, orig_senders >= n_robots)  # padded edges have sender = -1
+
+            # keep only edges in to controlled agents and out of uncontrolled agents
+            mask = tf.logical_and(tf.less(orig_receivers, n_robots), tf.greater_equal(orig_senders, n_robots))
+            # mask = orig_receivers < n_robots
             mask = tf.reshape(mask, (-1,))
-            masked_senders = tf.boolean_mask(orig_senders, mask)
+            # masked_senders = tf.boolean_mask(orig_senders, mask)
             masked_edges = tf.boolean_mask(result_graph.edges, mask, axis=0)
 
-            # receivers2 needs to uniquely index the robots across all graphs
-            print(tf.size(n_edge))
-            cumsum2 = tf.reshape(tf.math.cumsum(tf.math.subtract(n_node, n_robots), exclusive=True), (batch_size,))
-            # remap_node_index2 = tf_repeat(, n_edge)
-            remap_node_index2 = repeat(cumsum2, n_edge, axis=0)
-            receivers2 = tf.boolean_mask(result_graph.receivers - remap_node_index2, mask)
+            self.logits = tf.reshape(masked_edges, (batch_size, n_robots * n_agents))
 
-            indices = tf.reshape(tf.stack([receivers2, masked_senders], axis=1),
-                                 (tf.reduce_sum(tf.cast(mask, tf.int32)), 2))
-            indices = tf.cast(indices, tf.int64)  # why does this have to be
-            dense_shape = tf.reshape(tf.cast([n_robots * batch_size, n_agents], tf.int64), (2,))
-            masked_edges = tf.reshape(masked_edges, (-1,))
 
-            # TODO use RaggedTensor instead
-            # tf.nn.top_k - https://www.tensorflow.org/api_docs/python/tf/math/top_k?version=stable
-            ragged_senders = tf.RaggedTensor.from_value_rowids(values=masked_senders, value_rowids=receivers2, nrows=n_robots)
-            ragged_edges = tf.RaggedTensor.from_value_rowids(values=masked_edges, value_rowids=receivers2, nrows=n_robots)
+            # # receivers2 needs to uniquely index the robots across all graphs
+            # cumsum2 = tf.reshape(tf.math.cumsum(tf.math.subtract(n_node, n_robots), exclusive=True), (batch_size,))
+            # remap_node_index2 = repeat(cumsum2, n_edge, axis=0)
+            # receivers2 = tf.boolean_mask(result_graph.receivers - remap_node_index2, mask)
+            # masked_edges = tf.reshape(masked_edges, (-1,))
+            #
+            # # collect edge values and senders for each robot
+            # ragged_senders = tf.RaggedTensor.from_value_rowids(values=masked_senders, value_rowids=receivers2, nrows=n_robots)
+            # ragged_edges = tf.RaggedTensor.from_value_rowids(values=masked_edges, value_rowids=receivers2, nrows=n_robots)
+            #
+            # self.logits = ragged_edges.to_tensor(default_value=0)
+            # self.senders = ragged_senders.to_tensor(default_value=0)
 
-            # Ragged logits?
+            # self.logits = tf.reshape(self.logits, (-1, n_robots * n_agents))
 
-            # TODO make a RaggedDistribution that takes
-
-            logits = tf.sparse.SparseTensor(indices=indices, values=masked_edges, dense_shape=dense_shape)
-            logits = tf.sparse.reorder(logits)
-
-            dense_shape = tf.reshape(tf.cast([batch_size, n_robots * n_agents], tf.int64), (2,))
-            self.sparse_logits = tf.cast(tf.sparse.reshape(logits, dense_shape), tf.float32)
-
-            # TODO implement SparseMultiCategorical distribution - converting to dense is expensive
-            # self.logits = tf.sparse.to_dense(self.sparse_logits, default_value=None)
-            # self._policy = self.logits
-            # self._proba_distribution = self.pdtype.proba_distribution_from_flat(self.logits)
-
-            self._policy = self.sparse_logits
-            self._proba_distribution = SparseDistribution(ac_space.nvec, self.sparse_logits)
+            self._policy = self.logits
+            self._proba_distribution = self.pdtype.proba_distribution_from_flat(self.logits)
 
         self._setup_init()
 
@@ -168,6 +153,8 @@ class GnnFwd(ActorCriticPolicy):
         # neighbor_action = []
         # for (a, n) in zip(self.nodes, action):
         #     neighbor_action.append(n[a])
+
+        # tf.gather or tf.batch_gather here
 
         return action, value, self.initial_state, neglogp
 
