@@ -96,30 +96,16 @@ class GnnFwd(ActorCriticPolicy):
             self._value_fn = result_graph.globals
             self.q_value = None  # unused by PPO2
 
-            n_agents = ac_space.nvec[0]
-            n_robots = len(ac_space.nvec)
-            n_edge = tf.reshape(n_edge, (batch_size,))
-
-            # remap node indices back from batch to intra-graph indexes
-            cumsum = tf.reshape(tf.math.cumsum(n_node, exclusive=True), (batch_size,))
-            remap_node_index = tf.reshape(repeat_with_axis(cumsum, n_edge, axis=0), (-1,))
-            orig_senders = tf.subtract(result_graph.senders, remap_node_index)
-            orig_receivers = tf.subtract(result_graph.receivers, remap_node_index)
-
             # keep only edges in to controlled agents and out of uncontrolled agents
-            mask = tf.logical_and(tf.less(orig_receivers, n_robots), tf.greater_equal(orig_senders, n_robots))
-            mask = tf.reshape(mask, (-1,))
-            # masked_senders = tf.boolean_mask(orig_senders, mask)
-            masked_edges = tf.boolean_mask(result_graph.edges, mask, axis=0)
+            sender_type = tf.cast(tf.gather(nodes[:, 0], senders), tf.bool)
+            receiver_type = tf.cast(tf.gather(nodes[:, 0], receivers), tf.bool)
+            mask = tf.logical_and(tf.logical_not(sender_type), receiver_type)
+            masked_edges = tf.boolean_mask(result_graph.edges, tf.reshape(mask, (-1,)), axis=0)
 
             # TODO assumed unchanged order of edges here - is this OK?
-
-            # TODO this fails. why? because the mask is wrong, seems to correctly mask only the first batch?
-            # TODO alternatively, I can use the node data (nodes) to filter!
-            self.logits = tf.reshape(masked_edges, (batch_size, n_robots * n_agents))
-
-            self._policy = self.logits
-            self._proba_distribution = self.pdtype.proba_distribution_from_flat(self.logits)
+            n_actions = tf.cast(tf.reduce_sum(ac_space.nvec), tf.int32)
+            self._policy = tf.reshape(masked_edges, (batch_size, n_actions))
+            self._proba_distribution = self.pdtype.proba_distribution_from_flat(self._policy)
 
         self._setup_init()
 
