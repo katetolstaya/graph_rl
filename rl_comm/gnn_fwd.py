@@ -31,7 +31,7 @@ class GnnFwd(ActorCriticPolicy):
         agent_graph = graphs.GraphsTuple(
             nodes=nodes,
             edges=edges,
-            globals=None,
+            globals=globs,
             receivers=receivers,
             senders=senders,
             n_node=n_node,
