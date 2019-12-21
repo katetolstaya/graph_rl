@@ -4,10 +4,5 @@ setup(
     version='1.0',
     packages=['rl_comm'],
     install_requires=[
-       'stable-baselines',
-       'graph_nets',
-       'progress',
-       'numpy',
-       'tensorflow'
     ]
 )
