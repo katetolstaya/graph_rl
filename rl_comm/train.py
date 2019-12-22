@@ -210,7 +210,7 @@ if __name__ == '__main__':
     #     'vf_local_head_layers': (),
     #     'vf_global_head_layers': (64,)}
     # j['name'] = j['policy'].policy_param_string(j['policy_param'])
-    j['name'] = '2019-09-13'
+    j['name'] = '2019-09-22'
     jobs.append(j)
 
     env_param = {}
