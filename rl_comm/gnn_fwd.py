@@ -21,7 +21,7 @@ class GnnFwd(ActorCriticPolicy):
     """
 
     def __init__(self, sess, ob_space, ac_space, n_env, n_steps, n_batch, reuse=False,
-                 num_processing_steps=5):
+                 num_processing_steps=10):
 
         super(GnnFwd, self).__init__(sess, ob_space, ac_space, n_env, n_steps, n_batch, reuse,
                                      scale=False)
