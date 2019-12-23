@@ -13,7 +13,7 @@ import gym_flock
 import tensorflow as tf
 from progress.bar import Bar
 
-from stable_baselines.common.vec_env import SubprocVecEnv
+from stable_baselines.common.vec_env import SubprocVecEnv, VecNormalize
 from stable_baselines import PPO2
 
 import rl_comm.gnn_fwd as gnn_fwd
@@ -125,7 +125,7 @@ def train_helper(env_param, test_env_param, train_param, policy_fn, policy_param
     keys = ['nodes', 'edges', 'senders', 'receivers']
     env = gym.make(env_name)
     env = gym.wrappers.FlattenDictWrapper(env, dict_keys=keys)
-    env = SubprocVecEnv([lambda: env])
+    env = VecNormalize(SubprocVecEnv([lambda: env]), norm_obs=False, norm_reward=True)
 
     test_env = gym.make(env_name)
     test_env = gym.wrappers.FlattenDictWrapper(test_env, dict_keys=keys)
