@@ -150,6 +150,7 @@ def train_helper(env_param, test_env_param, train_param, policy_fn, policy_param
             policy=policy_fn,
             policy_kwargs=policy_param,
             env=env,
+            learning_rate=2.5e-6,
             n_steps=train_param['n_steps'],
             ent_coef=0.001,
             verbose=1,

@@ -42,23 +42,27 @@ class GnnFwd(ActorCriticPolicy):
 
             # TODO ensure that globals block shares weights for all nodes
             graph_model = models.EncodeProcessDecode(edge_output_size=1, global_output_size=1, node_output_size=8)
-            result_graph = graph_model(agent_graph, num_processing_steps=num_processing_steps)
-            result_graph = result_graph[-1]  # the last op is the decoded final processing step
+            result_graphs = graph_model(agent_graph, num_processing_steps=num_processing_steps)
+            # result_graph = result_graph[-1]  # the last op is the decoded final processing step
 
             # compute value
-            self._value_fn = result_graph.globals
+            self._value_fn = sum([g.globals for g in result_graphs]) / num_processing_steps
+            edge_values = sum([g.edges for g in result_graphs]) / num_processing_steps
+
             self.q_value = None  # unused by PPO2
 
             # keep only edges in to controlled agents and out of uncontrolled agents
             sender_type = tf.cast(tf.gather(nodes[:, 0], senders), tf.bool)
             receiver_type = tf.cast(tf.gather(nodes[:, 0], receivers), tf.bool)
             mask = tf.logical_and(tf.logical_not(sender_type), receiver_type)
-            masked_edges = tf.boolean_mask(result_graph.edges, tf.reshape(mask, (-1,)), axis=0)
+            masked_edges = tf.boolean_mask(edge_values, tf.reshape(mask, (-1,)), axis=0)
 
             # TODO assumed unchanged order of edges here - is this OK?
             n_actions = tf.cast(tf.reduce_sum(ac_space.nvec), tf.int32)
             self._policy = tf.reshape(masked_edges, (batch_size, n_actions))
+            # temp = tf.Print(self._policy, [self._policy], summarize=-1)
             self._proba_distribution = self.pdtype.proba_distribution_from_flat(self._policy)
+
 
         self._setup_init()
 
@@ -69,6 +73,7 @@ class GnnFwd(ActorCriticPolicy):
         else:
             action, value, neglogp = self.sess.run([self.action, self.value_flat, self.neglogp],
                                                    {self.obs_ph: obs})
+
 
         return action, value, self.initial_state, neglogp
 
