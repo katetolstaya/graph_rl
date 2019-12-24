@@ -150,10 +150,10 @@ def train_helper(env_param, test_env_param, train_param, policy_fn, policy_param
             policy=policy_fn,
             policy_kwargs=policy_param,
             env=env,
-            learning_rate=5e-6,
+            learning_rate=5e-5,
             cliprange=1.0,
             n_steps=train_param['n_steps'],
-            ent_coef=0.01,
+            ent_coef=0.00001,
             verbose=1,
             tensorboard_log=str(tb_dir),
             full_tensorboard_log=False)
