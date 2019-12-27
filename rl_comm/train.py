@@ -129,8 +129,8 @@ def train_helper(env_param, test_env_param, train_param, policy_fn, policy_param
         env = gym.wrappers.FlattenDictWrapper(env, dict_keys=keys)
         return env
 
-    # env = VecNormalize(SubprocVecEnv([make_env]*4), norm_obs=False, norm_reward=True)
-    env = SubprocVecEnv([make_env]*16)
+    env = VecNormalize(SubprocVecEnv([make_env]*4), norm_obs=False, norm_reward=True)
+    # env = SubprocVecEnv([make_env]*train_param['n_env'])
     test_env = SubprocVecEnv([make_env])
 
     # Find latest checkpoint index.
@@ -154,7 +154,8 @@ def train_helper(env_param, test_env_param, train_param, policy_fn, policy_param
             learning_rate=1e-3,
             cliprange=1.0,
             n_steps=train_param['n_steps'],
-            ent_coef=0.01,
+            ent_coef=0.0001,
+            vf_coef=0.005,
             verbose=1,
             tensorboard_log=str(tb_dir),
             full_tensorboard_log=False)
@@ -220,7 +221,7 @@ if __name__ == '__main__':
     test_env_param = copy.deepcopy(env_param)
 
     train_param = {
-        'n_env': 32,
+        'n_env': 16,
         'n_steps': 32,
         'checkpoint_timesteps': 1000000,
         'total_timesteps': 50000000
