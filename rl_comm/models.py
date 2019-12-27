@@ -26,8 +26,8 @@ import tensorflow as tf
 # NUM_LAYERS = 2  # Hard-code number of layers in the edge/node/global models.
 # LATENT_SIZE = 8  # Hard-code latent layer sizes for demos.
 
-NUM_LAYERS = 2
-LATENT_SIZE = 16
+NUM_LAYERS = 1
+LATENT_SIZE = 4
 
 
 def make_mlp_model():

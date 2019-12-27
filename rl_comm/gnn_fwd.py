@@ -2,8 +2,6 @@ import tensorflow as tf
 from graph_nets import graphs
 from stable_baselines.common.policies import ActorCriticPolicy
 import rl_comm.models as models
-import numpy as np
-from tensorflow.python.ops.array_ops import repeat_with_axis
 from gym_flock.envs.mapping_rad import MappingRadEnv
 
 
@@ -41,13 +39,13 @@ class GnnFwd(ActorCriticPolicy):
         with tf.variable_scope("model", reuse=reuse):
 
             # TODO ensure that globals block shares weights for all nodes
-            graph_model = models.EncodeProcessDecode(edge_output_size=1, global_output_size=1, node_output_size=8)
+            graph_model = models.EncodeProcessDecode(edge_output_size=1, global_output_size=1)
             result_graphs = graph_model(agent_graph, num_processing_steps=num_processing_steps)
             # result_graph = result_graph[-1]  # the last op is the decoded final processing step
 
             # compute value
-            self._value_fn = sum([g.globals for g in result_graphs]) / num_processing_steps
-            edge_values = sum([g.edges for g in result_graphs]) / num_processing_steps
+            self._value_fn = result_graphs[-1].globals  #sum([g.globals for g in result_graphs]) #/ num_processing_steps
+            edge_values = sum([g.edges for g in result_graphs]) #/ num_processing_steps
 
             self.q_value = None  # unused by PPO2
 
