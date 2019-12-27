@@ -122,15 +122,16 @@ def train_helper(env_param, test_env_param, train_param, policy_fn, policy_param
         d.mkdir(parents=True, exist_ok=True)
 
     env_name = "MappingRad-v0"
-    keys = ['nodes', 'edges', 'senders', 'receivers']
-    env = gym.make(env_name)
-    env = gym.wrappers.FlattenDictWrapper(env, dict_keys=keys)
-    env = VecNormalize(SubprocVecEnv([lambda: env]), norm_obs=False, norm_reward=True)
 
-    test_env = gym.make(env_name)
-    test_env = gym.wrappers.FlattenDictWrapper(test_env, dict_keys=keys)
-    test_env = SubprocVecEnv([lambda: test_env])
-    # test_env = SubprocVecEnv([gym.make(env_name)])
+    def make_env():
+        keys = ['nodes', 'edges', 'senders', 'receivers']
+        env = gym.make(env_name)
+        env = gym.wrappers.FlattenDictWrapper(env, dict_keys=keys)
+        return env
+
+    # env = VecNormalize(SubprocVecEnv([make_env]*4), norm_obs=False, norm_reward=True)
+    env = SubprocVecEnv([make_env]*16)
+    test_env = SubprocVecEnv([make_env])
 
     # Find latest checkpoint index.
     ckpt_list = sorted(glob.glob(str(ckpt_dir) + '/*.pkl'))
