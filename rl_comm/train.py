@@ -88,11 +88,11 @@ def train_helper(env_param, test_env_param, train_param, policy_fn, policy_param
     test_env = SubprocVecEnv([make_env])
 
     # Find latest checkpoint index.
-    ckpt_list = sorted(glob.glob(str(ckpt_dir) + '/*.pkl'))
-    if len(ckpt_list) == 0:
-        ckpt_idx = None
-    else:
-        ckpt_idx = int(ckpt_list[-1][-7:-4])
+    # ckpt_list = sorted(glob.glob(str(ckpt_dir) + '/*.pkl'))
+    # if len(ckpt_list) == 0:
+    #     ckpt_idx = None
+    # else:
+    #     ckpt_idx = int(ckpt_list[-1][-7:-4])
 
     ckpt_idx = None
 
@@ -107,7 +107,7 @@ def train_helper(env_param, test_env_param, train_param, policy_fn, policy_param
             policy=policy_fn,
             policy_kwargs=policy_param,
             env=env,
-            learning_rate=1e-4,
+            learning_rate=1e-5,
             cliprange=1.0,
             n_steps=train_param['n_steps'],
             ent_coef=0.01,
