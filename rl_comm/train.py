@@ -94,6 +94,8 @@ def train_helper(env_param, test_env_param, train_param, policy_fn, policy_param
     else:
         ckpt_idx = int(ckpt_list[-1][-7:-4])
 
+    ckpt_idx = None
+
     # Load or create model.
     if ckpt_idx is not None:
         print('\nLoading model {}.\n'.format(ckpt_file(ckpt_dir, ckpt_idx).name))
