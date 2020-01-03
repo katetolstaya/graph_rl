@@ -19,25 +19,6 @@ from stable_baselines import PPO2
 import rl_comm.gnn_fwd as gnn_fwd
 
 
-# def train_param_string(p):
-#     """Return identifier string for A2C training parameter dict."""
-#     return 'ne_{ne}_ns_{ns}'.format(
-#         ne=p['n_env'],
-#         ns=p['n_steps'])
-#
-
-# def env_param_string(p):
-#     """Return identifier string for PDefenseEnv environment parameter dict."""
-#     comm = {'clique': 'clq', 'circulant': 'cir', 'range': 'rng'}[p['comm_adj_type']]
-#     if p['comm_adj_type'] == 'range':
-#         comm = comm + '_{}'.format(p['comm_adj_r'])
-#     return 'na_{na}_rc_{rc}_fov_{fv}_{comm}'.format(
-#         na=p['n_max_agents'],
-#         rc=p['r_capture'],
-#         fv=p['fov'],
-#         comm=comm)
-
-
 def ckpt_file(ckpt_dir, ckpt_idx):
     return ckpt_dir / 'ckpt_{:03}.pkl'.format(ckpt_idx)
 
@@ -57,9 +38,6 @@ def eval_env(env, model, N, render_mode='none'):
     """
     results = {
         'reward': np.zeros(N),
-        # 'score': np.zeros(N),
-        # 'lgr_score': np.zeros(N),
-        # 'initial_lgr_score': np.zeros(N)
     }
     with Bar('Eval', max=N) as bar:
         for k in range(N):
@@ -74,27 +52,12 @@ def eval_env(env, model, N, render_mode='none'):
                 # env.render(mode=render_mode)
             # Record results.
             results['reward'][k] = ep_reward
-            # results['score'][k] = info['score']
-            # results['lgr_score'][k] = info['lgr_score']
-            # results['initial_lgr_score'][k] = info['initial_lgr_score']
             bar.next()
     return results
 
 
 def callback(locals_, globals_, test_env):
     self_ = locals_['self']
-
-    # Add extra tensors to normal logging.
-    # Can't do it like this, because the existing summary is not invoked during the policy run.
-    # if not hasattr(self_, 'is_tb_set'):
-    #     print('Only once.')
-    #     with self_.graph.as_default():
-    #         print('Once.')
-    #         # print(self_.act_model.msg_enc_g.edges.shape)
-    #         tf.summary.histogram('msg_enc', self_.act_model.msg_enc_g.edges)
-    #         # tf.summary.histogram('msg_bin', self_.act_model.msg_bin_g.edges)
-    #         self_.summary = tf.summary.merge_all()
-    #     self_.is_tb_set = True
 
     # Periodically run extra test evaluation.
     if not hasattr(self_, 'next_test_eval'):
@@ -103,9 +66,6 @@ def callback(locals_, globals_, test_env):
         print('\nTesting...')
         results = eval_env(test_env, self_, 50, render_mode='none')
         print('reward,          mean = {:.1f}, std = {:.1f}'.format(np.mean(results['reward']), np.std(results['reward'])))
-        # print('init_lgr_score, mean = {:.1f}, std = {:.1f}'.format(np.mean(results['initial_lgr_score']),
-        #                                                            np.std(results['initial_lgr_score'])))
-        # print('steps,          mean = {:.1f}, std = {:.1f}'.format(np.mean(results['steps']), np.std(results['steps'])))
         print('')
         score = np.mean(results['reward'])
         summary = tf.Summary(value=[tf.Summary.Value(tag='reward', simple_value=score)])
@@ -129,8 +89,8 @@ def train_helper(env_param, test_env_param, train_param, policy_fn, policy_param
         env = gym.wrappers.FlattenDictWrapper(env, dict_keys=keys)
         return env
 
-    # env = VecNormalize(SubprocVecEnv([make_env]*train_param['n_env']), norm_obs=False, norm_reward=True)
-    env = SubprocVecEnv([make_env]*train_param['n_env'])
+    env = VecNormalize(SubprocVecEnv([make_env]*train_param['n_env']), norm_obs=False, norm_reward=True)
+    # env = SubprocVecEnv([make_env]*train_param['n_env'])
     test_env = SubprocVecEnv([make_env])
 
     # Find latest checkpoint index.
@@ -151,7 +111,7 @@ def train_helper(env_param, test_env_param, train_param, policy_fn, policy_param
             policy=policy_fn,
             policy_kwargs=policy_param,
             env=env,
-            learning_rate=1e-4,
+            learning_rate=1e-5,
             cliprange=1.0,
             n_steps=train_param['n_steps'],
             ent_coef=0.01,
@@ -184,35 +144,9 @@ if __name__ == '__main__':
 
     jobs = []  # string name, policy class, policy_kwargs
 
-    # Miniature ICRA 2018 with msg_size = 8 and global vf head.
-    # j = {}
-    # j['policy'] = gnn_fwd.GnnFwd
-    # j['policy_param'] = {
-    #     'input_feat_layers': (64, 64),
-    #     'feat_agg_layers': (),
-    #     'msg_enc_layers': (64, 64),
-    #     'msg_size': 8,
-    #     'msg_dec_layers': (64, 64),
-    #     'msg_agg_layers': (64, 64),
-    #     'pi_head_layers': (),
-    #     'vf_local_head_layers': (),
-    #     'vf_global_head_layers': (64,)}
-    # j['name'] = j['policy'].policy_param_string(j['policy_param'])
-    # jobs.append(j)
-
-    # Miniature ICRA 2018 with msg_size = 0 and global vf head.
     j = {}
     j['policy'] = gnn_fwd.GnnFwd
-    # j['policy_param'] = {
-    #     'input_feat_layers': (64, 64),
-    #     'feat_agg_layers': (),
-    #     'msg_enc_layers': (64, 64),
-    #     'msg_size': 0,
-    #     'msg_dec_layers': (64, 64),
-    #     'msg_agg_layers': (64, 64),
-    #     'pi_head_layers': (),
-    #     'vf_local_head_layers': (),
-    #     'vf_global_head_layers': (64,)}
+    j['policy_param'] = {'num_processing_steps': 5}
     # j['name'] = j['policy'].policy_param_string(j['policy_param'])
     j['name'] = '2019-09-22'
     jobs.append(j)
@@ -237,5 +171,5 @@ if __name__ == '__main__':
             test_env_param=test_env_param,
             train_param=train_param,
             policy_fn=j['policy'],
-            policy_param=None,  # j['policy_param'],
+            policy_param=j['policy_param'],
             directory=directory)
