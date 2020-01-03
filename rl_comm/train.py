@@ -2,13 +2,7 @@ import glob
 import numpy as np
 import functools
 from pathlib import Path
-
 import gym
-# env_dict = gym.envs.registration.registry.env_specs.copy()
-# for env in env_dict:
-#     print('Remove {} from registry'.format(env))
-#     del gym.envs.registration.registry.env_specs[env]
-
 import gym_flock
 import tensorflow as tf
 from progress.bar import Bar
@@ -89,8 +83,8 @@ def train_helper(env_param, test_env_param, train_param, policy_fn, policy_param
         env = gym.wrappers.FlattenDictWrapper(env, dict_keys=keys)
         return env
 
-    env = VecNormalize(SubprocVecEnv([make_env]*train_param['n_env']), norm_obs=False, norm_reward=True)
-    # env = SubprocVecEnv([make_env]*train_param['n_env'])
+    # env = VecNormalize(SubprocVecEnv([make_env]*train_param['n_env']), norm_obs=False, norm_reward=True)
+    env = SubprocVecEnv([make_env]*train_param['n_env'])
     test_env = SubprocVecEnv([make_env])
 
     # Find latest checkpoint index.
