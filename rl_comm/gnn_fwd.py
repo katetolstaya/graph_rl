@@ -39,13 +39,18 @@ class GnnFwd(ActorCriticPolicy):
         with tf.variable_scope("model", reuse=reuse):
 
             # TODO ensure that globals block shares weights for all nodes
-            graph_model = models.EncodeProcessDecode(edge_output_size=1, global_output_size=1)
-            result_graphs = graph_model(agent_graph, num_processing_steps=num_processing_steps)
-            # result_graph = result_graph[-1]  # the last op is the decoded final processing step
+            # graph_model = models.EncodeProcessDecode(edge_output_size=1, global_output_size=1)
+            # result_graphs = graph_model(agent_graph, num_processing_steps=num_processing_steps)
+            # # compute value
+            # self._value_fn = result_graphs[-1].globals  #sum([g.globals for g in result_graphs]) #/ num_processing_steps
+            # edge_values = sum([g.edges for g in result_graphs]) #/ num_processing_steps
 
-            # compute value
-            self._value_fn = result_graphs[-1].globals  #sum([g.globals for g in result_graphs]) #/ num_processing_steps
-            edge_values = sum([g.edges for g in result_graphs]) #/ num_processing_steps
+            graph_model_policy = models.EncodeProcessDecode(edge_output_size=1)
+            graph_model_value = models.EncodeProcessDecode(global_output_size=1)
+            policy_graph = graph_model_policy(agent_graph, num_processing_steps=num_processing_steps)
+            value_graph = graph_model_value(agent_graph, num_processing_steps=num_processing_steps)
+            self._value_fn = value_graph[-1].globals
+            edge_values = sum([g.edges for g in policy_graph])
 
             self.q_value = None  # unused by PPO2
 
