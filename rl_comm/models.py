@@ -19,6 +19,7 @@ from __future__ import division
 from __future__ import print_function
 
 from graph_nets import modules
+from graph_nets.blocks import unsorted_segment_max_or_zero
 from graph_nets import utils_tf
 import sonnet as snt
 import tensorflow as tf
@@ -69,7 +70,8 @@ class MLPGraphNetwork(snt.AbstractModule):
             self._network = modules.GraphNetwork(
                 edge_model_fn=make_mlp_model,
                 node_model_fn=make_mlp_model,
-                global_model_fn=make_mlp_model)
+                global_model_fn=make_mlp_model,
+                reducer=unsorted_segment_max_or_zero)
 
     def _build(self, inputs):
         return self._network(inputs)
