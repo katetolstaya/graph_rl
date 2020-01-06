@@ -42,7 +42,7 @@ class GnnFwd(ActorCriticPolicy):
             graph_model = models.EncodeProcessDecode(edge_output_size=1, global_output_size=1)
             result_graphs = graph_model(agent_graph, num_processing_steps=num_processing_steps)
             # compute value
-            self._value_fn = result_graphs[-1].globals  #sum([g.globals for g in result_graphs]) #/ num_processing_steps
+            self._value_fn = sum([g.globals for g in result_graphs]) #/ num_processing_steps
             edge_values = sum([g.edges for g in result_graphs]) #/ num_processing_steps
 
             # graph_model_policy = models.EncodeProcessDecode(edge_output_size=1)
