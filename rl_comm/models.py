@@ -28,7 +28,7 @@ import tensorflow as tf
 # LATENT_SIZE = 8  # Hard-code latent layer sizes for demos.
 
 NUM_LAYERS = 2
-LATENT_SIZE = 8
+LATENT_SIZE = 16
 
 
 def make_mlp_model():

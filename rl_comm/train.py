@@ -142,9 +142,9 @@ if __name__ == '__main__':
     jobs = []  # string name, policy class, policy_kwargs
 
     j = {}
-    # j['policy'] = gnn_fwd.GnnFwd
-    j['policy'] = MlpPolicy
-    # j['policy_param'] = {'num_processing_steps': 4}
+    j['policy'] = gnn_fwd.GnnFwd
+    # j['policy'] = MlpPolicy
+    j['policy_param'] = {'num_processing_steps': 3}
     # j['name'] = j['policy'].policy_param_string(j['policy_param'])
     j['name'] = '2019-09-22'
     jobs.append(j)
