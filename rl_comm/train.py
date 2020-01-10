@@ -9,6 +9,7 @@ from progress.bar import Bar
 
 from stable_baselines.common.vec_env import SubprocVecEnv, VecNormalize
 from stable_baselines import PPO2
+from stable_baselines.common.policies import MlpPolicy
 
 import rl_comm.gnn_fwd as gnn_fwd
 
@@ -141,7 +142,8 @@ if __name__ == '__main__':
     jobs = []  # string name, policy class, policy_kwargs
 
     j = {}
-    j['policy'] = gnn_fwd.GnnFwd
+    # j['policy'] = gnn_fwd.GnnFwd
+    j['policy'] = MlpPolicy
     j['policy_param'] = {'num_processing_steps': 4}
     # j['name'] = j['policy'].policy_param_string(j['policy_param'])
     j['name'] = '2019-09-22'
