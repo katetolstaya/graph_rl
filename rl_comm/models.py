@@ -137,6 +137,51 @@ class EncodeProcessDecode(snt.AbstractModule):
             output_ops.append(self._output_transform(decoded_op))
         return output_ops
 
+
+class NLayerGraphNet(snt.AbstractModule):
+        """
+        N layer graph net that doesn't share weights between processing steps.
+        More expressive power hopefully.
+        """
+
+        def __init__(self,
+                     edge_output_size=None,
+                     node_output_size=None,
+                     global_output_size=None,
+                     n_steps=5,
+                     name="EncodeProcessDecode"):
+            super(NLayerGraphNet, self).__init__(name=name)
+            self._encoder = MLPGraphIndependent()
+
+            self._cores = []
+            for _ in range(n_steps):
+                self._cores.append(MLPGraphNetwork())
+
+            self._decoder = MLPGraphIndependent()
+            # Transforms the outputs into the appropriate shapes.
+            if edge_output_size is None:
+                edge_fn = None
+            else:
+                edge_fn = lambda: snt.Linear(edge_output_size, name="edge_output")
+            if node_output_size is None:
+                node_fn = None
+            else:
+                node_fn = lambda: snt.Linear(node_output_size, name="node_output")
+            if global_output_size is None:
+                global_fn = None
+            else:
+                global_fn = lambda: snt.Linear(global_output_size, name="global_output")
+            with self._enter_variable_scope():
+                self._output_transform = modules.GraphIndependent(edge_fn, node_fn,
+                                                                  global_fn)
+
+        def _build(self, input_op, num_processing_steps):
+            latent = self._encoder(input_op)
+            for i in range(len(self._cores)):
+                latent = self._cores[i](latent)
+            decoded = self._decoder(latent)
+            return decoded
+
     # def _build(self, input_op, num_processing_steps):
     #     latent = self._encoder(input_op)
     #     output_ops = []
