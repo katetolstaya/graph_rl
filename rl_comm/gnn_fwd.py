@@ -42,10 +42,19 @@ class GnnFwd(ActorCriticPolicy):
             # graph_model = models.EncodeProcessDecode(edge_output_size=1, global_output_size=1)
             # result_graphs = graph_model(agent_graph, num_processing_steps=num_processing_steps)
 
-            graph_model = models.NLayerGraphNet(edge_output_size=1, global_output_size=1)
-            result_graphs = graph_model(agent_graph)
+            graph_model = models.EncodeProcessDecode(global_output_size=1)
+            graph_model2 = models.EncodeProcessDecode(edge_output_size=1)
+            result_graphs = graph_model(agent_graph, num_processing_steps=num_processing_steps)
+            result_graphs2 = graph_model2(agent_graph, num_processing_steps=num_processing_steps)
+
+            # graph_model = models.NLayerGraphNet(edge_output_size=1, global_output_size=1)
+            # graph_model = models.NLayerGraphNet(global_output_size=1)
+            # graph_model2 = models.NLayerGraphNet(edge_output_size=1)
+            # result_graphs = graph_model(agent_graph)
+            # result_graphs2 = graph_model2(agent_graph)
             self._value_fn = sum([g.globals for g in result_graphs]) #/ num_processing_steps
-            edge_values = sum([g.edges for g in result_graphs]) #/ num_processing_steps
+            # edge_values = sum([g.edges for g in result_graphs]) #/ num_processing_steps
+            edge_values = sum([g.edges for g in result_graphs2]) #/ num_processing_steps
 
             # graph_model = models.NLayerGraphNet(edge_output_size=1, global_output_size=1)
             # result_graph = graph_model(agent_graph)
