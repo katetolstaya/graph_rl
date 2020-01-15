@@ -39,11 +39,11 @@ class GnnFwd(ActorCriticPolicy):
         with tf.variable_scope("model", reuse=reuse):
 
             # TODO ensure that globals block shares weights for all nodes
-            graph_model = models.EncodeProcessDecode(edge_output_size=1, global_output_size=1)
-            result_graphs = graph_model(agent_graph, num_processing_steps=num_processing_steps)
+            # graph_model = models.EncodeProcessDecode(edge_output_size=1, global_output_size=1)
+            # result_graphs = graph_model(agent_graph, num_processing_steps=num_processing_steps)
 
-            # graph_model = models.NLayerGraphNet(edge_output_size=1, global_output_size=1)
-            # result_graphs = graph_model(agent_graph)
+            graph_model = models.NLayerGraphNet(edge_output_size=1, global_output_size=1)
+            result_graphs = graph_model(agent_graph)
             self._value_fn = sum([g.globals for g in result_graphs]) #/ num_processing_steps
             edge_values = sum([g.edges for g in result_graphs]) #/ num_processing_steps
 
