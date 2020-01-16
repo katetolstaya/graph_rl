@@ -10,6 +10,7 @@ from progress.bar import Bar
 from stable_baselines.common.vec_env import SubprocVecEnv, VecNormalize
 from stable_baselines import PPO2
 from stable_baselines.common.policies import MlpPolicy
+from stable_baselines.gail import ExpertDataset
 
 import rl_comm.gnn_fwd as gnn_fwd
 
@@ -76,7 +77,7 @@ def train_helper(env_param, test_env_param, train_param, policy_fn, policy_param
     for d in [save_dir, tb_dir, ckpt_dir]:
         d.mkdir(parents=True, exist_ok=True)
 
-    env_name = "MappingRad-v0"
+    env_name = "MappingRad1-v0"
 
     def make_env():
         keys = ['nodes', 'edges', 'senders', 'receivers']
@@ -84,8 +85,9 @@ def train_helper(env_param, test_env_param, train_param, policy_fn, policy_param
         env = gym.wrappers.FlattenDictWrapper(env, dict_keys=keys)
         return env
 
-    env = VecNormalize(SubprocVecEnv([make_env]*train_param['n_env']), norm_obs=False, norm_reward=True)
-    # env = SubprocVecEnv([make_env]*train_param['n_env'])
+    # env = VecNormalize(SubprocVecEnv([make_env]*train_param['n_env']), norm_obs=False, norm_reward=True)
+
+    env = SubprocVecEnv([make_env]*train_param['n_env'])
     test_env = SubprocVecEnv([make_env])
 
     # Find latest checkpoint index.
@@ -117,6 +119,10 @@ def train_helper(env_param, test_env_param, train_param, policy_fn, policy_param
             tensorboard_log=str(tb_dir),
             full_tensorboard_log=False)
         ckpt_idx = 0
+
+    dataset = ExpertDataset(expert_path='expert_rad2.npz',
+                            traj_limitation=-1, batch_size=128)
+    model.pretrain(dataset, n_epochs=200, learning_rate=1e-5)
 
     # Training loop.
     print('\nBegin training.\n')

@@ -3,6 +3,7 @@ from graph_nets import graphs
 from stable_baselines.common.policies import ActorCriticPolicy
 import rl_comm.models as models
 from gym_flock.envs.mapping_rad import MappingRadEnv
+from gym.spaces import MultiDiscrete
 
 
 class GnnFwd(ActorCriticPolicy):
@@ -38,7 +39,7 @@ class GnnFwd(ActorCriticPolicy):
         # https://stable-baselines.readthedocs.io/en/master/guide/custom_policy.html
         with tf.variable_scope("model", reuse=reuse):
 
-            # TODO ensure that globals block shares weights for all nodes
+            # # TODO ensure that globals block shares weights for all nodes
             # graph_model = models.EncodeProcessDecode(edge_output_size=1, global_output_size=1)
             # result_graphs = graph_model(agent_graph, num_processing_steps=num_processing_steps)
 
@@ -71,7 +72,11 @@ class GnnFwd(ActorCriticPolicy):
             masked_edges = tf.boolean_mask(edge_values, tf.reshape(mask, (-1,)), axis=0)
 
             # TODO assumed unchanged order of edges here - is this OK?
-            n_actions = tf.cast(tf.reduce_sum(ac_space.nvec), tf.int32)
+
+            if ac_space is MultiDiscrete:
+                n_actions = tf.cast(tf.reduce_sum(ac_space.nvec), tf.int32)
+            else:
+                n_actions = tf.cast(ac_space.n, tf.int32)
             self._policy = tf.reshape(masked_edges, (batch_size, n_actions))
             # temp = tf.Print(self._policy, [self._policy], summarize=-1)
             self._proba_distribution = self.pdtype.proba_distribution_from_flat(self._policy)
