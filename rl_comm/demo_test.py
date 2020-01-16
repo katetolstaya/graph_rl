@@ -6,7 +6,7 @@ import gym_flock
 
 def make_env():
     keys = ['nodes', 'edges', 'senders', 'receivers']
-    env = gym.make("MappingRad-v0")
+    env = gym.make("MappingRad1-v0")
     env = gym.wrappers.FlattenDictWrapper(env, dict_keys=keys)
     return env
 
@@ -38,7 +38,7 @@ if __name__ == '__main__':
     env = make_env()
 
     # Specify pre-trained model checkpoint file.
-    model_name = 'ckpt_050.pkl'
+    model_name = 'models/2019-09-13/2019-09-22/ckpt/ckpt_002.pkl'
 
     model = PPO2.load(model_name)
 
