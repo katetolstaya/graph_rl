@@ -120,7 +120,7 @@ def train_helper(env_param, test_env_param, train_param, policy_fn, policy_param
             full_tensorboard_log=False)
         ckpt_idx = 0
 
-    dataset = ExpertDataset(expert_path='expert_rad2.npz',
+    dataset = ExpertDataset(expert_path='expert_rad_2targets.npz',
                             traj_limitation=-1, batch_size=128)
     model.pretrain(dataset, n_epochs=500, learning_rate=1e-5)
 
