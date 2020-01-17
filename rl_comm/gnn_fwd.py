@@ -4,6 +4,10 @@ from stable_baselines.common.policies import ActorCriticPolicy
 import rl_comm.models as models
 from gym_flock.envs.mapping_rad import MappingRadEnv
 from gym.spaces import MultiDiscrete
+from rl_comm.models import MLPGraphIndependent
+from graph_nets import modules
+
+import sonnet as snt
 
 
 class GnnFwd(ActorCriticPolicy):
@@ -43,19 +47,43 @@ class GnnFwd(ActorCriticPolicy):
             # graph_model = models.EncodeProcessDecode(edge_output_size=1, global_output_size=1)
             # result_graphs = graph_model(agent_graph, num_processing_steps=num_processing_steps)
 
-            graph_model = models.EncodeProcessDecode(global_output_size=1)
-            graph_model2 = models.EncodeProcessDecode(edge_output_size=1)
+            graph_model = models.EncodeProcessDecode(global_output_size=16, edge_output_size=16)
+            # graph_model2 = models.EncodeProcessDecode(edge_output_size=1)
             result_graphs = graph_model(agent_graph, num_processing_steps=num_processing_steps)
-            result_graphs2 = graph_model2(agent_graph, num_processing_steps=num_processing_steps)
+            # result_graphs2 = graph_model2(agent_graph, num_processing_steps=num_processing_steps)
 
             # graph_model = models.NLayerGraphNet(edge_output_size=1, global_output_size=1)
             # graph_model = models.NLayerGraphNet(global_output_size=1)
             # graph_model2 = models.NLayerGraphNet(edge_output_size=1)
             # result_graphs = graph_model(agent_graph)
             # result_graphs2 = graph_model2(agent_graph)
-            self._value_fn = sum([g.globals for g in result_graphs]) #/ num_processing_steps
+
+            feature_graph = graphs.GraphsTuple(
+                nodes=tf.stack([g.nodes for g in result_graphs], axis=1),
+                edges=tf.stack([g.edges for g in result_graphs], axis=1),
+                globals=tf.stack([g.globals for g in result_graphs], axis=1),
+                receivers=receivers,
+                senders=senders,
+                n_node=n_node,
+                n_edge=n_edge)
+
+            edge_fn = lambda: snt.Linear(1, name="edge_output")
+            global_fn = lambda: snt.Linear(1, name="global_output")
+            node_fn = lambda: snt.Linear(1, name="global_output")
+            self.value_agg_gnn = modules.GraphIndependent(edge_fn, node_fn, global_fn)
+            self.policy_agg_gnn = modules.GraphIndependent(edge_fn, node_fn, global_fn)
+
+            value_graph = self.value_agg_gnn(feature_graph)
+            policy_graph = self.policy_agg_gnn(feature_graph)
+
+            # self._value_fn = sum([g.globals for g in result_graphs]) #/ num_processing_steps
+            self._value_fn = value_graph.globals #/ num_processing_steps
             # edge_values = sum([g.edges for g in result_graphs]) #/ num_processing_steps
-            edge_values = sum([g.edges for g in result_graphs2]) #/ num_processing_steps
+            # edge_values = sum([g.edges for g in result_graphs2]) #/ num_processing_steps
+            edge_values = policy_graph.edges #/ num_processing_steps
+
+
+
 
             # graph_model = models.NLayerGraphNet(edge_output_size=1, global_output_size=1)
             # result_graph = graph_model(agent_graph)
