@@ -47,7 +47,9 @@ class GnnFwd(ActorCriticPolicy):
             # graph_model = models.EncodeProcessDecode(edge_output_size=1, global_output_size=1)
             # result_graphs = graph_model(agent_graph, num_processing_steps=num_processing_steps)
 
-            graph_model = models.EncodeProcessDecode(global_output_size=16, edge_output_size=16)
+            N_HIDDEN = 8
+
+            graph_model = models.EncodeProcessDecode(global_output_size=N_HIDDEN, edge_output_size=N_HIDDEN, node_output_size=N_HIDDEN)
             # graph_model2 = models.EncodeProcessDecode(edge_output_size=1)
             result_graphs = graph_model(agent_graph, num_processing_steps=num_processing_steps)
             # result_graphs2 = graph_model2(agent_graph, num_processing_steps=num_processing_steps)
@@ -58,23 +60,38 @@ class GnnFwd(ActorCriticPolicy):
             # result_graphs = graph_model(agent_graph)
             # result_graphs2 = graph_model2(agent_graph)
 
+            stacked_edges = tf.stack([g.edges for g in result_graphs], axis=1)
+            stacked_nodes = tf.stack([g.nodes for g in result_graphs], axis=1)
+            stacked_globals = tf.stack([g.globals for g in result_graphs], axis=1)
+
+            n_stacked = N_HIDDEN*num_processing_steps
+
+
+            stacked_edges = tf.reshape(stacked_edges, (-1, n_stacked))
+            stacked_globals = tf.reshape(stacked_globals, (-1, n_stacked))
+            stacked_nodes = tf.reshape(stacked_nodes, (-1, n_stacked))
+
             feature_graph = graphs.GraphsTuple(
-                nodes=tf.stack([g.nodes for g in result_graphs], axis=1),
-                edges=tf.stack([g.edges for g in result_graphs], axis=1),
-                globals=tf.stack([g.globals for g in result_graphs], axis=1),
+                nodes=stacked_nodes,
+                edges=stacked_edges,
+                globals=stacked_globals,
                 receivers=receivers,
                 senders=senders,
                 n_node=n_node,
                 n_edge=n_edge)
 
+            value_gnn = MLPGraphIndependent()
+            policy_gnn = MLPGraphIndependent()
+
             edge_fn = lambda: snt.Linear(1, name="edge_output")
             global_fn = lambda: snt.Linear(1, name="global_output")
-            node_fn = lambda: snt.Linear(1, name="global_output")
-            self.value_agg_gnn = modules.GraphIndependent(edge_fn, node_fn, global_fn)
-            self.policy_agg_gnn = modules.GraphIndependent(edge_fn, node_fn, global_fn)
+            # node_fn = lambda: snt.Linear(1, name="global_output")
 
-            value_graph = self.value_agg_gnn(feature_graph)
-            policy_graph = self.policy_agg_gnn(feature_graph)
+            value_agg_gnn = modules.GraphIndependent(None, None, global_fn)
+            policy_agg_gnn = modules.GraphIndependent(edge_fn, None, None)
+
+            value_graph = value_agg_gnn(value_gnn(feature_graph))
+            policy_graph = policy_agg_gnn(policy_gnn(feature_graph))
 
             # self._value_fn = sum([g.globals for g in result_graphs]) #/ num_processing_steps
             self._value_fn = value_graph.globals #/ num_processing_steps
