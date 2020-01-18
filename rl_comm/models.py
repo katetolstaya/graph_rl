@@ -23,6 +23,7 @@ from graph_nets.blocks import unsorted_segment_max_or_zero
 from graph_nets import utils_tf
 import sonnet as snt
 import tensorflow as tf
+from graph_nets import graphs
 
 # NUM_LAYERS = 2  # Hard-code number of layers in the edge/node/global models.
 # LATENT_SIZE = 8  # Hard-code latent layer sizes for demos.
@@ -138,51 +139,82 @@ class EncodeProcessDecode(snt.AbstractModule):
         return output_ops
 
 
-class NLayerGraphNet(snt.AbstractModule):
-        """
-        N layer graph net that doesn't share weights between processing steps.
-        More expressive power hopefully.
-        """
+class AggregationNet(snt.AbstractModule):
+    """
+    N layer graph net that doesn't share weights between processing steps.
+    More expressive power hopefully.
+    """
 
-        def __init__(self,
-                     edge_output_size=None,
-                     node_output_size=None,
-                     global_output_size=None,
-                     n_steps=10,
-                     name="EncodeProcessDecode"):
-            super(NLayerGraphNet, self).__init__(name=name)
-            self._encoder = MLPGraphIndependent()
+    def __init__(self,
+                 num_processing_steps,
+                 edge_output_size=None,
+                 node_output_size=None,
+                 global_output_size=None,
+                 n_steps=10,
+                 name="EncodeProcessDecode"):
+        super(AggregationNet, self).__init__(name=name)
+        self._encoder = MLPGraphIndependent()
+        self._core = MLPGraphNetwork()
+        self._decoder = MLPGraphIndependent()
+        self._aggregation = MLPGraphIndependent()
+        self._num_processing_steps = num_processing_steps
 
-            self._cores = []
-            for _ in range(n_steps):
-                self._cores.append(MLPGraphNetwork())
+        # Transforms the outputs into the appropriate shapes.
+        if edge_output_size is None:
+            edge_fn = None
+        else:
+            edge_fn = lambda: snt.Linear(edge_output_size, name="edge_output")
+        if node_output_size is None:
+            node_fn = None
+        else:
+            node_fn = lambda: snt.Linear(node_output_size, name="node_output")
+        if global_output_size is None:
+            global_fn = None
+        else:
+            global_fn = lambda: snt.Linear(global_output_size, name="global_output")
+        with self._enter_variable_scope():
+            self._output_transform = modules.GraphIndependent(edge_fn, node_fn,
+                                                              global_fn)
 
-            self._decoder = MLPGraphIndependent()
-            # Transforms the outputs into the appropriate shapes.
-            if edge_output_size is None:
-                edge_fn = None
-            else:
-                edge_fn = lambda: snt.Linear(edge_output_size, name="edge_output")
-            if node_output_size is None:
-                node_fn = None
-            else:
-                node_fn = lambda: snt.Linear(node_output_size, name="node_output")
-            if global_output_size is None:
-                global_fn = None
-            else:
-                global_fn = lambda: snt.Linear(global_output_size, name="global_output")
-            with self._enter_variable_scope():
-                self._output_transform = modules.GraphIndependent(edge_fn, node_fn,
-                                                                  global_fn)
+    def _build(self, input_op):
 
-        def _build(self, input_op):
-            latent = self._encoder(input_op)
-            for i in range(len(self._cores)):
-                latent = self._cores[i](latent)
-            decoded = self._decoder(latent)
-            output_op = self._output_transform(decoded)
+        receivers = input_op.receivers
+        senders = input_op.senders
+        n_node = input_op.n_node
+        n_edge = input_op.n_edge
 
-            return [output_op]
+        latent = self._encoder(input_op)
+        latent0 = latent
+        output_ops = []
+
+        for _ in range(self._num_processing_steps):
+            core_input = utils_tf.concat([latent0, latent], axis=1)
+            latent = self._core(core_input)
+            decoded_op = self._decoder(latent)
+            output_ops.append(decoded_op)
+
+        stacked_edges = tf.stack([g.edges for g in output_ops], axis=1)
+        stacked_nodes = tf.stack([g.nodes for g in output_ops], axis=1)
+        stacked_globals = tf.stack([g.globals for g in output_ops], axis=1)
+
+        n_stacked = LATENT_SIZE * self._num_processing_steps
+
+        stacked_edges = tf.reshape(stacked_edges, (-1, n_stacked))
+        stacked_globals = tf.reshape(stacked_globals, (-1, n_stacked))
+        stacked_nodes = tf.reshape(stacked_nodes, (-1, n_stacked))
+
+        feature_graph = graphs.GraphsTuple(
+            nodes=stacked_nodes,
+            edges=stacked_edges,
+            globals=stacked_globals,
+            receivers=receivers,
+            senders=senders,
+            n_node=n_node,
+            n_edge=n_edge)
+
+        out = self._output_transform(self._aggregation(feature_graph))
+
+        return out
 
     # def _build(self, input_op, num_processing_steps):
     #     latent = self._encoder(input_op)
