@@ -2,7 +2,7 @@ import tensorflow as tf
 from graph_nets import graphs
 from stable_baselines.common.policies import ActorCriticPolicy
 import rl_comm.models as models
-from gym_flock.envs.mapping_rad import MappingRadEnv
+from gym_flock.envs.mapping_rad1 import MappingRad1Env
 from gym.spaces import MultiDiscrete
 from rl_comm.models import MLPGraphIndependent
 from graph_nets import modules
@@ -29,7 +29,7 @@ class GnnFwd(ActorCriticPolicy):
         super(GnnFwd, self).__init__(sess, ob_space, ac_space, n_env, n_steps, n_batch, reuse,
                                      scale=False)
 
-        batch_size, n_node, nodes, n_edge, edges, senders, receivers, globs = MappingRadEnv.unpack_obs(self.processed_obs)
+        batch_size, n_node, nodes, n_edge, edges, senders, receivers, globs = MappingRad1Env.unpack_obs(self.processed_obs)
 
         agent_graph = graphs.GraphsTuple(
             nodes=nodes,
