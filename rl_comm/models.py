@@ -71,8 +71,8 @@ class MLPGraphNetwork(snt.AbstractModule):
             self._network = modules.GraphNetwork(
                 edge_model_fn=make_mlp_model,
                 node_model_fn=make_mlp_model,
-                global_model_fn=make_mlp_model) #,
-                #reducer=unsorted_segment_max_or_zero)
+                global_model_fn=make_mlp_model,
+                reducer=unsorted_segment_max_or_zero)
 
     def _build(self, inputs):
         return self._network(inputs)
