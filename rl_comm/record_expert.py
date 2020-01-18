@@ -127,3 +127,4 @@ def make_env():
 
 # env = VecNormalize(SubprocVecEnv([make_env] * 1), norm_obs=False, norm_reward=True)
 generate_expert_traj(env=make_env(), save_path='expert_rad_49', n_episodes=25)
+# generate_expert_traj(env=env, save_path='expert_rad_49', n_episodes=25)
