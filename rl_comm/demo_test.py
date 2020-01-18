@@ -2,6 +2,7 @@ import numpy as np
 from progress.bar import Bar
 import gym
 import gym_flock
+import time
 
 
 def make_env():
@@ -26,6 +27,9 @@ def eval_model(env, model, N, render_mode='none'):
                 obs, rewards, done, info = env.step(action)
                 env.render(mode=render_mode)
 
+                if render_mode == 'human':
+                    time.sleep(0.5)
+
                 # Record results.
                 results['reward'][k] += rewards
 
@@ -38,7 +42,7 @@ if __name__ == '__main__':
     env = make_env()
 
     # Specify pre-trained model checkpoint file.
-    model_name = 'models/2019-09-13/2019-09-22/ckpt/ckpt_002.pkl'
+    model_name = 'models/2019-09-13/2019-09-22/ckpt/ckpt_050.pkl'
 
     model = PPO2.load(model_name)
 
