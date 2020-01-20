@@ -165,7 +165,7 @@ if __name__ == '__main__':
         'total_timesteps': 50000000
     }
 
-    root = Path('models/2019-09-13')
+    root = Path('models/' + j['name'])
 
     for j in jobs:
         directory = root / j['name']  # env_param_string(env_param) / train_param_string(train_param) / j['name']
