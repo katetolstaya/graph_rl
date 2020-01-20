@@ -161,7 +161,7 @@ if __name__ == '__main__':
     train_param = {
         'n_env': 16,
         'n_steps': 32,
-        'checkpoint_timesteps': 1000000,
+        'checkpoint_timesteps': 100000,
         'total_timesteps': 50000000
     }
 
