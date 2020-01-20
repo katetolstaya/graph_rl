@@ -77,7 +77,7 @@ def train_helper(env_param, test_env_param, train_param, policy_fn, policy_param
     for d in [save_dir, tb_dir, ckpt_dir]:
         d.mkdir(parents=True, exist_ok=True)
 
-    env_name = "MappingRad1-v0"
+    env_name = "MappingRad-v0"
 
     def make_env():
         keys = ['nodes', 'edges', 'senders', 'receivers']
@@ -120,9 +120,9 @@ def train_helper(env_param, test_env_param, train_param, policy_fn, policy_param
             full_tensorboard_log=False)
         ckpt_idx = 0
 
-    dataset = ExpertDataset(expert_path='expert_rad_49.npz',
+    dataset = ExpertDataset(expert_path='data/expert_rad.npz',
                             traj_limitation=-1, batch_size=128)
-    model.pretrain(dataset, n_epochs=1000, learning_rate=1e-5)
+    model.pretrain(dataset, n_epochs=200, learning_rate=1e-5)
 
     # Training loop.
     print('\nBegin training.\n')
@@ -150,7 +150,7 @@ if __name__ == '__main__':
     j = {}
     j['policy'] = gnn_fwd.GnnFwd
     # j['policy'] = MlpPolicy
-    j['policy_param'] = {'num_processing_steps': 7}
+    j['policy_param'] = {'num_processing_steps': 5}
     # j['name'] = j['policy'].policy_param_string(j['policy_param'])
     j['name'] = '2020-01-20'
     jobs.append(j)

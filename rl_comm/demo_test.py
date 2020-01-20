@@ -10,7 +10,7 @@ from stable_baselines.common.base_class import BaseRLModel
 
 def make_env():
     keys = ['nodes', 'edges', 'senders', 'receivers']
-    env = gym.make("MappingRad1-v0")
+    env = gym.make("MappingRad-v0")
     env = gym.wrappers.FlattenDictWrapper(env, dict_keys=keys)
     return env
 

@@ -29,7 +29,7 @@ from graph_nets import graphs
 # LATENT_SIZE = 8  # Hard-code latent layer sizes for demos.
 
 NUM_LAYERS = 2
-LATENT_SIZE = 16
+LATENT_SIZE = 32
 
 
 def make_mlp_model():
@@ -71,8 +71,8 @@ class MLPGraphNetwork(snt.AbstractModule):
             self._network = modules.GraphNetwork(
                 edge_model_fn=make_mlp_model,
                 node_model_fn=make_mlp_model,
-                global_model_fn=make_mlp_model,
-                reducer=unsorted_segment_max_or_zero)
+                global_model_fn=make_mlp_model)  #,
+                #reducer=unsorted_segment_max_or_zero)
 
     def _build(self, inputs):
         return self._network(inputs)
