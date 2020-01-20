@@ -3,9 +3,9 @@ from progress.bar import Bar
 import gym
 import gym_flock
 import time
-# from rl_comm.train import policy_fn
 import rl_comm.gnn_fwd as gnn_fwd
-import tensorflow as tf
+from stable_baselines.common.vec_env import SubprocVecEnv
+from stable_baselines.common.base_class import BaseRLModel
 
 
 def make_env():
@@ -31,7 +31,7 @@ def eval_model(env, model, N, render_mode='none'):
                 env.render(mode=render_mode)
 
                 if render_mode == 'human':
-                    time.sleep(0.5)
+                    time.sleep(0.1)
 
                 # Record results.
                 results['reward'][k] += rewards
@@ -44,18 +44,19 @@ if __name__ == '__main__':
     from stable_baselines import PPO2
 
     env = make_env()
+    vec_env = SubprocVecEnv([make_env])
 
     # Specify pre-trained model checkpoint file.
-    model_name = 'models/2019-09-13/2019-09-22/ckpt/ckpt_050.pkl'
-
-    model = PPO2.load(model_name)
+    # model_name = 'models/2019-09-13/2019-09-22/ckpt/ckpt_050.pkl'
+    model_name = 'models/2020-01-20/2020-01-20/ckpt/ckpt_001.pkl'
 
     policy_param = {'num_processing_steps': 7}
     n_steps = 32
+
     new_model = PPO2(
         policy=gnn_fwd.GnnFwd,
         policy_kwargs=policy_param,
-        env=env,
+        env=vec_env,
         learning_rate=1e-6,
         cliprange=1.0,
         n_steps=n_steps,
@@ -64,14 +65,11 @@ if __name__ == '__main__':
         verbose=1,
         full_tensorboard_log=False)
 
-    # copy the policy weights
-    copy_weights = tf.group(*[va.assign(vb) for va, vb in
-                              zip(new_model.policy.policy_model.variables, model.policy.policy_model.variables)])
+    # load the dictionary of parameters from file
+    _, params = BaseRLModel._load_from_file(model_name)
 
-    sess = tf.Session()
-    sess.run(tf.global_variables_initializer())
-    sess.run(copy_weights)
-
+    # update new model's parameters
+    new_model.load_parameters(params)
 
     print('\nPlay 100 games and return scores...')
     results = eval_model(env, new_model, 1, render_mode='none')

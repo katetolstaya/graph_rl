@@ -39,6 +39,7 @@ class GnnFwd(ActorCriticPolicy):
             senders=senders,
             n_node=n_node,
             n_edge=n_edge)
+        self.testing = True
 
         # https://stable-baselines.readthedocs.io/en/master/guide/custom_policy.html
         with tf.variable_scope("model", reuse=reuse):
@@ -72,6 +73,12 @@ class GnnFwd(ActorCriticPolicy):
 
 
         self._setup_init()
+
+    def get_policy_model(self):
+        return self.policy_model
+
+    def get_value_model(self):
+        return self.value_model
 
     def step(self, obs, state=None, mask=None, deterministic=False):
         if deterministic:
