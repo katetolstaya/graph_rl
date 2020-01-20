@@ -43,11 +43,11 @@ class GnnFwd(ActorCriticPolicy):
         # https://stable-baselines.readthedocs.io/en/master/guide/custom_policy.html
         with tf.variable_scope("model", reuse=reuse):
 
-            policy_model = models.AggregationNet(num_processing_steps=num_processing_steps, edge_output_size=1)
-            value_model = models.AggregationNet(num_processing_steps=num_processing_steps, global_output_size=1)
+            self.policy_model = models.AggregationNet(num_processing_steps=num_processing_steps, edge_output_size=1)
+            self.value_model = models.AggregationNet(num_processing_steps=num_processing_steps, global_output_size=1)
 
-            value_graph = value_model(agent_graph)
-            policy_graph = policy_model(agent_graph)
+            value_graph = self.value_model(agent_graph)
+            policy_graph = self.policy_model(agent_graph)
 
             self._value_fn = value_graph.globals
             edge_values = policy_graph.edges

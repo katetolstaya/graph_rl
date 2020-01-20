@@ -141,8 +141,7 @@ class EncodeProcessDecode(snt.AbstractModule):
 
 class AggregationNet(snt.AbstractModule):
     """
-    N layer graph net that doesn't share weights between processing steps.
-    More expressive power hopefully.
+    Aggregation Net with learned aggregation filter
     """
 
     def __init__(self,
@@ -150,7 +149,6 @@ class AggregationNet(snt.AbstractModule):
                  edge_output_size=None,
                  node_output_size=None,
                  global_output_size=None,
-                 n_steps=10,
                  name="EncodeProcessDecode"):
         super(AggregationNet, self).__init__(name=name)
         self._encoder = MLPGraphIndependent()
@@ -158,6 +156,7 @@ class AggregationNet(snt.AbstractModule):
         self._decoder = MLPGraphIndependent()
         self._aggregation = MLPGraphIndependent()
         self._num_processing_steps = num_processing_steps
+        self._n_stacked = LATENT_SIZE * self._num_processing_steps
 
         # Transforms the outputs into the appropriate shapes.
         if edge_output_size is None:
@@ -197,11 +196,9 @@ class AggregationNet(snt.AbstractModule):
         stacked_nodes = tf.stack([g.nodes for g in output_ops], axis=1)
         stacked_globals = tf.stack([g.globals for g in output_ops], axis=1)
 
-        n_stacked = LATENT_SIZE * self._num_processing_steps
-
-        stacked_edges = tf.reshape(stacked_edges, (-1, n_stacked))
-        stacked_globals = tf.reshape(stacked_globals, (-1, n_stacked))
-        stacked_nodes = tf.reshape(stacked_nodes, (-1, n_stacked))
+        stacked_edges = tf.reshape(stacked_edges, (-1, self._n_stacked))
+        stacked_globals = tf.reshape(stacked_globals, (-1, self._n_stacked))
+        stacked_nodes = tf.reshape(stacked_nodes, (-1, self._n_stacked))
 
         feature_graph = graphs.GraphsTuple(
             nodes=stacked_nodes,
@@ -215,24 +212,3 @@ class AggregationNet(snt.AbstractModule):
         out = self._output_transform(self._aggregation(feature_graph))
 
         return out
-
-    # def _build(self, input_op, num_processing_steps):
-    #     latent = self._encoder(input_op)
-    #     output_ops = []
-    #     for _ in range(num_processing_steps):
-    #         latent = self._core(latent)
-    #         decoded_op = self._decoder(latent)
-    #         output_ops.append(self._output_transform(decoded_op))
-    #     return output_ops
-
-    # def _build(self, input_op, num_processing_steps):
-    #     latent = self._encoder(input_op)
-    #     # latent0 = latent
-    #     output_ops = []
-    #     for _ in range(num_processing_steps):
-    #         core_input = utils_tf.concat([input_op, latent], axis=1)
-    #         latent = self._core(core_input)
-    #
-    #     decoded_op = self._decoder(latent)
-    #     output_ops.append(self._output_transform(decoded_op))
-    #     return output_ops
