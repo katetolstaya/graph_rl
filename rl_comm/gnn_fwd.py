@@ -54,7 +54,7 @@ class GnnFwd(ActorCriticPolicy):
             # keep only edges in to controlled agents and out of uncontrolled agents
             sender_type = tf.cast(tf.gather(nodes[:, 0], senders), tf.bool)
             receiver_type = tf.cast(tf.gather(nodes[:, 0], receivers), tf.bool)
-            mask = tf.logical_and(tf.logical_not(receiver_type), sender_type)
+            mask = tf.logical_and(tf.logical_not(sender_type), receiver_type)
             masked_edges = tf.boolean_mask(edge_values, tf.reshape(mask, (-1,)), axis=0)
 
             # TODO assumed unchanged order of edges here - is this OK?
