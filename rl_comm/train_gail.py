@@ -7,9 +7,9 @@ import gym_flock
 import tensorflow as tf
 from progress.bar import Bar
 
-from stable_baselines.common.vec_env import SubprocVecEnv, VecNormalize
-from stable_baselines import PPO2
-from stable_baselines.common.policies import MlpPolicy
+from stable_baselines.common.vec_env import SubprocVecEnv
+from stable_baselines import GAIL
+
 from stable_baselines.gail import ExpertDataset
 
 import rl_comm.gnn_fwd as gnn_fwd
@@ -87,42 +87,23 @@ def train_helper(env_param, test_env_param, train_param, policy_fn, policy_param
 
     # env = VecNormalize(SubprocVecEnv([make_env]*train_param['n_env']), norm_obs=False, norm_reward=True)
 
-    env = SubprocVecEnv([make_env]*train_param['n_env'])
-    test_env = SubprocVecEnv([make_env])
-
-    # Find latest checkpoint index.
-    # ckpt_list = sorted(glob.glob(str(ckpt_dir) + '/*.pkl'))
-    # if len(ckpt_list) == 0:
-    #     ckpt_idx = None
-    # else:
-    #     ckpt_idx = int(ckpt_list[-1][-7:-4])
-
-    ckpt_idx = None
-
-    # Load or create model.
-    if ckpt_idx is not None:
-        print('\nLoading model {}.\n'.format(ckpt_file(ckpt_dir, ckpt_idx).name))
-        model = PPO2.load(str(ckpt_file(ckpt_dir, ckpt_idx)), env, tensorboard_log=str(tb_dir))
-        ckpt_idx += 1
-    else:
-        print('\nCreating new model.\n')
-        model = PPO2(
-            policy=policy_fn,
-            policy_kwargs=policy_param,
-            env=env,
-            learning_rate=1e-5,
-            cliprange=1.0,
-            n_steps=train_param['n_steps'],
-            ent_coef=0.0001,
-            vf_coef=0.5,
-            verbose=1,
-            tensorboard_log=str(tb_dir),
-            full_tensorboard_log=False)
-        ckpt_idx = 0
+    env = make_env() #SubprocVecEnv([make_env]*train_param['n_env'])
+    test_env = make_env() # SubprocVecEnv([make_env])
 
     dataset = ExpertDataset(expert_path='data/expert_rad.npz',
                             traj_limitation=-1, batch_size=32)
-    model.pretrain(dataset, n_epochs=1000, learning_rate=1e-4)
+
+    print('\nCreating new model.\n')
+    model = GAIL(
+        policy=policy_fn,
+        policy_kwargs=policy_param,
+        env=env,
+        expert_dataset=dataset,
+        verbose=1,
+        full_tensorboard_log=False)
+    ckpt_idx = 0
+
+    # model.pretrain(dataset, n_epochs=5000, learning_rate=1e-4)
 
     # Training loop.
     print('\nBegin training.\n')
@@ -150,7 +131,7 @@ if __name__ == '__main__':
     j = {}
     j['policy'] = gnn_fwd.GnnFwd
     # j['policy'] = MlpPolicy
-    j['policy_param'] = {'num_processing_steps': 5}
+    j['policy_param'] = {'num_processing_steps': 7}
     # j['name'] = j['policy'].policy_param_string(j['policy_param'])
     j['name'] = '2020-01-20'
     jobs.append(j)

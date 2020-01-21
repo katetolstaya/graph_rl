@@ -49,7 +49,6 @@ class GnnFwd(ActorCriticPolicy):
             self._value_fn = value_graph.globals
             edge_values = policy_graph.edges
 
-            self.q_value = None  # unused by PPO2
 
             # keep only edges in to controlled agents and out of uncontrolled agents
             sender_type = tf.cast(tf.gather(nodes[:, 0], senders), tf.bool)
@@ -64,6 +63,9 @@ class GnnFwd(ActorCriticPolicy):
             else:
                 n_actions = tf.cast(ac_space.n, tf.int32)
             self._policy = tf.reshape(masked_edges, (batch_size, n_actions))
+
+            # self.q_value = self._policy  # unused by PPO2
+            self.q_value = None
             # temp = tf.Print(self._policy, [self._policy], summarize=-1)
             self._proba_distribution = self.pdtype.proba_distribution_from_flat(self._policy)
 
