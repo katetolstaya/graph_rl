@@ -48,7 +48,7 @@ if __name__ == '__main__':
 
     # Specify pre-trained model checkpoint file.
     # model_name = 'models/2019-09-13/2019-09-22/ckpt/ckpt_050.pkl'
-    model_name = 'models/2020-01-20/2020-01-20/ckpt/ckpt_003.pkl'
+    model_name = 'models/2020-01-20/2020-01-20/ckpt/ckpt_036.pkl'
 
     policy_param = {'num_processing_steps': 5}
     n_steps = 32
