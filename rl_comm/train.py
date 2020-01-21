@@ -110,7 +110,7 @@ def train_helper(env_param, test_env_param, train_param, policy_fn, policy_param
             policy=policy_fn,
             policy_kwargs=policy_param,
             env=env,
-            learning_rate=1e-7,
+            learning_rate=1e-6,
             cliprange=1.0,
             n_steps=train_param['n_steps'],
             ent_coef=0.0001,
@@ -122,7 +122,7 @@ def train_helper(env_param, test_env_param, train_param, policy_fn, policy_param
 
     dataset = ExpertDataset(expert_path='data/expert_rad.npz',
                             traj_limitation=-1, batch_size=128)
-    model.pretrain(dataset, n_epochs=200, learning_rate=1e-5)
+    model.pretrain(dataset, n_epochs=500, learning_rate=1e-4)
 
     # Training loop.
     print('\nBegin training.\n')
