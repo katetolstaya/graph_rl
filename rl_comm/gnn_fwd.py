@@ -2,7 +2,7 @@ import tensorflow as tf
 from graph_nets import graphs
 from stable_baselines.common.policies import ActorCriticPolicy
 import rl_comm.models as models
-from gym_flock.envs.mapping_rad import MappingRadEnv
+from gym_flock.envs.spatial.mapping_rad import MappingRadEnv
 from gym.spaces import MultiDiscrete
 
 
