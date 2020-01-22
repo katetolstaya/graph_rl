@@ -9,7 +9,7 @@ from progress.bar import Bar
 
 from stable_baselines.common.vec_env import SubprocVecEnv, VecNormalize
 from stable_baselines import PPO2
-from stable_baselines.common.policies import MlpPolicy
+from stable_baselines.common.base_class import BaseRLModel
 from stable_baselines.gail import ExpertDataset
 
 import rl_comm.gnn_fwd as gnn_fwd
@@ -99,6 +99,8 @@ def train_helper(env_param, test_env_param, train_param, policy_fn, policy_param
 
     ckpt_idx = None
 
+
+
     # Load or create model.
     if ckpt_idx is not None:
         print('\nLoading model {}.\n'.format(ckpt_file(ckpt_dir, ckpt_idx).name))
@@ -110,7 +112,7 @@ def train_helper(env_param, test_env_param, train_param, policy_fn, policy_param
             policy=policy_fn,
             policy_kwargs=policy_param,
             env=env,
-            learning_rate=1e-5,
+            learning_rate=1e-6,
             cliprange=1.0,
             n_steps=train_param['n_steps'],
             ent_coef=0.0001,
@@ -120,9 +122,17 @@ def train_helper(env_param, test_env_param, train_param, policy_fn, policy_param
             full_tensorboard_log=False)
         ckpt_idx = 0
 
-    dataset = ExpertDataset(expert_path='data/expert_rad.npz',
-                            traj_limitation=-1, batch_size=32)
-    model.pretrain(dataset, n_epochs=1000, learning_rate=1e-4)
+        model_name = 'models/2020-01-20/2020-01-20/ckpt/ckpt_002.pkl'
+
+        # load the dictionary of parameters from file
+        _, params = BaseRLModel._load_from_file(model_name)
+
+        # update new model's parameters
+        model.load_parameters(params)
+
+    # dataset = ExpertDataset(expert_path='data/expert_rad.npz',
+    #                         traj_limitation=-1, batch_size=32)
+    # model.pretrain(dataset, n_epochs=1000, learning_rate=1e-4)
 
     # Training loop.
     print('\nBegin training.\n')

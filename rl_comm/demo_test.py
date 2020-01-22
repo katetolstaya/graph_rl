@@ -31,7 +31,7 @@ def eval_model(env, model, N, render_mode='none'):
                 env.render(mode=render_mode)
 
                 if render_mode == 'human':
-                    time.sleep(0.1)
+                    time.sleep(0.5)
 
                 # Record results.
                 results['reward'][k] += rewards
@@ -48,7 +48,7 @@ if __name__ == '__main__':
 
     # Specify pre-trained model checkpoint file.
     # model_name = 'models/2019-09-13/2019-09-22/ckpt/ckpt_050.pkl'
-    model_name = 'models/2020-01-20/2020-01-20/ckpt/ckpt_036.pkl'
+    model_name = 'models/2020-01-20/2020-01-20/ckpt/ckpt_002.pkl'
 
     policy_param = {'num_processing_steps': 5}
     n_steps = 32
@@ -72,7 +72,7 @@ if __name__ == '__main__':
     new_model.load_parameters(params)
 
     print('\nPlay 100 games and return scores...')
-    results = eval_model(env, new_model, 1, render_mode='none')
+    results = eval_model(env, new_model, 10, render_mode='none')
     print('reward,          mean = {:.1f}, std = {:.1f}'.format(np.mean(results['reward']), np.std(results['reward'])))
     print('')
 
