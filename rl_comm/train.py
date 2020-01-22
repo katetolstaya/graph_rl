@@ -85,9 +85,9 @@ def train_helper(env_param, test_env_param, train_param, policy_fn, policy_param
         env = gym.wrappers.FlattenDictWrapper(env, dict_keys=keys)
         return env
 
-    # env = VecNormalize(SubprocVecEnv([make_env]*train_param['n_env']), norm_obs=False, norm_reward=True)
+    env = VecNormalize(SubprocVecEnv([make_env]*train_param['n_env']), norm_obs=False, norm_reward=True)
 
-    env = SubprocVecEnv([make_env]*train_param['n_env'])
+    # env = SubprocVecEnv([make_env]*train_param['n_env'])
     test_env = SubprocVecEnv([make_env])
 
     # Find latest checkpoint index.
@@ -122,7 +122,7 @@ def train_helper(env_param, test_env_param, train_param, policy_fn, policy_param
             full_tensorboard_log=False)
         ckpt_idx = 0
 
-        model_name = 'models/2020-01-20/2020-01-20/ckpt/ckpt_002.pkl'
+        model_name = 'ckpt_002.pkl'
 
         # load the dictionary of parameters from file
         _, params = BaseRLModel._load_from_file(model_name)
