@@ -160,7 +160,7 @@ if __name__ == '__main__':
     j = {}
     j['policy'] = gnn_fwd.GnnFwd
     # j['policy'] = MlpPolicy
-    j['policy_param'] = {'num_processing_steps': 10}
+    j['policy_param'] = {'num_processing_steps': 7}
     # j['name'] = j['policy'].policy_param_string(j['policy_param'])
     j['name'] = '2020-01-20'
     jobs.append(j)
