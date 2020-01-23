@@ -122,17 +122,17 @@ def train_helper(env_param, test_env_param, train_param, policy_fn, policy_param
             full_tensorboard_log=False)
         ckpt_idx = 0
 
-        model_name = 'ckpt_002.pkl'
+        # model_name = 'ckpt_002.pkl'
+        #
+        # # load the dictionary of parameters from file
+        # _, params = BaseRLModel._load_from_file(model_name)
+        #
+        # # update new model's parameters
+        # model.load_parameters(params)
 
-        # load the dictionary of parameters from file
-        _, params = BaseRLModel._load_from_file(model_name)
-
-        # update new model's parameters
-        model.load_parameters(params)
-
-    # dataset = ExpertDataset(expert_path='data/expert_rad.npz',
-    #                         traj_limitation=-1, batch_size=32)
-    # model.pretrain(dataset, n_epochs=1000, learning_rate=1e-4)
+    dataset = ExpertDataset(expert_path='data/expert_rad2.npz',
+                            traj_limitation=-1, batch_size=32)
+    model.pretrain(dataset, n_epochs=1000, learning_rate=1e-4)
 
     # Training loop.
     print('\nBegin training.\n')
@@ -160,7 +160,7 @@ if __name__ == '__main__':
     j = {}
     j['policy'] = gnn_fwd.GnnFwd
     # j['policy'] = MlpPolicy
-    j['policy_param'] = {'num_processing_steps': 5}
+    j['policy_param'] = {'num_processing_steps': 10}
     # j['name'] = j['policy'].policy_param_string(j['policy_param'])
     j['name'] = '2020-01-20'
     jobs.append(j)
