@@ -25,7 +25,8 @@ class GnnFwd(ActorCriticPolicy):
         super(GnnFwd, self).__init__(sess, ob_space, ac_space, n_env, n_steps, n_batch, reuse,
                                      scale=False)
 
-        batch_size, n_node, nodes, n_edge, edges, senders, receivers, globs = MappingRadEnv.unpack_obs(self.processed_obs)
+        batch_size, n_node, nodes, n_edge, edges, senders, receivers, globs = MappingRadEnv.unpack_obs(
+            self.processed_obs)
 
         agent_graph = graphs.GraphsTuple(
             nodes=nodes,
@@ -39,36 +40,36 @@ class GnnFwd(ActorCriticPolicy):
 
         # https://stable-baselines.readthedocs.io/en/master/guide/custom_policy.html
         with tf.variable_scope("model", reuse=reuse):
+            with tf.variable_scope("value", reuse=reuse):
+                self.value_model = models.AggregationNet(num_processing_steps=num_processing_steps,
+                                                         global_output_size=1, name="value_model")
+                value_graph = self.value_model(agent_graph)
+                self._value_fn = value_graph.globals
+                # self.q_value = self._policy  # unused by PPO2
+                self.q_value = None
+            with tf.variable_scope("policy", reuse=reuse):
 
-            self.policy_model = models.AggregationNet(num_processing_steps=num_processing_steps, edge_output_size=1)
-            self.value_model = models.AggregationNet(num_processing_steps=num_processing_steps, global_output_size=1)
+                self.policy_model = models.AggregationNet(num_processing_steps=num_processing_steps, edge_output_size=1,
+                                                          name="policy_model")
+                # self.policy_model = models.AggregationNetPolicy(num_processing_steps=num_processing_steps, name="policy_model")
+                policy_graph = self.policy_model(agent_graph)
+                edge_values = policy_graph.edges
 
-            value_graph = self.value_model(agent_graph)
-            policy_graph = self.policy_model(agent_graph)
+                # keep only edges in to controlled agents and out of uncontrolled agents
+                sender_type = tf.cast(tf.gather(nodes[:, 0], senders), tf.bool)
+                receiver_type = tf.cast(tf.gather(nodes[:, 0], receivers), tf.bool)
+                mask = tf.logical_and(tf.logical_not(sender_type), receiver_type)
+                masked_edges = tf.boolean_mask(edge_values, tf.reshape(mask, (-1,)), axis=0)
 
-            self._value_fn = value_graph.globals
-            edge_values = policy_graph.edges
+                # TODO assumed unchanged order of edges here - is this OK?
 
-
-            # keep only edges in to controlled agents and out of uncontrolled agents
-            sender_type = tf.cast(tf.gather(nodes[:, 0], senders), tf.bool)
-            receiver_type = tf.cast(tf.gather(nodes[:, 0], receivers), tf.bool)
-            mask = tf.logical_and(tf.logical_not(sender_type), receiver_type)
-            masked_edges = tf.boolean_mask(edge_values, tf.reshape(mask, (-1,)), axis=0)
-
-            # TODO assumed unchanged order of edges here - is this OK?
-
-            if isinstance(ac_space, MultiDiscrete):
-                n_actions = tf.cast(tf.reduce_sum(ac_space.nvec), tf.int32)
-            else:
-                n_actions = tf.cast(ac_space.n, tf.int32)
-            self._policy = tf.reshape(masked_edges, (batch_size, n_actions))
-
-            # self.q_value = self._policy  # unused by PPO2
-            self.q_value = None
-            # temp = tf.Print(self._policy, [self._policy], summarize=-1)
-            self._proba_distribution = self.pdtype.proba_distribution_from_flat(self._policy)
-
+                if isinstance(ac_space, MultiDiscrete):
+                    n_actions = tf.cast(tf.reduce_sum(ac_space.nvec), tf.int32)
+                else:
+                    n_actions = tf.cast(ac_space.n, tf.int32)
+                self._policy = tf.reshape(masked_edges, (batch_size, n_actions))
+                # temp = tf.Print(self._policy, [self._policy], summarize=-1)
+                self._proba_distribution = self.pdtype.proba_distribution_from_flat(self._policy)
 
         self._setup_init()
 
@@ -85,7 +86,6 @@ class GnnFwd(ActorCriticPolicy):
         else:
             action, value, neglogp = self.sess.run([self.action, self.value_flat, self.neglogp],
                                                    {self.obs_ph: obs})
-
 
         return action, value, self.initial_state, neglogp
 
