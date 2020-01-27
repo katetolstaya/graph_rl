@@ -28,8 +28,8 @@ from graph_nets import graphs
 # NUM_LAYERS = 2  # Hard-code number of layers in the edge/node/global models.
 # LATENT_SIZE = 8  # Hard-code latent layer sizes for demos.
 
-NUM_LAYERS = 2
-LATENT_SIZE = 8
+NUM_LAYERS = 3
+LATENT_SIZE = 16
 
 
 def make_mlp_model():
@@ -106,10 +106,16 @@ class AggregationNet(snt.AbstractModule):
         self._num_processing_steps = num_processing_steps
         self._n_stacked = LATENT_SIZE * self._num_processing_steps
 
+
+
         # Transforms the outputs into the appropriate shapes.
         edge_fn = None if edge_output_size is None else lambda: snt.Linear(edge_output_size, name="edge_output")
         node_fn = None if node_output_size is None else lambda: snt.Linear(node_output_size, name="node_output")
         global_fn = None if global_output_size is None else lambda: snt.Linear(global_output_size, name="global_output")
+
+        # edge_fn = None if edge_output_size is None else lambda: snt.nets.MLP([edge_output_size], activate_final=True)
+        # node_fn = None if node_output_size is None else lambda: snt.nets.MLP([node_output_size], activate_final=True)
+        # global_fn = None if global_output_size is None else lambda: snt.nets.MLP([global_output_size], activate_final=True)
 
         with self._enter_variable_scope():
             self._output_transform = modules.GraphIndependent(edge_fn, node_fn, global_fn, name="output")
@@ -130,16 +136,19 @@ class AggregationNet(snt.AbstractModule):
             decoded_op = self._decoder(latent)
             output_ops.append(decoded_op)
 
-        if self._aggregate:
-            stacked_edges = tf.stack([g.edges for g in output_ops], axis=1)
-            stacked_nodes = tf.stack([g.nodes for g in output_ops], axis=1)
-            stacked_globals = tf.stack([g.globals for g in output_ops], axis=1)
+            # output_ops.append(latent)
 
-        else:
-            # out = self._output_transform(self._aggregation(output_ops[-1]))
-            stacked_edges = tf.math.reduce_sum(tf.stack([g.edges for g in output_ops], axis=2), axis=2)
-            stacked_nodes = tf.math.reduce_sum(tf.stack([g.nodes for g in output_ops], axis=2), axis=2)
-            stacked_globals = tf.math.reduce_sum(tf.stack([g.globals for g in output_ops], axis=2), axis=2)
+        # if self._aggregate:
+
+        stacked_edges = tf.stack([g.edges for g in output_ops], axis=1)
+        stacked_nodes = tf.stack([g.nodes for g in output_ops], axis=1)
+        stacked_globals = tf.stack([g.globals for g in output_ops], axis=1)
+
+        # else:
+        #     # out = self._output_transform(self._aggregation(output_ops[-1]))
+        #     stacked_edges = tf.math.reduce_sum(tf.stack([g.edges for g in output_ops], axis=2), axis=2)
+        #     stacked_nodes = tf.math.reduce_sum(tf.stack([g.nodes for g in output_ops], axis=2), axis=2)
+        #     stacked_globals = tf.math.reduce_sum(tf.stack([g.globals for g in output_ops], axis=2), axis=2)
 
         stacked_globals = tf.reshape(stacked_globals, (-1, self._n_stacked))
         stacked_edges = tf.reshape(stacked_edges, (-1, self._n_stacked))
