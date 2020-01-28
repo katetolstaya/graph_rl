@@ -132,7 +132,7 @@ def train_helper(env_param, test_env_param, train_param, policy_fn, policy_param
 
     dataset = ExpertDataset(expert_path='data/expert_rad2.npz',
                             traj_limitation=-1, batch_size=16)
-    model.pretrain(dataset, n_epochs=1000, learning_rate=1e-5)
+    model.pretrain(dataset, n_epochs=1000, learning_rate=5e-5)
 
     # Training loop.
     print('\nBegin training.\n')
