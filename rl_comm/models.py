@@ -28,7 +28,7 @@ from graph_nets import graphs
 # NUM_LAYERS = 2  # Hard-code number of layers in the edge/node/global models.
 # LATENT_SIZE = 8  # Hard-code latent layer sizes for demos.
 
-NUM_LAYERS = 3
+NUM_LAYERS = 2
 LATENT_SIZE = 16
 
 
@@ -87,8 +87,8 @@ class AggregationNet(snt.AbstractModule):
 
         # self._core = MLPGraphNetwork(name="graph_net")
         # graph_net_fn = make_linear_model
-        graph_net_fn = make_mlp_model
-        # graph_net_fn = make_linear_norm_model
+        # graph_net_fn = make_mlp_model
+        graph_net_fn = make_linear_norm_model
 
         self._core = modules.GraphNetwork(
             edge_model_fn=graph_net_fn,
