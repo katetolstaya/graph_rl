@@ -95,9 +95,11 @@ class AggregationNet(snt.AbstractModule):
         # self._global_fn = None if global_output_size is None else make_mlp_model
 
         # self._core = MLPGraphNetwork(name="graph_net")
-        # graph_net_fn = make_linear_model
-        # graph_net_fn = make_mlp_model
-        graph_net_fn = make_linear_norm_model
+        if not self._use_globals:
+            graph_net_fn = make_linear_model
+        else:
+            graph_net_fn = make_mlp_model
+        # graph_net_fn = make_linear_norm_model
 
         self._core = modules.GraphNetwork(
             edge_model_fn=graph_net_fn,
