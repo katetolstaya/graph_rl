@@ -42,8 +42,7 @@ def make_mlp_model():
       A Sonnet module which contains the MLP and LayerNorm.
     """
     return snt.Sequential([
-        snt.nets.MLP([LATENT_SIZE] * NUM_LAYERS, activate_final=True),
-        snt.LayerNorm()
+        snt.nets.MLP([LATENT_SIZE] * NUM_LAYERS, activate_final=True), snt.LayerNorm()
     ])
 
 
@@ -53,6 +52,16 @@ def make_linear_model():
       A Sonnet module which contains the linear layer.
     """
     return snt.nets.MLP([LATENT_SIZE], activate_final=False)
+
+
+def make_mlp_model1():
+    """Instantiates a new linear model.
+    Returns:
+      A Sonnet module which contains the linear layer.
+    """
+    return snt.Sequential([
+        snt.nets.MLP([1], activate_final=False), snt.LayerNorm()
+    ])
 
 
 def make_linear_norm_model():
@@ -86,9 +95,9 @@ class AggregationNet(snt.AbstractModule):
         # self._global_fn = None if global_output_size is None else make_mlp_model
 
         # self._core = MLPGraphNetwork(name="graph_net")
-        # graph_net_fn = make_linear_model
+        graph_net_fn = make_linear_model
         # graph_net_fn = make_mlp_model
-        graph_net_fn = make_linear_norm_model
+        # graph_net_fn = make_linear_norm_model
 
         self._core = modules.GraphNetwork(
             edge_model_fn=graph_net_fn,
@@ -109,7 +118,9 @@ class AggregationNet(snt.AbstractModule):
 
 
         # Transforms the outputs into the appropriate shapes.
-        edge_fn = None if edge_output_size is None else lambda: snt.Linear(edge_output_size, name="edge_output")
+        edge_fn = None if edge_output_size is None else lambda:  snt.Linear(edge_output_size, name="edge_output")
+        # edge_fn = None if edge_output_size is None else make_mlp_model1  #lambda:  snt.Linear(edge_output_size, name="edge_output")
+        # node_fn = None if node_output_size is None else make_mlp_model1  #lambda: snt.Linear(node_output_size, name="node_output")
         node_fn = None if node_output_size is None else lambda: snt.Linear(node_output_size, name="node_output")
         global_fn = None if global_output_size is None else lambda: snt.Linear(global_output_size, name="global_output")
 
