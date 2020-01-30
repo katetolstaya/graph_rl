@@ -95,10 +95,10 @@ class AggregationNet(snt.AbstractModule):
         # self._global_fn = None if global_output_size is None else make_mlp_model
 
         # self._core = MLPGraphNetwork(name="graph_net")
-        if not self._use_globals:
-            graph_net_fn = make_linear_model
-        else:
-            graph_net_fn = make_mlp_model
+        # if not self._use_globals:
+        #     graph_net_fn = make_linear_model
+        # else:
+        graph_net_fn = make_mlp_model
         # graph_net_fn = make_linear_norm_model
 
         self._core = modules.GraphNetwork(
@@ -119,14 +119,8 @@ class AggregationNet(snt.AbstractModule):
 
         # Transforms the outputs into the appropriate shapes.
         edge_fn = None if edge_output_size is None else lambda:  snt.Linear(edge_output_size, name="edge_output")
-        # edge_fn = None if edge_output_size is None else make_mlp_model1  #lambda:  snt.Linear(edge_output_size, name="edge_output")
-        # node_fn = None if node_output_size is None else make_mlp_model1  #lambda: snt.Linear(node_output_size, name="node_output")
         node_fn = None if node_output_size is None else lambda: snt.Linear(node_output_size, name="node_output")
         global_fn = None if global_output_size is None else lambda: snt.Linear(global_output_size, name="global_output")
-
-        # edge_fn = None if edge_output_size is None else lambda: snt.nets.MLP([edge_output_size], activate_final=True)
-        # node_fn = None if node_output_size is None else lambda: snt.nets.MLP([node_output_size], activate_final=True)
-        # global_fn = None if global_output_size is None else lambda: snt.nets.MLP([global_output_size], activate_final=True)
 
         with self._enter_variable_scope():
             self._output_transform = modules.GraphIndependent(edge_fn, node_fn, global_fn, name="output")
