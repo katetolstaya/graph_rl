@@ -111,7 +111,8 @@ class AggregationNet(snt.AbstractModule):
             global_model_fn=graph_net_fn,
             edge_block_opt={'use_receiver_nodes': False, 'use_globals': self._use_globals},
             node_block_opt={'use_globals': self._use_globals},
-            name="graph_net"
+            name="graph_net",
+            reducer=unsorted_segment_max_or_zero
         )
 
         self._encoder = modules.GraphIndependent(make_mlp_model, make_mlp_model, make_mlp_model, name="encoder")
