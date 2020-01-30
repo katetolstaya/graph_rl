@@ -24,6 +24,7 @@ from graph_nets import utils_tf
 import sonnet as snt
 import tensorflow as tf
 from graph_nets import graphs
+from stable_baselines.a2c.utils import ortho_init
 
 # NUM_LAYERS = 2  # Hard-code number of layers in the edge/node/global models.
 # LATENT_SIZE = 8  # Hard-code latent layer sizes for demos.
@@ -96,14 +97,14 @@ class AggregationNet(snt.AbstractModule):
 
         # self._core = MLPGraphNetwork(name="graph_net")
 
-        if not self._use_globals:
-            graph_net_fn = make_linear_model
-        else:
-            graph_net_fn = make_mlp_model
+        # if not self._use_globals:
+        #     graph_net_fn = make_linear_model
+        # else:
+        #     graph_net_fn = make_mlp_model
 
         # graph_net_fn = make_linear_norm_model
 
-        # graph_net_fn = make_linear_model
+        graph_net_fn = make_linear_model
 
         self._core = modules.GraphNetwork(
             edge_model_fn=graph_net_fn,
@@ -122,10 +123,17 @@ class AggregationNet(snt.AbstractModule):
         self._num_processing_steps = num_processing_steps
         self._n_stacked = LATENT_SIZE * self._num_processing_steps
 
+        edge_inits = {'w': ortho_init(100.0), 'b': tf.constant_initializer(0.0)}
+        global_inits = {'w': ortho_init(1.0), 'b': tf.constant_initializer(0.0)}
+
         # Transforms the outputs into the appropriate shapes.
-        edge_fn = None if edge_output_size is None else lambda:  snt.Linear(edge_output_size, name="edge_output")
-        node_fn = None if node_output_size is None else lambda: snt.Linear(node_output_size, name="node_output")
-        global_fn = None if global_output_size is None else lambda: snt.Linear(global_output_size, name="global_output")
+        edge_fn = None if edge_output_size is None else lambda: snt.Linear(edge_output_size, initializers=edge_inits,
+                                                                           name="edge_output")
+        node_fn = None if node_output_size is None else lambda: snt.Linear(node_output_size, initializers=edge_inits,
+                                                                           name="node_output")
+        global_fn = None if global_output_size is None else lambda: snt.Linear(global_output_size,
+                                                                               initializers=global_inits,
+                                                                               name="global_output")
 
         with self._enter_variable_scope():
             self._output_transform = modules.GraphIndependent(edge_fn, node_fn, global_fn, name="output")
@@ -175,4 +183,3 @@ class AggregationNet(snt.AbstractModule):
         out = self._output_transform(self._aggregation(feature_graph))
 
         return out
-

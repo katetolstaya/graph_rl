@@ -71,6 +71,7 @@ class GnnFwd(ActorCriticPolicy):
                 # temp = tf.Print(self._policy, [self._policy], summarize=-1)
                 self._proba_distribution = self.pdtype.proba_distribution_from_flat(self._policy)
 
+
         self._setup_init()
 
     def get_policy_model(self):
