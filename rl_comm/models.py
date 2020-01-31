@@ -123,7 +123,7 @@ class AggregationNet(snt.AbstractModule):
         self._num_processing_steps = num_processing_steps
         self._n_stacked = LATENT_SIZE * self._num_processing_steps
 
-        edge_inits = {'w': ortho_init(100.0), 'b': tf.constant_initializer(0.0)}
+        edge_inits = {'w': ortho_init(1.0), 'b': tf.constant_initializer(0.0)}
         global_inits = {'w': ortho_init(1.0), 'b': tf.constant_initializer(0.0)}
 
         # Transforms the outputs into the appropriate shapes.
