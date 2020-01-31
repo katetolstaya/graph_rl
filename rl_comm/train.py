@@ -165,7 +165,7 @@ if __name__ == '__main__':
     # j['policy'] = MlpPolicy
     j['policy_param'] = {'num_processing_steps': 10}
     # j['name'] = j['policy'].policy_param_string(j['policy_param'])
-    j['name'] = '2020-01-29'
+    j['name'] = '2020-01-31'
     jobs.append(j)
 
     env_param = {}
