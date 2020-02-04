@@ -55,27 +55,6 @@ def make_linear_model():
     return snt.nets.MLP([LATENT_SIZE], activate_final=False)
 
 
-def make_mlp_model1():
-    """Instantiates a new linear model.
-    Returns:
-      A Sonnet module which contains the linear layer.
-    """
-    return snt.Sequential([
-        snt.nets.MLP([1], activate_final=False), snt.LayerNorm()
-    ])
-
-
-def make_linear_norm_model():
-    """Instantiates a new linear model, followed by LayerNorm.
-    Returns:
-      A Sonnet module which contains the linear layer and LayerNorm.
-    """
-    return snt.Sequential([
-        snt.nets.MLP([LATENT_SIZE], activate_final=False),
-        snt.LayerNorm()
-    ])
-
-
 class AggregationNet(snt.AbstractModule):
     """
     Aggregation Net with learned aggregation filter
@@ -89,27 +68,11 @@ class AggregationNet(snt.AbstractModule):
                  name="AggregationNet"):
         super(AggregationNet, self).__init__(name=name)
 
-        # self._core = LinearGraphNetwork()
-
-        self._aggregate = True
         self._use_globals = False if global_output_size is None else True
-        # self._global_fn = None if global_output_size is None else make_mlp_model
-
-        # self._core = MLPGraphNetwork(name="graph_net")
-
-        # if not self._use_globals:
-        #     graph_net_fn = make_linear_model
-        # else:
-        #     graph_net_fn = make_mlp_model
-
-        # graph_net_fn = make_linear_norm_model
-
-        graph_net_fn = make_linear_model
-
         self._core = modules.GraphNetwork(
-            edge_model_fn=graph_net_fn,
-            node_model_fn=graph_net_fn,
-            global_model_fn=graph_net_fn,
+            edge_model_fn=make_linear_model,
+            node_model_fn=make_linear_model,
+            global_model_fn=make_linear_model,
             edge_block_opt={'use_receiver_nodes': False, 'use_globals': self._use_globals},
             node_block_opt={'use_globals': self._use_globals},
             name="graph_net"
@@ -154,19 +117,9 @@ class AggregationNet(snt.AbstractModule):
             decoded_op = self._decoder(latent)
             output_ops.append(decoded_op)
 
-            # output_ops.append(latent)
-
-        # if self._aggregate:
-
         stacked_edges = tf.stack([g.edges for g in output_ops], axis=1)
         stacked_nodes = tf.stack([g.nodes for g in output_ops], axis=1)
         stacked_globals = tf.stack([g.globals for g in output_ops], axis=1)
-
-        # else:
-        #     # out = self._output_transform(self._aggregation(output_ops[-1]))
-        #     stacked_edges = tf.math.reduce_sum(tf.stack([g.edges for g in output_ops], axis=2), axis=2)
-        #     stacked_nodes = tf.math.reduce_sum(tf.stack([g.nodes for g in output_ops], axis=2), axis=2)
-        #     stacked_globals = tf.math.reduce_sum(tf.stack([g.globals for g in output_ops], axis=2), axis=2)
 
         stacked_globals = tf.reshape(stacked_globals, (-1, self._n_stacked))
         stacked_edges = tf.reshape(stacked_edges, (-1, self._n_stacked))

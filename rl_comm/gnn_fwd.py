@@ -36,22 +36,18 @@ class GnnFwd(ActorCriticPolicy):
             senders=senders,
             n_node=n_node,
             n_edge=n_edge)
-        self.testing = True
 
-        # https://stable-baselines.readthedocs.io/en/master/guide/custom_policy.html
         with tf.variable_scope("model", reuse=reuse):
             with tf.variable_scope("value", reuse=reuse):
                 self.value_model = models.AggregationNet(num_processing_steps=num_processing_steps,
                                                          global_output_size=1, name="value_model")
                 value_graph = self.value_model(agent_graph)
                 self._value_fn = value_graph.globals
-                # self.q_value = self._policy  # unused by PPO2
-                self.q_value = None
-            with tf.variable_scope("policy", reuse=reuse):
+                self.q_value = None  # unused by PPO2
 
-                self.policy_model = models.AggregationNet(num_processing_steps=num_processing_steps, edge_output_size=1,
-                                                          name="policy_model")
-                # self.policy_model = models.AggregationNetPolicy(num_processing_steps=num_processing_steps, name="policy_model")
+            with tf.variable_scope("policy", reuse=reuse):
+                self.policy_model = models.AggregationNet(num_processing_steps=num_processing_steps,
+                                                          edge_output_size=1, name="policy_model")
                 policy_graph = self.policy_model(agent_graph)
                 edge_values = policy_graph.edges
 
@@ -70,7 +66,6 @@ class GnnFwd(ActorCriticPolicy):
                 self._policy = tf.reshape(masked_edges, (batch_size, n_actions))
                 # temp = tf.Print(self._policy, [self._policy], summarize=-1)
                 self._proba_distribution = self.pdtype.proba_distribution_from_flat(self._policy)
-
 
         self._setup_init()
 
