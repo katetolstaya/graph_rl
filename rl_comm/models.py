@@ -112,9 +112,16 @@ class AggregationNet(snt.AbstractModule):
         output_ops = []
 
         for _ in range(self._num_processing_steps):
+
             core_input = utils_tf.concat([latent0, latent], axis=1)
             latent = self._core(core_input)
+
+            # 2 hop neighbors
+            core_input = utils_tf.concat([latent0, latent], axis=1)
+            latent = self._core(core_input)
+
             decoded_op = self._decoder(latent)
+
             output_ops.append(decoded_op)
 
         stacked_edges = tf.stack([g.edges for g in output_ops], axis=1)

@@ -26,7 +26,7 @@ class GnnFwd(ActorCriticPolicy):
                                      scale=False)
 
         batch_size, n_node, nodes, n_edge, edges, senders, receivers, globs = MappingRadEnv.unpack_obs(
-            self.processed_obs)
+            self.processed_obs, ob_space)
 
         agent_graph = graphs.GraphsTuple(
             nodes=nodes,
