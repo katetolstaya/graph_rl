@@ -121,19 +121,19 @@ def train_helper(env_param, test_env_param, train_param, policy_fn, policy_param
             full_tensorboard_log=False)
         ckpt_idx = 0
 
-        # model_name = 'ckpt_010.pkl'
-        #
-        # # load the dictionary of parameters from file
-        # _, params = BaseRLModel._load_from_file(model_name)
-        #
-        # # update new model's parameters
-        # model.load_parameters(params)
+        model_name = 'ckpt_026.pkl'
 
-    dataset = ExpertDataset(expert_path='data/expert_rad2.npz',
-                            traj_limitation=-1, batch_size=16)
+        # load the dictionary of parameters from file
+        _, params = BaseRLModel._load_from_file(model_name)
+
+        # update new model's parameters
+        model.load_parameters(params)
+
+    # dataset = ExpertDataset(expert_path='data/expert_rad2.npz',
+    #                         traj_limitation=-1, batch_size=16)
     # model.pretrain(dataset, n_epochs=5000, learning_rate=1e-6)
     # model.pretrain(dataset, n_epochs=200, learning_rate=1e-5)
-    model.pretrain(dataset, n_epochs=1000, learning_rate=5e-6)
+    # model.pretrain(dataset, n_epochs=1000, learning_rate=5e-6)
 
     # Training loop.
     print('\nBegin training.\n')
@@ -163,7 +163,7 @@ if __name__ == '__main__':
     # j['policy'] = MlpPolicy
     j['policy_param'] = {'num_processing_steps': 5}
     # j['name'] = j['policy'].policy_param_string(j['policy_param'])
-    j['name'] = 'lattice'
+    j['name'] = 'lattice3_pretrain'
     jobs.append(j)
 
     env_param = {}
