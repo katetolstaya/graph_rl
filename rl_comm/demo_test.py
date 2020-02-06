@@ -31,7 +31,7 @@ def eval_model(env, model, N, render_mode='none'):
                 env.render(mode=render_mode)
 
                 if render_mode == 'human':
-                    time.sleep(0.5)
+                    time.sleep(0.25)
 
                 # Record results.
                 results['reward'][k] += rewards
@@ -50,8 +50,8 @@ if __name__ == '__main__':
     # model_name = 'models/2019-09-13/2019-09-22/ckpt/ckpt_050.pkl'
     # model_name = 'models/2020-01-20/2020-01-20/ckpt/ckpt_002.pkl'
 
-    model_name = 'ckpt_177.pkl'
-    policy_param = {'num_processing_steps': 10}
+    model_name = 'ckpt_026.pkl'
+    policy_param = {'num_processing_steps': 5}
     n_steps = 32
 
     new_model = PPO2(
