@@ -129,6 +129,11 @@ def train_helper(env_param, test_env_param, train_param, policy_fn, policy_param
         # update new model's parameters
         model.load_parameters(params)
 
+    dataset = ExpertDataset(expert_path='data/expert_multi.npz',
+                            traj_limitation=-1, batch_size=16)
+    model.pretrain(dataset, n_epochs=100, learning_rate=1e-6)
+
+
     # dataset = ExpertDataset(expert_path='data/expert_rad2.npz',
     #                         traj_limitation=-1, batch_size=16)
     # model.pretrain(dataset, n_epochs=5000, learning_rate=1e-6)
@@ -163,7 +168,7 @@ if __name__ == '__main__':
     # j['policy'] = MlpPolicy
     j['policy_param'] = {'num_processing_steps': 5}
     # j['name'] = j['policy'].policy_param_string(j['policy_param'])
-    j['name'] = 'lattice3_pretrain'
+    j['name'] = 'multi_pretrain'
     jobs.append(j)
 
     env_param = {}

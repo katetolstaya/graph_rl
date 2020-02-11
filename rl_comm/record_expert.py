@@ -30,18 +30,13 @@ def generate_expert_traj(env, save_path=None, n_episodes=1000):
 
     assert env is not None, "You must set the env in the model or pass it to the function."
 
-    is_vec_env = False
-    if isinstance(env, VecEnv) and not isinstance(env, _UnvecWrapper):
-        is_vec_env = True
-        if env.num_envs > 1:
-            warnings.warn("You are using multiple envs, only the data from the first one will be recorded.")
-
     # Sanity check
     assert (isinstance(env.observation_space, spaces.Box) or
             isinstance(env.observation_space, spaces.Discrete)), "Observation space type not supported"
 
     assert (isinstance(env.action_space, spaces.Box) or
-            isinstance(env.action_space, spaces.Discrete)), "Action space type not supported"
+            isinstance(env.action_space, spaces.Discrete) or
+            isinstance(env.action_space, spaces.MultiDiscrete)), "Action space type not supported"
 
     actions = []
     observations = []
@@ -62,20 +57,13 @@ def generate_expert_traj(env, save_path=None, n_episodes=1000):
 
         obs, reward, done, _ = env.step(action)
 
-        # Use only first env
-        if is_vec_env:
-            action = np.array([action[0]])
-            reward = np.array([reward[0]])
-            done = np.array([done[0]])
-
         actions.append(action)
         rewards.append(reward)
         episode_starts.append(done)
         reward_sum += reward
         idx += 1
         if done:
-            if not is_vec_env:
-                obs = env.reset()
+            obs = env.reset()
 
             episode_returns[ep_idx] = reward_sum
             reward_sum = 0.0
@@ -90,6 +78,8 @@ def generate_expert_traj(env, save_path=None, n_episodes=1000):
         actions = np.concatenate(actions).reshape((-1,) + env.action_space.shape)
     elif isinstance(env.action_space, spaces.Discrete):
         actions = np.array(actions).reshape((-1, 1))
+    elif isinstance(env.action_space, spaces.MultiDiscrete):
+        actions = np.array(actions).reshape((-1, len(env.action_space.nvec)))
 
     rewards = np.array(rewards)
     episode_starts = np.array(episode_starts[:-1])
@@ -125,6 +115,4 @@ def make_env():
     return env
 
 
-# env = VecNormalize(SubprocVecEnv([make_env] * 1), norm_obs=False, norm_reward=True)
-generate_expert_traj(env=make_env(), save_path='data/expert_rad2', n_episodes=200)
-# generate_expert_traj(env=env, save_path='expert_rad_49', n_episodes=25)
+generate_expert_traj(env=make_env(), save_path='data/expert_multi', n_episodes=200)
