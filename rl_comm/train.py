@@ -109,8 +109,8 @@ def train_helper(env_param, test_env_param, train_param, policy_fn, policy_param
             policy=policy_fn,
             policy_kwargs=policy_param,
             env=env,
-            # learning_rate=1e-6,
-            learning_rate=5e-6,
+            learning_rate=1e-6,
+            # learning_rate=5e-6,
             cliprange=1.0,
             n_steps=train_param['n_steps'],
             ent_coef=0.01,
@@ -166,7 +166,7 @@ if __name__ == '__main__':
     # j['policy'] = MlpPolicy
     j['policy_param'] = {'num_processing_steps': 5}
     # j['name'] = j['policy'].policy_param_string(j['policy_param'])
-    j['name'] = 'vrp'
+    j['name'] = 'vrp2'
     jobs.append(j)
 
     env_param = {}
