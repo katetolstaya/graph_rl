@@ -3,13 +3,14 @@ import time
 import gym
 import numpy as np
 import tensorflow as tf
+from collections import deque
 
 from stable_baselines import logger
 from stable_baselines.common import explained_variance, ActorCriticRLModel, tf_util, SetVerbosity, TensorboardWriter
 from stable_baselines.common.runners import AbstractEnvRunner
 from stable_baselines.common.policies import ActorCriticPolicy, RecurrentActorCriticPolicy
 from stable_baselines.a2c.utils import total_episode_reward_logger
-
+from stable_baselines.ppo2.ppo2 import safe_mean, swap_and_flatten, get_schedule_fn, Runner, constfn
 
 class PPO2(ActorCriticRLModel):
     """
@@ -87,6 +88,9 @@ class PPO2(ActorCriticRLModel):
         self.value = None
         self.n_batch = None
         self.summary = None
+        self._runner = None
+        self.ep_info_buf = None
+        self.episode_reward = None
 
         super().__init__(policy=policy, env=env, verbose=verbose, requires_vec_env=True,
                          _init_setup_model=_init_setup_model, policy_kwargs=policy_kwargs,
@@ -98,6 +102,12 @@ class PPO2(ActorCriticRLModel):
     def _make_runner(self):
         return Runner(env=self.env, model=self, n_steps=self.n_steps,
                       gamma=self.gamma, lam=self.lam)
+
+    @property
+    def runner(self) -> AbstractEnvRunner:
+        if self._runner is None:
+            self._runner = self._make_runner()
+        return self._runner
 
     def _get_pretrain_placeholders(self):
         policy = self.act_model
@@ -299,6 +309,18 @@ class PPO2(ActorCriticRLModel):
                 [self.pg_loss, self.vf_loss, self.entropy, self.approxkl, self.clipfrac, self._train], td_map)
 
         return policy_loss, value_loss, policy_entropy, approxkl, clipfrac
+
+    def _setup_learn(self):
+        """
+        Check the environment.
+        """
+        if self.env is None:
+            raise ValueError("Error: cannot train the model without a valid environment, please set an environment with"
+                             "set_env(self, env) method.")
+        if self.episode_reward is None:
+            self.episode_reward = np.zeros((self.n_envs,))
+        if self.ep_info_buf is None:
+            self.ep_info_buf = deque(maxlen=100)
 
     def learn(self, total_timesteps, callback=None, log_interval=1, tb_log_name="PPO2",
               reset_num_timesteps=True):
@@ -533,142 +555,3 @@ class PPO2(ActorCriticRLModel):
         params_to_save = self.get_parameters()
 
         self._save_to_file(save_path, data=data, params=params_to_save, cloudpickle=cloudpickle)
-
-
-class Runner(AbstractEnvRunner):
-    def __init__(self, *, env, model, n_steps, gamma, lam):
-        """
-        A runner to learn the policy of an environment for a model
-
-        :param env: (Gym environment) The environment to learn from
-        :param model: (Model) The model to learn
-        :param n_steps: (int) The number of steps to run for each environment
-        :param gamma: (float) Discount factor
-        :param lam: (float) Factor for trade-off of bias vs variance for Generalized Advantage Estimator
-        """
-        super().__init__(env=env, model=model, n_steps=n_steps)
-        self.lam = lam
-        self.gamma = gamma
-
-    def run(self):
-        """
-        Run a learning step of the model
-
-        :return:
-            - observations: (np.ndarray) the observations
-            - rewards: (np.ndarray) the rewards
-            - masks: (numpy bool) whether an episode is over or not
-            - actions: (np.ndarray) the actions
-            - values: (np.ndarray) the value function output
-            - negative log probabilities: (np.ndarray)
-            - states: (np.ndarray) the internal states of the recurrent policies
-            - infos: (dict) the extra information of the model
-        """
-        # mb stands for minibatch
-        mb_obs, mb_rewards, mb_actions, mb_values, mb_dones, mb_neglogpacs = [], [], [], [], [], []
-        mb_states = self.states
-        ep_infos = []
-        for _ in range(self.n_steps):
-            actions, values, self.states, neglogpacs = self.model.step(self.obs, self.states, self.dones)
-            mb_obs.append(self.obs.copy())
-            mb_actions.append(actions)
-            mb_values.append(values)
-            mb_neglogpacs.append(neglogpacs)
-            mb_dones.append(self.dones)
-            clipped_actions = actions
-            # Clip the actions to avoid out of bound error
-            if isinstance(self.env.action_space, gym.spaces.Box):
-                clipped_actions = np.clip(actions, self.env.action_space.low, self.env.action_space.high)
-            self.obs[:], rewards, self.dones, infos = self.env.step(clipped_actions)
-            for info in infos:
-                maybe_ep_info = info.get('episode')
-                if maybe_ep_info is not None:
-                    ep_infos.append(maybe_ep_info)
-            mb_rewards.append(rewards)
-        # batch of steps to batch of rollouts
-        mb_obs = np.asarray(mb_obs, dtype=self.obs.dtype)
-        mb_rewards = np.asarray(mb_rewards, dtype=np.float32)
-        mb_actions = np.asarray(mb_actions)
-        mb_values = np.asarray(mb_values, dtype=np.float32)
-        mb_neglogpacs = np.asarray(mb_neglogpacs, dtype=np.float32)
-        mb_dones = np.asarray(mb_dones, dtype=np.bool)
-        last_values = self.model.value(self.obs, self.states, self.dones)
-        # discount/bootstrap off value fn
-        mb_advs = np.zeros_like(mb_rewards)
-        true_reward = np.copy(mb_rewards)
-        last_gae_lam = 0
-        for step in reversed(range(self.n_steps)):
-            if step == self.n_steps - 1:
-                nextnonterminal = 1.0 - self.dones
-                nextvalues = last_values
-            else:
-                nextnonterminal = 1.0 - mb_dones[step + 1]
-                nextvalues = mb_values[step + 1]
-            delta = mb_rewards[step] + self.gamma * nextvalues * nextnonterminal - mb_values[step]
-            mb_advs[step] = last_gae_lam = delta + self.gamma * self.lam * nextnonterminal * last_gae_lam
-        mb_returns = mb_advs + mb_values
-
-        mb_obs, mb_returns, mb_dones, mb_actions, mb_values, mb_neglogpacs, true_reward = \
-            map(swap_and_flatten, (mb_obs, mb_returns, mb_dones, mb_actions, mb_values, mb_neglogpacs, true_reward))
-
-        return mb_obs, mb_returns, mb_dones, mb_actions, mb_values, mb_neglogpacs, mb_states, ep_infos, true_reward
-
-
-
-
-def get_schedule_fn(value_schedule):
-    """
-    Transform (if needed) learning rate and clip range
-    to callable.
-
-    :param value_schedule: (callable or float)
-    :return: (function)
-    """
-    # If the passed schedule is a float
-    # create a constant function
-    if isinstance(value_schedule, (float, int)):
-        # Cast to float to avoid errors
-        value_schedule = constfn(float(value_schedule))
-    else:
-        assert callable(value_schedule)
-    return value_schedule
-
-
-# obs, returns, masks, actions, values, neglogpacs, states = runner.run()
-def swap_and_flatten(arr):
-    """
-    swap and then flatten axes 0 and 1
-
-    :param arr: (np.ndarray)
-    :return: (np.ndarray)
-    """
-    shape = arr.shape
-    return arr.swapaxes(0, 1).reshape(shape[0] * shape[1], *shape[2:])
-
-
-def constfn(val):
-    """
-    Create a function that returns a constant
-    It is useful for learning rate schedule (to avoid code duplication)
-
-    :param val: (float)
-    :return: (function)
-    """
-
-    def func(_):
-        return val
-
-    return func
-
-
-def safe_mean(arr):
-    """
-    Compute the mean of an array if there is at least one element.
-    For empty array, return nan. It is used for logging only.
-
-    :param arr: (np.ndarray)
-    :return: (float)
-    """
-    return np.nan if len(arr) == 0 else np.mean(arr)
-
-

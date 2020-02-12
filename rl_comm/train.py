@@ -129,9 +129,9 @@ def train_helper(env_param, test_env_param, train_param, policy_fn, policy_param
         # # update new model's parameters
         # model.load_parameters(params)
 
-    dataset = ExpertDataset(expert_path='data/expert_multi.npz',
-                            traj_limitation=-1, batch_size=16)
-    model.pretrain(dataset, n_epochs=1000, learning_rate=5e-6)
+    # dataset = ExpertDataset(expert_path='data/expert_multi.npz',
+    #                         traj_limitation=-1, batch_size=16)
+    # model.pretrain(dataset, n_epochs=2, learning_rate=5e-6)
 
 
     # dataset = ExpertDataset(expert_path='data/expert_rad2.npz',
