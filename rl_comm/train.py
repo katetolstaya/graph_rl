@@ -22,20 +22,20 @@ def print_key_if_true(dictionary, key):
     """
     Print each key string whose value in dictionary is True.
     """
-    if dictionary[key] == True:
+    if dictionary[key]:
         return key + ', '
     return ''
 
 
-def eval_env(env, model, N, render_mode='none'):
+def eval_env(env, model, n_episodes, render_mode='none'):
     """
     Evaluate a model against an environment over N games.
     """
     results = {
-        'reward': np.zeros(N),
+        'reward': np.zeros(n_episodes),
     }
-    with Bar('Eval', max=N) as bar:
-        for k in range(N):
+    with Bar('Eval', max=n_episodes) as bar:
+        for k in range(n_episodes):
             done = False
             obs = env.reset()
             ep_reward = 0
