@@ -1,13 +1,8 @@
-import warnings
 from typing import Dict
 import numpy as np
 import gym
 import gym_flock
 from gym import spaces
-
-from stable_baselines.common.vec_env import VecEnv
-from stable_baselines.common.base_class import _UnvecWrapper
-from stable_baselines.common.vec_env import SubprocVecEnv, VecNormalize
 
 
 def generate_expert_traj(env, save_path=None, n_episodes=1000):

@@ -8,8 +8,7 @@ import tensorflow as tf
 from progress.bar import Bar
 
 from rl_comm.ppo2 import PPO2
-from stable_baselines.common.vec_env import SubprocVecEnv, VecNormalize
-from stable_baselines.common.base_class import BaseRLModel
+from stable_baselines.common.vec_env import SubprocVecEnv
 from stable_baselines.gail import ExpertDataset
 
 import rl_comm.gnn_fwd as gnn_fwd

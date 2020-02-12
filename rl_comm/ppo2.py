@@ -1,5 +1,4 @@
 import time
-
 import gym
 import numpy as np
 import tensorflow as tf
@@ -10,13 +9,14 @@ from stable_baselines.common import explained_variance, ActorCriticRLModel, tf_u
 from stable_baselines.common.runners import AbstractEnvRunner
 from stable_baselines.common.policies import ActorCriticPolicy, RecurrentActorCriticPolicy
 from stable_baselines.a2c.utils import total_episode_reward_logger
-from stable_baselines.ppo2.ppo2 import safe_mean, swap_and_flatten, get_schedule_fn, Runner, constfn
+from stable_baselines.ppo2.ppo2 import safe_mean, get_schedule_fn, Runner
+
 
 class PPO2(ActorCriticRLModel):
     """
     Proximal Policy Optimization algorithm (GPU version).
     Paper: https://arxiv.org/abs/1707.06347
-    Code: https://stable-baselines.readthedocs.io/en/master/modules/ppo2.html
+    Code: https://github.com/hill-a/stable-baselines/blob/master/stable_baselines/ppo2/ppo2.py
 
     :param policy: (ActorCriticPolicy or str) The policy model to use (MlpPolicy, CnnPolicy, CnnLstmPolicy, ...)
     :param env: (Gym environment or str) The environment to learn from (if registered in Gym, can be str)
