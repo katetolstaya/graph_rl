@@ -1,72 +1,15 @@
-import glob
-import numpy as np
-import functools
-from pathlib import Path
 import gym
 import gym_flock
-import tensorflow as tf
-from progress.bar import Bar
-
-from rl_comm.ppo2 import PPO2
+import functools
+import glob
+from pathlib import Path
+from stable_baselines.common import BaseRLModel
 from stable_baselines.common.vec_env import SubprocVecEnv
 from stable_baselines.gail import ExpertDataset
 
 import rl_comm.gnn_fwd as gnn_fwd
-
-
-def ckpt_file(ckpt_dir, ckpt_idx):
-    return ckpt_dir / 'ckpt_{:03}.pkl'.format(ckpt_idx)
-
-
-def print_key_if_true(dictionary, key):
-    """
-    Print each key string whose value in dictionary is True.
-    """
-    if dictionary[key]:
-        return key + ', '
-    return ''
-
-
-def eval_env(env, model, n_episodes, render_mode='none'):
-    """
-    Evaluate a model against an environment over N games.
-    """
-    results = {
-        'reward': np.zeros(n_episodes),
-    }
-    with Bar('Eval', max=n_episodes) as bar:
-        for k in range(n_episodes):
-            done = False
-            obs = env.reset()
-            ep_reward = 0
-            # Run one game.
-            while not done:
-                action, states = model.predict(obs, deterministic=True)  # TODO need to reformat here?
-                obs, r, done, _ = env.step(action)
-                ep_reward += r
-                # env.render(mode=render_mode)
-            # Record results.
-            results['reward'][k] = ep_reward
-            bar.next()
-    return results
-
-
-def callback(locals_, globals_, test_env):
-    self_ = locals_['self']
-
-    # Periodically run extra test evaluation.
-    if not hasattr(self_, 'next_test_eval'):
-        self_.next_test_eval = 0
-    if self_.num_timesteps >= self_.next_test_eval:
-        print('\nTesting...')
-        results = eval_env(test_env, self_, 50, render_mode='none')
-        print('reward,          mean = {:.1f}, std = {:.1f}'.format(np.mean(results['reward']), np.std(results['reward'])))
-        print('')
-        score = np.mean(results['reward'])
-        summary = tf.Summary(value=[tf.Summary.Value(tag='reward', simple_value=score)])
-        locals_['writer'].add_summary(summary, self_.num_timesteps)
-        self_.next_test_eval += 50000
-    return True
+from rl_comm.ppo2 import PPO2
+from rl_comm.utils import ckpt_file, callback
 
 
 def train_helper(env_param, test_env_param, train_param, policy_fn, policy_param, directory):
@@ -76,27 +19,18 @@ def train_helper(env_param, test_env_param, train_param, policy_fn, policy_param
     for d in [save_dir, tb_dir, ckpt_dir]:
         d.mkdir(parents=True, exist_ok=True)
 
-    env_name = "MappingRad-v0"
+    env = SubprocVecEnv([env_param['make_env']] * train_param['n_env'])
+    test_env = SubprocVecEnv([test_env_param['make_env']])
 
-    def make_env():
-        keys = ['nodes', 'edges', 'senders', 'receivers']
-        env = gym.make(env_name)
-        env = gym.wrappers.FlattenDictWrapper(env, dict_keys=keys)
-        return env
-
-    # env = VecNormalize(SubprocVecEnv([make_env]*train_param['n_env']), norm_obs=False, norm_reward=True)
-
-    env = SubprocVecEnv([make_env]*train_param['n_env'])
-    test_env = SubprocVecEnv([make_env])
-
-    # Find latest checkpoint index.
-    # ckpt_list = sorted(glob.glob(str(ckpt_dir) + '/*.pkl'))
-    # if len(ckpt_list) == 0:
-    #     ckpt_idx = None
-    # else:
-    #     ckpt_idx = int(ckpt_list[-1][-7:-4])
-
-    ckpt_idx = None
+    if train_param['use_checkpoint']:
+        # Find latest checkpoint index.
+        ckpt_list = sorted(glob.glob(str(ckpt_dir) + '/*.pkl'))
+        if len(ckpt_list) == 0:
+            ckpt_idx = None
+        else:
+            ckpt_idx = int(ckpt_list[-1][-7:-4])
+    else:
+        ckpt_idx = None
 
     # Load or create model.
     if ckpt_idx is not None:
@@ -109,8 +43,7 @@ def train_helper(env_param, test_env_param, train_param, policy_fn, policy_param
             policy=policy_fn,
             policy_kwargs=policy_param,
             env=env,
-            learning_rate=1e-6,
-            # learning_rate=5e-6,
+            learning_rate=train_param['train_lr'],
             cliprange=1.0,
             n_steps=train_param['n_steps'],
             ent_coef=0.01,
@@ -120,23 +53,20 @@ def train_helper(env_param, test_env_param, train_param, policy_fn, policy_param
             full_tensorboard_log=False)
         ckpt_idx = 0
 
-        # model_name = 'ckpt_026.pkl'
-        #
-        # # load the dictionary of parameters from file
-        # _, params = BaseRLModel._load_from_file(model_name)
-        #
-        # # update new model's parameters
-        # model.load_parameters(params)
+        if 'load_trained_policy' in train_param and train_param['load_trained_policy'] is not None:
+            model_name = train_param['load_trained_policy']
 
-    dataset = ExpertDataset(expert_path='data/expert_multi.npz',
-                            traj_limitation=-1, batch_size=16)
-    model.pretrain(dataset, n_epochs=1000, learning_rate=5e-6)
+            # load the dictionary of parameters from file
+            _, params = BaseRLModel._load_from_file(model_name)
 
-    # dataset = ExpertDataset(expert_path='data/expert_rad2.npz',
-    #                         traj_limitation=-1, batch_size=16)
-    # model.pretrain(dataset, n_epochs=5000, learning_rate=1e-6)
-    # model.pretrain(dataset, n_epochs=200, learning_rate=1e-5)
-    # model.pretrain(dataset, n_epochs=1000, learning_rate=5e-6)
+            # update new model's parameters
+            model.load_parameters(params)
+
+    if 'pretrain_dataset' in train_param and train_param['pretrain_dataset'] is not None:
+        dataset = ExpertDataset(expert_path=train_param['pretrain_dataset'],
+                                traj_limitation=-1, batch_size=16)
+        model.pretrain(dataset, n_epochs=train_param['pretrain_epochs'], learning_rate=train_param['pretrain_lr'],
+                       val_interval=1, test_env=test_env)
 
     # Training loop.
     print('\nBegin training.\n')
@@ -155,29 +85,42 @@ def train_helper(env_param, test_env_param, train_param, policy_fn, policy_param
     print('Finished.')
 
 
-if __name__ == '__main__':
-
-    import copy
-
+def main():
     jobs = []  # string name, policy class, policy_kwargs
 
     j = {}
     j['policy'] = gnn_fwd.GnnFwd
-    # j['policy'] = MlpPolicy
     j['policy_param'] = {'num_processing_steps': 5}
     # j['name'] = j['policy'].policy_param_string(j['policy_param'])
-    j['name'] = 'vrp2'
+    j['name'] = 'vrp2003'
     jobs.append(j)
 
-    env_param = {}
-    test_env_param = copy.deepcopy(env_param)
+    env_name = "MappingRad-v0"
+
+    def make_env():
+        keys = ['nodes', 'edges', 'senders', 'receivers']
+        env = gym.make(env_name)
+        env = gym.wrappers.FlattenDictWrapper(env, dict_keys=keys)
+        return env
+
+    env_param = {'make_env': make_env}
+    test_env_param = {'make_env': make_env}
 
     train_param = {
         'n_env': 16,
         'n_steps': 32,
         'checkpoint_timesteps': 100000,
-        'total_timesteps': 50000000
+        'total_timesteps': 50000000,
+        'load_trained_policy': None,  # 'ckpt_026.pkl'
+        'pretrain_dataset': 'data/expert_multi.npz',
+        'pretrain_epochs': 200,
+        'pretrain_lr': 5e-6,
+        'train_lr': 1e-6,
+        'use_checkpoint': False,
     }
+    # 'pretrain_dataset' = 'data/expert_rad2.npz'
+    # 'pretrain_epochs' = 5000
+    # 'pretrain_lr' = 1e-6
 
     root = Path('models/' + j['name'])
 
@@ -191,3 +134,7 @@ if __name__ == '__main__':
             policy_fn=j['policy'],
             policy_param=j['policy_param'],
             directory=directory)
+
+
+if __name__ == '__main__':
+    main()

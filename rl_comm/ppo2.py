@@ -10,6 +10,7 @@ from stable_baselines.common.runners import AbstractEnvRunner
 from stable_baselines.common.policies import ActorCriticPolicy, RecurrentActorCriticPolicy
 from stable_baselines.a2c.utils import total_episode_reward_logger
 from stable_baselines.ppo2.ppo2 import safe_mean, get_schedule_fn, Runner
+from rl_comm.utils import eval_env
 
 
 class PPO2(ActorCriticRLModel):
@@ -50,6 +51,7 @@ class PPO2(ActorCriticRLModel):
     :param n_cpu_tf_sess: (int) The number of threads for TensorFlow operations
         If None, the number of cpu of the current machine will be used.
     """
+
     def __init__(self, policy, env, gamma=0.99, n_steps=128, ent_coef=0.01, learning_rate=2.5e-4, vf_coef=0.5,
                  max_grad_norm=0.5, lam=0.95, nminibatches=4, noptepochs=4, cliprange=0.2, cliprange_vf=None,
                  verbose=0, tensorboard_log=None, _init_setup_model=True, policy_kwargs=None,
@@ -132,8 +134,8 @@ class PPO2(ActorCriticRLModel):
                 n_batch_step = None
                 n_batch_train = None
                 if issubclass(self.policy, RecurrentActorCriticPolicy):
-                    assert self.n_envs % self.nminibatches == 0, "For recurrent policies, "\
-                        "the number of environments run in parallel should be a multiple of nminibatches."
+                    assert self.n_envs % self.nminibatches == 0, "For recurrent policies, " \
+                                                                 "the number of environments run in parallel should be a multiple of nminibatches."
                     n_batch_step = self.n_envs
                     n_batch_train = self.n_batch // self.nminibatches
 
@@ -180,9 +182,8 @@ class PPO2(ActorCriticRLModel):
                         # Clip the different between old and new value
                         # NOTE: this depends on the reward scaling
                         vpred_clipped = self.old_vpred_ph + \
-                            tf.clip_by_value(train_model.value_flat - self.old_vpred_ph,
-                                             - self.clip_range_vf_ph, self.clip_range_vf_ph)
-
+                                        tf.clip_by_value(train_model.value_flat - self.old_vpred_ph,
+                                                         - self.clip_range_vf_ph, self.clip_range_vf_ph)
 
                     vf_losses1 = tf.square(vpred - self.rewards_ph)
                     vf_losses2 = tf.square(vpred_clipped - self.rewards_ph)
@@ -422,13 +423,14 @@ class PPO2(ActorCriticRLModel):
             return self
 
     def pretrain(self, dataset, n_epochs=10, learning_rate=1e-4,
-                 adam_epsilon=1e-8, val_interval=None):
+                 adam_epsilon=1e-8, val_interval=None, test_env=None):
         """
         Pretrain a model using behavior cloning:
         supervised learning given an expert dataset.
 
         NOTE: only Box and Discrete spaces are supported for now.
 
+        :param test_env: Test environment
         :param dataset: (ExpertDataset) Dataset manager
         :param n_epochs: (int) Number of iterations on the training set
         :param learning_rate: (float) Learning rate
@@ -472,7 +474,7 @@ class PPO2(ActorCriticRLModel):
                         labels=tf.stop_gradient(one_hot_actions)
                     )
                     loss = tf.reduce_mean(loss)
-                else:  # multi_discrete
+                elif multidiscrete_actions:
                     obs_ph, actions_ph, actions_logits_ph = self._get_pretrain_placeholders()
                     actions_ph = tf.reshape(actions_ph, (-1, n_agents))
                     one_hot_actions = tf.one_hot(actions_ph, n_actions)
@@ -484,6 +486,8 @@ class PPO2(ActorCriticRLModel):
                         axis=2
                     )
                     loss = tf.reduce_mean(loss)
+                else:
+                    raise ValueError("Invalid action space")
 
                 optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate, epsilon=adam_epsilon)
                 optim_op = optimizer.minimize(loss, var_list=self.params)
@@ -517,11 +521,20 @@ class PPO2(ActorCriticRLModel):
                     val_loss += val_loss_
 
                 val_loss /= len(dataset.val_loader)
+
                 if self.verbose > 0:
                     print("==== Training progress {:.2f}% ====".format(100 * (epoch_idx + 1) / n_epochs))
                     print('Epoch {}'.format(epoch_idx + 1))
                     print("Training loss: {:.6f}, Validation loss: {:.6f}".format(train_loss, val_loss))
                     print()
+
+                if test_env is not None:
+                    print('\nTesting...')
+                    results = eval_env(test_env, self, 50, render_mode='none')
+                    print('reward,          mean = {:.1f}, std = {:.1f}'.format(np.mean(results['reward']),
+                                                                                np.std(results['reward'])))
+                    print()
+
             # Free memory
             del expert_obs, expert_actions
         if self.verbose > 0:
