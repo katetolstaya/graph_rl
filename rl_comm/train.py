@@ -112,7 +112,7 @@ def main():
         'checkpoint_timesteps': 100000,
         'total_timesteps': 50000000,
         'load_trained_policy': None,  # 'ckpt_026.pkl'
-        'pretrain_dataset': 'data/expert_multi.npz',
+        'pretrain_dataset': 'data/expert_multi2.npz',
         'pretrain_epochs': 500,
         'pretrain_lr': 1e-5,
         'pretrain_adam_eps': 1e-5,
