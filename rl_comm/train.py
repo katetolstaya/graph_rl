@@ -66,7 +66,7 @@ def train_helper(env_param, test_env_param, train_param, policy_fn, policy_param
         dataset = ExpertDataset(expert_path=train_param['pretrain_dataset'],
                                 traj_limitation=-1, batch_size=16)
         model.pretrain(dataset, n_epochs=train_param['pretrain_epochs'], learning_rate=train_param['pretrain_lr'],
-                       val_interval=2, test_env=test_env)
+                       val_interval=5, test_env=test_env)
 
     # Training loop.
     print('\nBegin training.\n')
@@ -92,7 +92,7 @@ def main():
     j['policy'] = gnn_fwd.GnnFwd
     j['policy_param'] = {'num_processing_steps': 5}
     # j['name'] = j['policy'].policy_param_string(j['policy_param'])
-    j['name'] = 'vrp8git c'
+    j['name'] = 'vrp8_7'
     jobs.append(j)
 
     env_name = "MappingRad-v0"
@@ -113,9 +113,9 @@ def main():
         'total_timesteps': 50000000,
         'load_trained_policy': None,  # 'ckpt_026.pkl'
         'pretrain_dataset': 'data/expert_multi.npz',
-        'pretrain_epochs': 200,
-        'pretrain_lr': 1e-6,
-        'train_lr': 1e-6,
+        'pretrain_epochs': 500,
+        'pretrain_lr': 5e-7,
+        'train_lr': 5e-7,
         'use_checkpoint': False,
     }
     # 'pretrain_dataset' = 'data/expert_rad2.npz'
