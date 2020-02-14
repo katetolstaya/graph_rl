@@ -104,7 +104,7 @@ env_name = "MappingRad-v0"
 
 
 def make_env():
-    keys = ['nodes', 'edges', 'senders', 'receivers']
+    keys = ['nodes', 'edges', 'senders', 'receivers', 'step']
     env = gym.make(env_name)
     env = gym.wrappers.FlattenDictWrapper(env, dict_keys=keys)
     return env

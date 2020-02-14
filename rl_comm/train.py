@@ -66,7 +66,7 @@ def train_helper(env_param, test_env_param, train_param, policy_fn, policy_param
         dataset = ExpertDataset(expert_path=train_param['pretrain_dataset'],
                                 traj_limitation=-1, batch_size=16)
         model.pretrain(dataset, n_epochs=train_param['pretrain_epochs'], learning_rate=train_param['pretrain_lr'],
-                       val_interval=5, test_env=test_env)
+                       val_interval=5, test_env=test_env, adam_epsilon=train_param['pretrain_adam_eps'])
 
     # Training loop.
     print('\nBegin training.\n')
@@ -98,7 +98,7 @@ def main():
     env_name = "MappingRad-v0"
 
     def make_env():
-        keys = ['nodes', 'edges', 'senders', 'receivers']
+        keys = ['nodes', 'edges', 'senders', 'receivers', 'step']
         env = gym.make(env_name)
         env = gym.wrappers.FlattenDictWrapper(env, dict_keys=keys)
         return env
@@ -114,7 +114,9 @@ def main():
         'load_trained_policy': None,  # 'ckpt_026.pkl'
         'pretrain_dataset': 'data/expert_multi.npz',
         'pretrain_epochs': 500,
-        'pretrain_lr': 5e-7,
+        'pretrain_lr': 1e-5,
+        'pretrain_adam_eps': 1e-5,
+        # 'pretrain_lr': 5e-7,
         'train_lr': 5e-7,
         'use_checkpoint': False,
     }
