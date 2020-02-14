@@ -66,7 +66,7 @@ def train_helper(env_param, test_env_param, train_param, policy_fn, policy_param
         dataset = ExpertDataset(expert_path=train_param['pretrain_dataset'],
                                 traj_limitation=-1, batch_size=16)
         model.pretrain(dataset, n_epochs=train_param['pretrain_epochs'], learning_rate=train_param['pretrain_lr'],
-                       val_interval=5, test_env=test_env, adam_epsilon=train_param['pretrain_adam_eps'])
+                       val_interval=10, test_env=test_env, adam_epsilon=train_param['pretrain_adam_eps'])
 
     # Training loop.
     print('\nBegin training.\n')
@@ -115,7 +115,7 @@ def main():
         'pretrain_dataset': 'data/expert_multi2.npz',
         'pretrain_epochs': 500,
         'pretrain_lr': 1e-5,
-        'pretrain_adam_eps': 1e-5, 
+        'pretrain_adam_eps': 1e-5,
         # 'pretrain_lr': 5e-7,
         'train_lr': 5e-7,
         'use_checkpoint': False,
