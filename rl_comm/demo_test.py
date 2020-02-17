@@ -9,11 +9,11 @@ from stable_baselines.common.base_class import BaseRLModel
 
 
 def make_env():
-    keys = ['nodes', 'edges', 'senders', 'receivers']
-    env = gym.make("MappingRad-v0")
+    env_name = "MappingRad-v0"
+    keys = ['nodes', 'edges', 'senders', 'receivers', 'step']
+    env = gym.make(env_name)
     env = gym.wrappers.FlattenDictWrapper(env, dict_keys=keys)
     return env
-
 
 def eval_model(env, model, N, render_mode='none'):
     """
@@ -50,7 +50,7 @@ if __name__ == '__main__':
     # model_name = 'models/2019-09-13/2019-09-22/ckpt/ckpt_050.pkl'
     # model_name = 'models/2020-01-20/2020-01-20/ckpt/ckpt_002.pkl'
 
-    model_name = 'ckpt_026.pkl'
+    model_name = 'ckpt_001.pkl'
     policy_param = {'num_processing_steps': 5}
     n_steps = 32
 

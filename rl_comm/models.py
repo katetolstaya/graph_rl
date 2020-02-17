@@ -14,7 +14,7 @@ from stable_baselines.a2c.utils import ortho_init
 # LATENT_SIZE = 8  # Hard-code latent layer sizes for demos.
 
 NUM_LAYERS = 2
-LATENT_SIZE = 4
+LATENT_SIZE = 8
 
 
 def make_mlp_model():
@@ -63,7 +63,7 @@ class AggregationNet(snt.AbstractModule):
             edge_block_opt={'use_receiver_nodes': False, 'use_globals': self._use_globals},
             node_block_opt={'use_globals': self._use_globals},
             name="graph_net"
-            , reducer=unsorted_segment_max_or_zero
+            # , reducer=unsorted_segment_max_or_zero
         )
 
         self._encoder = modules.GraphIndependent(make_mlp_model, make_mlp_model, make_mlp_model, name="encoder")
@@ -98,21 +98,15 @@ class AggregationNet(snt.AbstractModule):
         latent0 = latent
         output_ops = []
 
-        for _ in range(self._num_processing_steps):
+        proc_hops = [1, 1, 2, 2, 2]  # 1 hop, 2 hop, 4 hop, 8 hop
 
-            core_input = utils_tf.concat([latent0, latent], axis=1)
-            latent = self._core(core_input)
+        for i in range(self._num_processing_steps):
 
-            # 2 hop neighbors
-            core_input = utils_tf.concat([latent0, latent], axis=1)
-            latent = self._core(core_input)
-
-            # # 3 hop neighbors
-            # core_input = utils_tf.concat([latent0, latent], axis=1)
-            # latent = self._core(core_input)
+            for j in range(proc_hops[i]):
+                core_input = utils_tf.concat([latent0, latent], axis=1)
+                latent = self._core(core_input)
 
             decoded_op = self._decoder(latent)
-
             output_ops.append(decoded_op)
 
         stacked_edges = tf.stack([g.edges for g in output_ops], axis=1)
