@@ -95,7 +95,7 @@ def main():
     j['policy'] = gnn_fwd.GnnFwd
     j['policy_param'] = {'num_processing_steps': 5}
     # j['name'] = j['policy'].policy_param_string(j['policy_param'])
-    j['name'] = 'arch_lin8'
+    j['name'] = 'arch_lin8_7'
     jobs.append(j)
 
     env_name = "MappingRad-v0"
@@ -119,7 +119,7 @@ def main():
         'pretrain_dataset': 'data/expert_multi2.npz',
         'pretrain_epochs': 500,
         'pretrain_lr': 1e-5,
-        'pretrain_adam_eps': 1e-6,
+        'pretrain_adam_eps': 1e-7,
         # 'pretrain_lr': 5e-7,
         'train_lr': 5e-7,
         'use_checkpoint': False,
