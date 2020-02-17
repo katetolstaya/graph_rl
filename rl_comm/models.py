@@ -53,8 +53,8 @@ class AggregationNet(snt.AbstractModule):
         super(AggregationNet, self).__init__(name=name)
 
         self._use_globals = False if global_output_size is None else True
-        # core_func = make_linear_model
-        core_func = make_mlp_model
+        core_func = make_linear_model
+        # core_func = make_mlp_model
 
         self._core = modules.GraphNetwork(
             edge_model_fn=core_func,
