@@ -68,6 +68,9 @@ def train_helper(env_param, test_env_param, train_param, policy_fn, policy_param
         model.pretrain(dataset, n_epochs=train_param['pretrain_epochs'], learning_rate=train_param['pretrain_lr'],
                        val_interval=10, test_env=test_env, adam_epsilon=train_param['pretrain_adam_eps'])
 
+        model.save(str(ckpt_file(ckpt_dir, ckpt_idx)))
+        ckpt_idx += 1
+
     # Training loop.
     print('\nBegin training.\n')
     while model.num_timesteps <= train_param['total_timesteps']:
@@ -92,7 +95,7 @@ def main():
     j['policy'] = gnn_fwd.GnnFwd
     j['policy_param'] = {'num_processing_steps': 5}
     # j['name'] = j['policy'].policy_param_string(j['policy_param'])
-    j['name'] = 'vrp_fast32'
+    j['name'] = 'arch_non'
     jobs.append(j)
 
     env_name = "MappingRad-v0"
@@ -110,12 +113,13 @@ def main():
         'n_env': 16,
         'n_steps': 32,
         'checkpoint_timesteps': 100000,
-        'total_timesteps': 50000000,
+        # 'total_timesteps': 50000000,
+        'total_timesteps': 0,
         'load_trained_policy': None,  # 'ckpt_026.pkl'
         'pretrain_dataset': 'data/expert_multi2.npz',
         'pretrain_epochs': 500,
         'pretrain_lr': 1e-5,
-        'pretrain_adam_eps': 1e-5,
+        'pretrain_adam_eps': 1e-6,
         # 'pretrain_lr': 5e-7,
         'train_lr': 5e-7,
         'use_checkpoint': False,
