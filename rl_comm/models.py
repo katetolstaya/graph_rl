@@ -67,7 +67,7 @@ class AggregationNet(snt.AbstractModule):
         )
 
         self._encoder = modules.GraphIndependent(make_mlp_model, make_mlp_model, make_mlp_model, name="encoder")
-        self._decoder = modules.GraphIndependent(make_mlp_model, make_mlp_model, make_mlp_model, name="decoder")
+        # self._decoder = modules.GraphIndependent(make_mlp_model, make_mlp_model, make_mlp_model, name="decoder")
         self._aggregation = modules.GraphIndependent(make_mlp_model, make_mlp_model, make_mlp_model, name="agg")
 
         self._num_processing_steps = num_processing_steps
@@ -95,7 +95,7 @@ class AggregationNet(snt.AbstractModule):
         n_edge = input_op.n_edge
 
         latent = self._encoder(input_op)
-        latent0 = latent
+        # latent0 = latent
         output_ops = []
 
         proc_hops = [1, 1, 2, 2, 2]  # 1 hop, 2 hop, 4 hop, 8 hop
@@ -105,13 +105,15 @@ class AggregationNet(snt.AbstractModule):
             # for j in range(proc_hops[i]):
             #     core_input = utils_tf.concat([latent0, latent], axis=1)
             #     latent = self._core(core_input)
+            # decoded_op = self._decoder(latent)
+            # output_ops.append(decoded_op)
 
             for j in range(proc_hops[i]):
                 # core_input = utils_tf.concat([latent0, latent], axis=1)
                 latent = self._core(latent)
 
-            decoded_op = self._decoder(latent)
-            output_ops.append(decoded_op)
+            # decoded_op = self._decoder(latent)
+            output_ops.append(latent)
 
         stacked_edges = tf.stack([g.edges for g in output_ops], axis=1)
         stacked_nodes = tf.stack([g.nodes for g in output_ops], axis=1)
