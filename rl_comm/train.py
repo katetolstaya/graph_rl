@@ -95,7 +95,7 @@ def main():
     j['policy'] = gnn_fwd.GnnFwd
     j['policy_param'] = {'num_processing_steps': 5}
     # j['name'] = j['policy'].policy_param_string(j['policy_param'])
-    j['name'] = 'sum8sloww'
+    j['name'] = 'slow6'
     jobs.append(j)
 
     env_name = "MappingRad-v0"
@@ -122,7 +122,7 @@ def main():
         # 'pretrain_lr': 1e-6,
         # 'pretrain_lr': 5e-7,
         'pretrain_lr': 2e-7,
-        'pretrain_adam_eps': 1e-7,
+        'pretrain_adam_eps': 1e-6,
         'train_lr': 5e-7,
         'use_checkpoint': False,
     }
