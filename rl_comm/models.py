@@ -14,7 +14,7 @@ from stable_baselines.a2c.utils import ortho_init
 # LATENT_SIZE = 8  # Hard-code latent layer sizes for demos.
 
 NUM_LAYERS = 2
-LATENT_SIZE = 16
+LATENT_SIZE = 8
 
 
 def make_mlp_model():
