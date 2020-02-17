@@ -119,7 +119,7 @@ def main():
         'pretrain_dataset': 'data/expert_multi2.npz',
         'pretrain_epochs': 500,
         # 'pretrain_lr': 1e-5,
-        'pretrain_lr': 1e-6,
+        'pretrain_lr': 5e-6,
         'pretrain_adam_eps': 1e-7,
         # 'pretrain_lr': 5e-7,
         'train_lr': 5e-7,
