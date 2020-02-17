@@ -95,7 +95,7 @@ def main():
     j['policy'] = gnn_fwd.GnnFwd
     j['policy_param'] = {'num_processing_steps': 5}
     # j['name'] = j['policy'].policy_param_string(j['policy_param'])
-    j['name'] = 'arch_lr6'
+    j['name'] = 'arch_lr56'
     jobs.append(j)
 
     env_name = "MappingRad-v0"
