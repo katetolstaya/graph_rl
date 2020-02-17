@@ -107,6 +107,10 @@ class AggregationNet(snt.AbstractModule):
             core_input = utils_tf.concat([latent0, latent], axis=1)
             latent = self._core(core_input)
 
+            # 3 hop neighbors
+            core_input = utils_tf.concat([latent0, latent], axis=1)
+            latent = self._core(core_input)
+
             decoded_op = self._decoder(latent)
 
             output_ops.append(decoded_op)
