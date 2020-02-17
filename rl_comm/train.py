@@ -95,7 +95,7 @@ def main():
     j['policy'] = gnn_fwd.GnnFwd
     j['policy_param'] = {'num_processing_steps': 5}
     # j['name'] = j['policy'].policy_param_string(j['policy_param'])
-    j['name'] = 'slow6'
+    j['name'] = 'try'
     jobs.append(j)
 
     env_name = "MappingRad-v0"
@@ -113,17 +113,17 @@ def main():
         'n_env': 16,
         'n_steps': 32,
         'checkpoint_timesteps': 100000,
-        # 'total_timesteps': 50000000,
-        'total_timesteps': 0,
+        'total_timesteps': 50000000,
+        # 'total_timesteps': 0,
         'load_trained_policy': None,  # 'ckpt_026.pkl'
         'pretrain_dataset': 'data/expert_multi2.npz',
-        'pretrain_epochs': 500,
+        'pretrain_epochs': 200,
         # 'pretrain_lr': 1e-5,
         # 'pretrain_lr': 1e-6,
         # 'pretrain_lr': 5e-7,
-        'pretrain_lr': 2e-7,
+        'pretrain_lr': 5e-7,
         'pretrain_adam_eps': 1e-6,
-        'train_lr': 5e-7,
+        'train_lr': 5e-8,
         'use_checkpoint': False,
     }
     # 'pretrain_dataset' = 'data/expert_rad2.npz'
