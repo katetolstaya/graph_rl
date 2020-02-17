@@ -63,6 +63,7 @@ def generate_expert_traj(env, save_path=None, n_episodes=1000):
         reward_sum += reward
         idx += 1
         if done:
+            print(ep_idx)
             obs = env.reset()
 
             episode_returns[ep_idx] = reward_sum
