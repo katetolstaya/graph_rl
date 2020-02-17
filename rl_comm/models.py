@@ -102,9 +102,13 @@ class AggregationNet(snt.AbstractModule):
 
         for i in range(self._num_processing_steps):
 
+            # for j in range(proc_hops[i]):
+            #     core_input = utils_tf.concat([latent0, latent], axis=1)
+            #     latent = self._core(core_input)
+
             for j in range(proc_hops[i]):
-                core_input = utils_tf.concat([latent0, latent], axis=1)
-                latent = self._core(core_input)
+                # core_input = utils_tf.concat([latent0, latent], axis=1)
+                latent = self._core(latent)
 
             decoded_op = self._decoder(latent)
             output_ops.append(decoded_op)
