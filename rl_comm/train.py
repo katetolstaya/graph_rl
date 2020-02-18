@@ -2,6 +2,7 @@ import gym
 import gym_flock
 import functools
 import glob
+import sys
 from pathlib import Path
 from stable_baselines.common import BaseRLModel
 from stable_baselines.common.vec_env import SubprocVecEnv
@@ -95,7 +96,12 @@ def main():
     j['policy'] = gnn_fwd.GnnFwd
     j['policy_param'] = {'num_processing_steps': 5}
     # j['name'] = j['policy'].policy_param_string(j['policy_param'])
-    j['name'] = 'try2'
+
+    if len(sys.argv) >= 2:
+        j['name'] = sys.argv[1]
+    else:
+        j['name'] = 'rad'
+
     jobs.append(j)
 
     env_name = "MappingRad-v0"
@@ -122,9 +128,11 @@ def main():
         # 'pretrain_lr': 1e-5,
         # 'pretrain_lr': 1e-6,
         # 'pretrain_lr': 5e-7,
-        'pretrain_lr': 5e-7,
+        # 'pretrain_lr': 5e-7,
+        'pretrain_lr': 1e-6,
         'pretrain_adam_eps': 1e-6,
-        'train_lr': 1e-8,
+        # 'train_lr': 1e-8,
+        'train_lr': 2e-8,
         'use_checkpoint': False,
     }
     # 'pretrain_dataset' = 'data/expert_rad2.npz'
