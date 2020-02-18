@@ -47,10 +47,10 @@ if __name__ == '__main__':
     vec_env = SubprocVecEnv([make_env])
 
     # Specify pre-trained model checkpoint file.
-    # model_name = 'models/2019-09-13/2019-09-22/ckpt/ckpt_050.pkl'
+    model_name = 'models/diff7/diff7/ckpt/ckpt_034.pkl'
     # model_name = 'models/2020-01-20/2020-01-20/ckpt/ckpt_002.pkl'
 
-    model_name = 'ckpt_001.pkl'
+    # model_name = 'ckpt_001.pkl'
     policy_param = {'num_processing_steps': 5}
     n_steps = 32
 

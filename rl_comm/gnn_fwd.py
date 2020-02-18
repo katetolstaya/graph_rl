@@ -20,11 +20,13 @@ class GnnFwd(ActorCriticPolicy):
     """
 
     def __init__(self, sess, ob_space, ac_space, n_env, n_steps, n_batch, reuse=False,
-                 num_processing_steps=5):
+                 num_processing_steps=None):
 
         super(GnnFwd, self).__init__(sess, ob_space, ac_space, n_env, n_steps, n_batch, reuse,
                                      scale=False)
 
+        if num_processing_steps is None:
+            num_processing_steps = [1, 1, 2, 2, 2]
         batch_size, n_node, nodes, n_edge, edges, senders, receivers, globs = MappingRadEnv.unpack_obs(
             self.processed_obs, ob_space)
 
@@ -39,14 +41,14 @@ class GnnFwd(ActorCriticPolicy):
 
         with tf.variable_scope("model", reuse=reuse):
             with tf.variable_scope("value", reuse=reuse):
-                self.value_model = models.AggregationNet(num_processing_steps=num_processing_steps,
+                self.value_model = models.AggregationDiffNet(num_processing_steps=num_processing_steps,
                                                          global_output_size=1, name="value_model")
                 value_graph = self.value_model(agent_graph)
                 self._value_fn = value_graph.globals
                 self.q_value = None  # unused by PPO2
 
             with tf.variable_scope("policy", reuse=reuse):
-                self.policy_model = models.AggregationNet(num_processing_steps=num_processing_steps,
+                self.policy_model = models.AggregationDiffNet(num_processing_steps=num_processing_steps,
                                                           edge_output_size=1, name="policy_model")
                 policy_graph = self.policy_model(agent_graph)
                 edge_values = policy_graph.edges

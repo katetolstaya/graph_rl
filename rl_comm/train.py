@@ -94,7 +94,7 @@ def main():
 
     j = {}
     j['policy'] = gnn_fwd.GnnFwd
-    j['policy_param'] = {'num_processing_steps': 5}
+    j['policy_param'] = {'num_processing_steps': 5 }  #[1, 1, 2, 2, 2]}
     # j['name'] = j['policy'].policy_param_string(j['policy_param'])
 
     if len(sys.argv) >= 2:
@@ -130,9 +130,13 @@ def main():
         # 'pretrain_lr': 5e-7,
         # 'pretrain_lr': 5e-7,
         'pretrain_lr': 1e-6,
+        # 'pretrain_lr': 1e-5,
         'pretrain_adam_eps': 1e-6,
         # 'train_lr': 1e-8,
-        'train_lr': 2e-8,
+        # 'train_lr': 2e-8,
+        # 'train_lr': 1e-7,
+        # 'train_lr': 1e-7,
+        'train_lr': 1e-6,
         'use_checkpoint': False,
     }
     # 'pretrain_dataset' = 'data/expert_rad2.npz'
