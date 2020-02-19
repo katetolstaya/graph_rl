@@ -136,7 +136,7 @@ def main():
         # 'train_lr': 2e-8,
         # 'train_lr': 1e-7,
         # 'train_lr': 1e-7,
-        'train_lr': 1e-7,
+        'train_lr': 1e-8,
         'use_checkpoint': False,
     }
     # 'pretrain_dataset' = 'data/expert_rad2.npz'
