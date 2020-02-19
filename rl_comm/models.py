@@ -153,7 +153,8 @@ class AggregationDiffNet(snt.AbstractModule):
                  name="AggregationNet"):
         super(AggregationDiffNet, self).__init__(name=name)
 
-        self._use_globals = False if global_output_size is None else True
+        self._use_globals = True
+        # self._use_globals = False if global_output_size is None else True
         # self._proc_hops = [[1] * 3, [3]*(num_processing_steps - 3)]  # [1, 1, 2, 2, 2]
         # self._proc_hops = [[1] * 2, [2]*(num_processing_steps - 2)]  # [1, 1, 2, 2, 2]
         # self._proc_hops = [item for sublist in self._proc_hops for item in sublist]
