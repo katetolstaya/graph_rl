@@ -164,8 +164,8 @@ class AggregationDiffNet(snt.AbstractModule):
         self._num_processing_steps = len(self._proc_hops)
         self._n_stacked = LATENT_SIZE * self._num_processing_steps
 
-        core_func = make_linear_model
-        # core_func = make_mlp_model
+        # core_func = make_linear_model
+        core_func = make_mlp_model
         self._cores = []
         for i in range(self._num_processing_steps):
 
