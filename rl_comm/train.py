@@ -123,7 +123,7 @@ def main():
         # 'total_timesteps': 0,
         'load_trained_policy': None,  # 'ckpt_026.pkl'
         # 'pretrain_dataset': 'data/expert_multi2.npz',
-        'pretrain_dataset': 'data/expert_multi5.npz',
+        'pretrain_dataset': 'data/expert_multi6.npz',
         # 'pretrain_dataset': None,
         'pretrain_epochs': 200,
         # 'pretrain_lr': 1e-5,
