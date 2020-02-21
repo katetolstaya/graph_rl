@@ -14,7 +14,7 @@ from stable_baselines.a2c.utils import ortho_init
 # LATENT_SIZE = 8  # Hard-code latent layer sizes for demos.
 
 NUM_LAYERS = 2
-LATENT_SIZE = 8
+LATENT_SIZE = 16
 
 
 def make_mlp_model():
@@ -211,9 +211,9 @@ class AggregationDiffNet(snt.AbstractModule):
             for j in range(self._proc_hops[i]):
                 latent = self._cores[i](latent)
 
-            # decoded_op = self._decoder(latent)
-            # output_ops.append(decoded_op)
-            output_ops.append(latent)
+            decoded_op = self._decoder(latent)
+            output_ops.append(decoded_op)
+            # output_ops.append(latent)
 
         stacked_edges = tf.stack([g.edges for g in output_ops], axis=1)
         stacked_nodes = tf.stack([g.nodes for g in output_ops], axis=1)
