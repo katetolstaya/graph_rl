@@ -125,7 +125,7 @@ def main():
         # 'pretrain_dataset': 'data/expert_multi2.npz',
         'pretrain_dataset': 'data/expert_multi10.npz',
         # 'pretrain_dataset': None,
-        'pretrain_epochs': 400,
+        'pretrain_epochs': 600,
         # 'pretrain_lr': 1e-5,
         # 'pretrain_lr': 1e-6,
         # 'pretrain_lr': 5e-7,
