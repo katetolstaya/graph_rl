@@ -262,6 +262,7 @@ class AggregationDiffNet(snt.AbstractModule):
             senders=senders,
             n_node=n_node,
             n_edge=n_edge)
-        out = self._output_transform(self._aggregation(feature_graph))
+        # out = self._output_transform(self._aggregation(feature_graph))
+        out = self._output_transform(feature_graph)
 
         return out
