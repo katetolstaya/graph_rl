@@ -14,7 +14,7 @@ from stable_baselines.a2c.utils import ortho_init
 # LATENT_SIZE = 8  # Hard-code latent layer sizes for demos.
 
 NUM_LAYERS = 2
-LATENT_SIZE = 16
+LATENT_SIZE = 32
 
 
 def make_mlp_model():
@@ -27,7 +27,7 @@ def make_mlp_model():
       A Sonnet module which contains the MLP and LayerNorm.
     """
     return snt.Sequential([
-        snt.nets.MLP([LATENT_SIZE] * NUM_LAYERS, activate_final=True, activation=tf.tanh, use_bias=True), snt.LayerNorm()
+        snt.nets.MLP([LATENT_SIZE] * NUM_LAYERS, activate_final=True, activation=tf.tanh, use_bias=False), snt.LayerNorm()
     ])
 
 
@@ -36,7 +36,7 @@ def make_linear_model():
     Returns:
       A Sonnet module which contains the linear layer.
     """
-    return snt.nets.MLP([LATENT_SIZE], activate_final=False, use_bias=True)
+    return snt.nets.MLP([LATENT_SIZE], activate_final=False, use_bias=False)
 
 
 class AggregationNet(snt.AbstractModule):
