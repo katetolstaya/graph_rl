@@ -116,4 +116,4 @@ def make_env():
     return env
 
 
-generate_expert_traj(env=make_env(), save_path='data/expert_multi6', n_episodes=300)
+generate_expert_traj(env=make_env(), save_path='data/expert_multi10', n_episodes=300)
