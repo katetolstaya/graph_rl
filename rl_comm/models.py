@@ -53,9 +53,9 @@ class AggregationNet(snt.AbstractModule):
         super(AggregationNet, self).__init__(name=name)
 
         self._use_globals = False if global_output_size is None else True
-        core_func = make_linear_model
+        # core_func = make_linear_model
         self._proc_hops = num_processing_steps
-        # core_func = make_mlp_model
+        core_func = make_mlp_model
 
         # self._proc_hops = [[1] * 2, [2]*(num_processing_steps - 2)]  # [1, 1, 2, 2, 2]
         # self._proc_hops = [item for sublist in self._proc_hops for item in sublist]
