@@ -27,7 +27,7 @@ def make_mlp_model():
       A Sonnet module which contains the MLP and LayerNorm.
     """
     return snt.Sequential([
-        snt.nets.MLP([LATENT_SIZE] * NUM_LAYERS, activate_final=True, activation=tf.tanh, use_bias=False), snt.LayerNorm()
+        snt.nets.MLP([LATENT_SIZE] * NUM_LAYERS, activate_final=True, activation=tf.tanh, use_bias=True), snt.LayerNorm()
     ])
 
 
@@ -36,7 +36,7 @@ def make_linear_model():
     Returns:
       A Sonnet module which contains the linear layer.
     """
-    return snt.nets.MLP([LATENT_SIZE], activate_final=False, use_bias=False)
+    return snt.nets.MLP([LATENT_SIZE], activate_final=False, use_bias=True)
 
 
 class AggregationNet(snt.AbstractModule):
