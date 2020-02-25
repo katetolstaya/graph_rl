@@ -48,10 +48,11 @@ if __name__ == '__main__':
 
     # Specify pre-trained model checkpoint file.
     # model_name = 'models/diff7/diff7/ckpt/ckpt_034.pkl'
-    model_name = 'models/cross5/cross5/ckpt/ckpt_001.pkl'
+    # model_name = 'models/cross5/cross5/ckpt/ckpt_001.pkl'
     # model_name = 'models/2020-01-20/2020-01-20/ckpt/ckpt_002.pkl'
 
-    # model_name = 'ckpt_001.pkl'
+
+    model_name = 'ckpt_000.pkl'
     policy_param = {'num_processing_steps': 5}
     n_steps = 32
 
