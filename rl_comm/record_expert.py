@@ -45,9 +45,6 @@ def generate_expert_traj(env, save_path=None, n_episodes=1000):
     reward_sum = 0.0
     idx = 0
 
-    n_steps = 0
-    STEP_LIMIT = 10
-
     while ep_idx < n_episodes:
 
         try:
@@ -64,16 +61,14 @@ def generate_expert_traj(env, save_path=None, n_episodes=1000):
         rewards.append(reward)
         episode_starts.append(done)
         reward_sum += reward
-        n_steps += 1
         idx += 1
-        if done or n_steps == STEP_LIMIT:
+        if done:
             print(ep_idx)
             obs = env.reset()
 
             episode_returns[ep_idx] = reward_sum
             reward_sum = 0.0
             ep_idx += 1
-            n_steps = 0
 
     if isinstance(env.observation_space, spaces.Box):
         observations = np.concatenate(observations).reshape((-1,) + env.observation_space.shape)
@@ -121,4 +116,4 @@ def make_env():
     return env
 
 
-generate_expert_traj(env=make_env(), save_path='data/expert_multi12', n_episodes=300)
+generate_expert_traj(env=make_env(), save_path='data/expert_multi13', n_episodes=300)
