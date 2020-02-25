@@ -50,9 +50,8 @@ if __name__ == '__main__':
     # model_name = 'models/diff7/diff7/ckpt/ckpt_034.pkl'
     # model_name = 'models/cross5/cross5/ckpt/ckpt_001.pkl'
     # model_name = 'models/2020-01-20/2020-01-20/ckpt/ckpt_002.pkl'
-
-
-    model_name = 'ckpt_000.pkl'
+    model_name = 'models/enc/enc/ckpt/ckpt_000.pkl'
+    # model_name = 'ckpt_000.pkl'
     policy_param = {'num_processing_steps': 5}
     n_steps = 32
 
@@ -74,7 +73,7 @@ if __name__ == '__main__':
     # update new model's parameters
     new_model.load_parameters(params)
 
-    print('\nPlay 100 games and return scores...')
+    print('\nPlay 10 games and return scores...')
     results = eval_model(env, new_model, 10, render_mode='none')
     print('reward,          mean = {:.1f}, std = {:.1f}'.format(np.mean(results['reward']), np.std(results['reward'])))
     print('')
