@@ -233,11 +233,11 @@ class AggregationDiffNet(snt.AbstractModule):
 
         for i in range(self._num_processing_steps):
             for j in range(self._proc_hops[i]):
-                # core_input = utils_tf.concat([latent0, latent], axis=1)
+                core_input = utils_tf.concat([latent0, latent], axis=1)
                 # latent = self._core(core_input)
 
-                # latent = self._cores[i](core_input)
-                latent = self._cores[i](latent)
+                latent = self._cores[i](core_input)
+                # latent = self._cores[i](latent)
 
                 # latent = self._core(latent)
 
