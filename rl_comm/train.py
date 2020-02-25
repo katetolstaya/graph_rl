@@ -65,7 +65,7 @@ def train_helper(env_param, test_env_param, train_param, policy_fn, policy_param
 
     if 'pretrain_dataset' in train_param and train_param['pretrain_dataset'] is not None:
         dataset = ExpertDataset(expert_path=train_param['pretrain_dataset'],
-                                traj_limitation=-1, batch_size=10, randomize=True)
+                                traj_limitation=-1, batch_size=5, randomize=True)
         model.pretrain(dataset, n_epochs=train_param['pretrain_epochs'], learning_rate=train_param['pretrain_lr'],
                        val_interval=10, test_env=test_env, adam_epsilon=train_param['pretrain_adam_eps'])
 
