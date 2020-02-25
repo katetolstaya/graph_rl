@@ -237,9 +237,9 @@ class AggregationDiffNet(snt.AbstractModule):
                 # latent = self._core(core_input)
 
                 # latent = self._cores[i](core_input)
-                latent = self._cores[i](latent)
+                # latent = self._cores[i](latent)
 
-                # latent = self._core(latent)
+                latent = self._core(latent)
 
             decoded_op = self._decoder(latent)
             output_ops.append(decoded_op)
