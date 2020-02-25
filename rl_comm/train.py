@@ -123,7 +123,7 @@ def main():
         # 'total_timesteps': 0,
         'load_trained_policy': None,  # 'ckpt_026.pkl'
         # 'pretrain_dataset': 'data/expert_multi2.npz',
-        'pretrain_dataset': 'data/expert_multi11.npz',
+        'pretrain_dataset': 'data/expert_multi12.npz',
         # 'pretrain_dataset': None,
         'pretrain_epochs': 600,
         # 'pretrain_lr': 1e-5,
@@ -138,7 +138,8 @@ def main():
         # 'train_lr': 2e-8,
         # 'train_lr': 1e-7,
         # 'train_lr': 1e-7,
-        'train_lr': 1e-8,
+        'train_lr': 1e-7,
+        # 'train_lr': 1e-8,
         'use_checkpoint': False,
     }
     # 'pretrain_dataset' = 'data/expert_rad2.npz'
