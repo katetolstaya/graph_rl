@@ -15,7 +15,7 @@ from stable_baselines.a2c.utils import ortho_init
 
 NUM_LAYERS = 2
 LATENT_SIZE = 16
-USE_BIAS = True
+USE_BIAS = False
 
 
 def make_mlp_model():
@@ -173,7 +173,7 @@ class AggregationDiffNet(snt.AbstractModule):
         # self._proc_hops = [[1] * 2, [2]*(num_processing_steps - 2)]  # [1, 1, 2, 2, 2]
         # self._proc_hops = [item for sublist in self._proc_hops for item in sublist]
         # self._proc_hops = num_processing_steps  #[1, 1, 2, 2, 2]
-        self._proc_hops = [1, 1, 2, 2, 2]
+        self._proc_hops = [1, 1, 2, 2, 2, 2]
         # self._proc_hops = [1, 2, 3, 4, 3, 2, 1]
 
         self._num_processing_steps = len(self._proc_hops)
@@ -264,7 +264,7 @@ class AggregationDiffNet(snt.AbstractModule):
             senders=senders,
             n_node=n_node,
             n_edge=n_edge)
-        # out = self._output_transform(self._aggregation(feature_graph))
-        out = self._output_transform(feature_graph)
+        out = self._output_transform(self._aggregation(feature_graph))
+        # out = self._output_transform(feature_graph)
 
         return out
