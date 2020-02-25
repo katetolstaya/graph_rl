@@ -51,6 +51,7 @@ def generate_expert_traj(env, save_path=None, n_episodes=1000):
             action = env.env.env.controller()
         except AssertionError:
             obs = env.reset()
+            reward_sum = 0.0
             continue
 
         observations.append(obs)
