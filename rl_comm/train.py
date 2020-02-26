@@ -123,10 +123,10 @@ def main():
         'total_timesteps': 50000000,
         # 'total_timesteps': 0,
         # 'load_trained_policy': None,  # 'ckpt_026.pkl'
-        'load_trained_policy': "models/enc/enc/ckpt/ckpt_000.pkl",
+        # 'load_trained_policy': "models/enc/enc/ckpt/ckpt_000.pkl",
         # 'pretrain_dataset': 'data/expert_multi2.npz',
-        # 'pretrain_dataset': 'data/expert_multi13.npz',
-        'pretrain_dataset': None,
+        'pretrain_dataset': 'data/expert_city.npz',
+        # 'pretrain_dataset': None,
         'pretrain_epochs': 600,
         # 'pretrain_lr': 1e-5,
         # 'pretrain_lr': 1e-6,
