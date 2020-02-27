@@ -63,6 +63,7 @@ def generate_expert_traj(env, save_path=None, n_episodes=1000):
         episode_starts.append(done)
         reward_sum += reward
         idx += 1
+
         if done:
             print(ep_idx)
             obs = env.reset()
@@ -117,4 +118,4 @@ def make_env():
     return env
 
 
-generate_expert_traj(env=make_env(), save_path='data/expert_city3', n_episodes=300)
+generate_expert_traj(env=make_env(), save_path='data/expert_city4', n_episodes=300)

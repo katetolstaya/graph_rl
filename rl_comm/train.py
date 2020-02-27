@@ -50,7 +50,7 @@ def train_helper(env_param, test_env_param, train_param, policy_fn, policy_param
             ent_coef=0.01,
             vf_coef=0.5,
             verbose=1,
-            tensorboard_log=str(tb_dir),
+            # tensorboard_log=str(tb_dir),
             full_tensorboard_log=False)
         ckpt_idx = 0
 
@@ -64,8 +64,9 @@ def train_helper(env_param, test_env_param, train_param, policy_fn, policy_param
             model.load_parameters(params)
 
     if 'pretrain_dataset' in train_param and train_param['pretrain_dataset'] is not None:
+        batch_size = int(env.env.env.episode_length / 2)
         dataset = ExpertDataset(expert_path=train_param['pretrain_dataset'],
-                                traj_limitation=-1, batch_size=15, randomize=True)
+                                traj_limitation=-1, batch_size=batch_size, randomize=True)
         model.pretrain(dataset, n_epochs=train_param['pretrain_epochs'], learning_rate=train_param['pretrain_lr'],
                        val_interval=10, test_env=test_env, adam_epsilon=train_param['pretrain_adam_eps'])
 
@@ -125,7 +126,7 @@ def main():
         # 'load_trained_policy': None,  # 'ckpt_026.pkl'
         # 'load_trained_policy': "models/enc/enc/ckpt/ckpt_000.pkl",
         # 'pretrain_dataset': 'data/expert_multi2.npz',
-        'pretrain_dataset': 'data/expert_city3.npz',
+        'pretrain_dataset': 'data/expert_city4.npz',
         # 'pretrain_dataset': None,
         'pretrain_epochs': 600,
         # 'pretrain_lr': 1e-5,
