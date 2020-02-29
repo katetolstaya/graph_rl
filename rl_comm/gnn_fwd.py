@@ -1,4 +1,5 @@
 import tensorflow as tf
+import math
 from graph_nets import graphs
 from stable_baselines.common.policies import ActorCriticPolicy
 import rl_comm.models as models
@@ -42,22 +43,26 @@ class GnnFwd(ActorCriticPolicy):
         with tf.variable_scope("model", reuse=reuse):
             with tf.variable_scope("value", reuse=reuse):
                 self.value_model = models.AggregationDiffNet(num_processing_steps=num_processing_steps,
-                                                         global_output_size=1, name="value_model")
+                                                             global_output_size=1, name="value_model")
                 value_graph = self.value_model(agent_graph)
                 self._value_fn = value_graph.globals
                 self.q_value = None  # unused by PPO2
 
             with tf.variable_scope("policy", reuse=reuse):
                 self.policy_model = models.AggregationDiffNet(num_processing_steps=num_processing_steps,
-                                                          edge_output_size=1, name="policy_model")
+                                                              edge_output_size=1, name="policy_model")
                 policy_graph = self.policy_model(agent_graph)
                 edge_values = policy_graph.edges
 
                 # keep only edges in to controlled agents and out of uncontrolled agents
                 sender_type = tf.cast(tf.gather(nodes[:, 0], senders), tf.bool)
                 receiver_type = tf.cast(tf.gather(nodes[:, 0], receivers), tf.bool)
+                # senders are the landmarks, receivers - robots
                 mask = tf.logical_and(tf.logical_not(sender_type), receiver_type)
                 masked_edges = tf.boolean_mask(edge_values, tf.reshape(mask, (-1,)), axis=0)
+
+                # masked_receivers = tf.boolean_mask(receivers, tf.reshape(mask, (-1,)), axis=0)
+                # masked_receivers = tf.cast(masked_receivers, tf.int32)
 
                 # TODO assumed unchanged order of edges here - is this OK?
 
@@ -65,6 +70,13 @@ class GnnFwd(ActorCriticPolicy):
                     n_actions = tf.cast(tf.reduce_sum(ac_space.nvec), tf.int32)
                 else:
                     n_actions = tf.cast(ac_space.n, tf.int32)
+
+                # policy = tf.RaggedTensor.from_value_rowids(masked_edges, masked_receivers).to_sparse()
+                # self._policy = tf.sparse_to_dense(sparse_indices=policy.indices, sparse_values=policy.values,
+                #                                   default_value=-math.inf,
+                #                                   output_shape=(batch_size * len(ac_space.nvec), ac_space.nvec[0]))
+                # self._policy = tf.reshape(self._policy, (batch_size, n_actions))
+
                 self._policy = tf.reshape(masked_edges, (batch_size, n_actions))
                 # temp = tf.Print(self._policy, [self._policy], summarize=-1)
                 self._proba_distribution = self.pdtype.proba_distribution_from_flat(self._policy)

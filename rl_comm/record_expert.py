@@ -48,7 +48,7 @@ def generate_expert_traj(env, save_path=None, n_episodes=1000):
     while ep_idx < n_episodes:
 
         try:
-            action = env.env.env.controller()
+            action = env.env.env.controller(random=False, greedy=True)
         except AssertionError:
             obs = env.reset()
             reward_sum = 0.0
@@ -117,4 +117,5 @@ def make_env():
     return env
 
 
-generate_expert_traj(env=make_env(), save_path='data/expert_city3', n_episodes=300)
+# generate_expert_traj(env=make_env(), save_path='data/expert_city3', n_episodes=300)
+generate_expert_traj(env=make_env(), save_path='data/testtest', n_episodes=400)
