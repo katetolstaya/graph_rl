@@ -506,7 +506,6 @@ class PPO2(ActorCriticRLModel):
                     obs_ph: expert_obs,
                     actions_ph: expert_actions,
                 }
-                dataset.get_next_batch('train')
                 train_loss_, _ = self.sess.run([loss, optim_op], feed_dict)
                 train_loss += train_loss_
 
@@ -520,7 +519,6 @@ class PPO2(ActorCriticRLModel):
                     val_loss_, = self.sess.run([loss], {obs_ph: expert_obs,
                                                         actions_ph: expert_actions})
                     val_loss += val_loss_
-                dataset.get_next_batch('val')
 
                 val_loss /= (len(dataset.val_loader))
 
