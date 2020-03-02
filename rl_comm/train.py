@@ -126,7 +126,7 @@ def main():
         # 'load_trained_policy': "models/enc/enc/ckpt/ckpt_000.pkl",
         # 'pretrain_dataset': 'data/expert_multi2.npz',
         # 'pretrain_dataset': 'data/expert_city3.npz',
-        'pretrain_dataset': 'data/disc.npz',
+        'pretrain_dataset': 'data/disc2.npz',
         # 'pretrain_dataset': 'data/expert_city4.npz',
         # 'pretrain_dataset': None,
         'pretrain_epochs': 600,
