@@ -50,7 +50,7 @@ def train_helper(env_param, test_env_param, train_param, policy_fn, policy_param
             ent_coef=0.01,
             vf_coef=0.5,
             verbose=1,
-            # tensorboard_log=str(tb_dir),
+            tensorboard_log=str(tb_dir),
             full_tensorboard_log=False)
         ckpt_idx = 0
 
