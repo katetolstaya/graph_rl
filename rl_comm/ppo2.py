@@ -500,7 +500,7 @@ class PPO2(ActorCriticRLModel):
         for epoch_idx in range(int(n_epochs)):
             train_loss = 0.0
             # Full pass on the training set
-            for _ in range(len(dataset.train_loader)):
+            for i in range(len(dataset.train_loader)):
                 expert_obs, expert_actions = dataset.get_next_batch('train')
                 feed_dict = {
                     obs_ph: expert_obs,
@@ -508,6 +508,13 @@ class PPO2(ActorCriticRLModel):
                 }
                 train_loss_, _ = self.sess.run([loss, optim_op], feed_dict)
                 train_loss += train_loss_
+
+                if test_env is not None and i % 500 == 0:
+                    print('\nTesting...')
+                    results = eval_env(test_env, self, 10, render_mode='none')
+                    print('reward,          mean = {:.1f}, std = {:.1f}'.format(np.mean(results['reward']),
+                                                                                np.std(results['reward'])))
+                    print()
 
             train_loss /= (len(dataset.train_loader))
 

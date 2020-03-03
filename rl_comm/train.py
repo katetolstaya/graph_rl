@@ -65,7 +65,7 @@ def train_helper(env_param, test_env_param, train_param, policy_fn, policy_param
 
     if 'pretrain_dataset' in train_param and train_param['pretrain_dataset'] is not None:
 
-        dataset = ExpertDataset(expert_path=train_param['pretrain_dataset'], traj_limitation=300, batch_size=train_param['pretrain_batch'], randomize=True)
+        dataset = ExpertDataset(expert_path=train_param['pretrain_dataset'], traj_limitation=-1, batch_size=train_param['pretrain_batch'], randomize=True)
         model.pretrain(dataset, n_epochs=train_param['pretrain_epochs'], learning_rate=train_param['pretrain_lr'],
                        val_interval=1, test_env=test_env, adam_epsilon=train_param['pretrain_adam_eps'])
 
@@ -120,24 +120,30 @@ def main():
         'n_env': 16,
         'n_steps': 10,
         'checkpoint_timesteps': 100000,
-        'total_timesteps': 50000000,
+        # 'total_timesteps': 50000000,
+        'total_timesteps': 1,
         # 'total_timesteps': 0,
         # 'load_trained_policy': None,  # 'ckpt_026.pkl'
         # 'load_trained_policy': "models/enc/enc/ckpt/ckpt_000.pkl",
         # 'pretrain_dataset': 'data/expert_multi2.npz',
         # 'pretrain_dataset': 'data/expert_city3.npz',
-        'pretrain_dataset': 'data/disc.npz',
+        'pretrain_dataset': 'data/disc6.npz',
         # 'pretrain_dataset': 'data/expert_city4.npz',
         # 'pretrain_dataset': None,
-        'pretrain_epochs': 600,
+        'pretrain_epochs': 100,
         'pretrain_batch': 20,
-        # 'pretrain_lr': 1e-5,
+        'pretrain_lr': 5e-8,
+        # 'pretrain_lr': 1e-7,
+        # 'pretrain_lr': 1e-8,
         # 'pretrain_lr': 1e-6,
+        # 'pretrain_lr': 1e-7,
         # 'pretrain_lr': 5e-7,
         # 'pretrain_lr': 5e-7,
         # 'pretrain_lr': 1e-6,
-        'pretrain_lr': 1e-6,
-        'pretrain_adam_eps': 1e-6,
+        # 'pretrain_lr': 1e-6,
+        # 'pretrain_lr': 5e-7,
+        'pretrain_adam_eps': 1e-4,
+        # 'pretrain_adam_eps': 1e-6,
         # 'pretrain_adam_eps': 1e-8,
         # 'train_lr': 1e-8,
         # 'train_lr': 2e-8,
