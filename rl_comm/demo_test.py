@@ -52,9 +52,10 @@ if __name__ == '__main__':
     # model_name = 'models/diff7/diff7/ckpt/ckpt_034.pkl'
     # model_name = 'models/cross5/cross5/ckpt/ckpt_001.pkl'
     # model_name = 'models/2020-01-20/2020-01-20/ckpt/ckpt_002.pkl'
-    model_name = 'models/disc/disc/ckpt/ckpt_000.pkl'
-    # model_name = 'ckpt_000.pkl'
-    policy_param = {'num_processing_steps': 5}
+    # model_name = 'models/disc/disc/ckpt/ckpt_000.pkl'
+    model_name = 'ckpt_000.pkl'
+    # policy_param = {'num_processing_steps': 5}
+    policy_param = {}
     n_steps = 32
 
     new_model = PPO2(

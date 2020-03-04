@@ -127,7 +127,7 @@ def main():
         # 'load_trained_policy': "models/enc/enc/ckpt/ckpt_000.pkl",
         'pretrain_dataset': 'data/disc7.npz',
         # 'pretrain_dataset': None,
-        'pretrain_epochs': 25,
+        'pretrain_epochs': 10,
         'pretrain_batch': 20,
         'pretrain_lr': 1e-6,
         # 'pretrain_lr': 1e-5,
