@@ -28,13 +28,8 @@ def make_mlp_model():
     Returns:
       A Sonnet module which contains the MLP and LayerNorm.
     """
-
-    rand = tf.random_uniform_initializer(minval=-0.01, maxval=0.01)
-    orth = ortho_init(1.0)
-    cons = tf.constant_initializer(0.0)
-    inits = {'w': orth , 'b': rand }
     return snt.Sequential([
-        snt.nets.MLP([LATENT_SIZE] * NUM_LAYERS, initializers=inits, activate_final=True, activation=tf.tanh, use_bias=USE_BIAS) # , snt.LayerNorm()
+        snt.nets.MLP([LATENT_SIZE] * NUM_LAYERS, activate_final=True, activation=tf.tanh, use_bias=USE_BIAS) # , snt.LayerNorm()
     ])
 
 
@@ -47,12 +42,8 @@ def make_mlp4_model():
     Returns:
       A Sonnet module which contains the MLP and LayerNorm.
     """
-    rand = tf.random_uniform_initializer(minval=-0.01, maxval=0.01)
-    orth = ortho_init(1.0)
-    cons = tf.constant_initializer(0.0)
-    inits = {'w': orth , 'b': rand }
     return snt.Sequential([
-        snt.nets.MLP([LATENT_SIZE] * 4, initializers=inits, activate_final=True, activation=tf.tanh, use_bias=USE_BIAS) #  , snt.LayerNorm()
+        snt.nets.MLP([LATENT_SIZE] * 4, activate_final=True, activation=tf.tanh, use_bias=USE_BIAS) #  , snt.LayerNorm()
     ])
 
 
@@ -93,24 +84,9 @@ class AggregationDiffNet(snt.AbstractModule):
 
         self._num_processing_steps = len(self._proc_hops)
         self._n_stacked = LATENT_SIZE * self._num_processing_steps
-        # def make_id():
-        #     return tf.identity
+
         # core_func = make_linear_model
         core_func = make_mlp_model
-        # core_func2 = make_id
-        # self._cores = []
-        # for i in range(self._num_processing_steps):
-        #
-        #     core = modules.GraphNetwork(
-        #         edge_model_fn=core_func,
-        #         node_model_fn=core_func,
-        #         global_model_fn=core_func,
-        #         edge_block_opt={'use_receiver_nodes': False, 'use_globals': self._use_globals},
-        #         node_block_opt={'use_globals': self._use_globals},
-        #         name="graph_net"
-        #         # , reducer=unsorted_segment_max_or_zero
-        #     )
-        #     self._cores.append(core)
 
         self._core = modules.GraphNetwork(
             edge_model_fn=core_func,
@@ -155,9 +131,6 @@ class AggregationDiffNet(snt.AbstractModule):
                 core_input = utils_tf.concat([latent0, latent], axis=1)
                 latent = self._core(core_input)
 
-                # latent = self._cores[i](core_input)
-                # latent = self._cores[i](latent)
-
                 # latent = self._core(latent)
 
             decoded_op = self._decoder(latent)
@@ -182,7 +155,6 @@ class AggregationDiffNet(snt.AbstractModule):
             n_node=n_node,
             n_edge=n_edge)
         # out = self._output_transform(self._aggregation(feature_graph))
-        # out = self._output_transform(self._core2(feature_graph))
         out = self._output_transform(feature_graph)
 
         return out
