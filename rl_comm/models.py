@@ -28,8 +28,13 @@ def make_mlp_model():
     Returns:
       A Sonnet module which contains the MLP and LayerNorm.
     """
+
+    rand = tf.random_uniform_initializer(minval=-0.01, maxval=0.01)
+    orth = ortho_init(1.0)
+    cons = tf.constant_initializer(0.0)
+    inits = {'w': orth , 'b': rand }
     return snt.Sequential([
-        snt.nets.MLP([LATENT_SIZE] * NUM_LAYERS, activate_final=True, activation=tf.tanh, use_bias=USE_BIAS) #, snt.LayerNorm()
+        snt.nets.MLP([LATENT_SIZE] * NUM_LAYERS, initializers=inits, activate_final=True, activation=tf.tanh, use_bias=USE_BIAS) # , snt.LayerNorm()
     ])
 
 
@@ -42,8 +47,12 @@ def make_mlp4_model():
     Returns:
       A Sonnet module which contains the MLP and LayerNorm.
     """
+    rand = tf.random_uniform_initializer(minval=-0.01, maxval=0.01)
+    orth = ortho_init(1.0)
+    cons = tf.constant_initializer(0.0)
+    inits = {'w': orth , 'b': rand }
     return snt.Sequential([
-        snt.nets.MLP([LATENT_SIZE] * 4, activate_final=True, activation=tf.tanh, use_bias=USE_BIAS)  #, snt.LayerNorm()
+        snt.nets.MLP([LATENT_SIZE] * 4, initializers=inits, activate_final=True, activation=tf.tanh, use_bias=USE_BIAS) #  , snt.LayerNorm()
     ])
 
 
@@ -117,8 +126,8 @@ class AggregationDiffNet(snt.AbstractModule):
         self._decoder = modules.GraphIndependent(make_mlp_model, make_mlp_model, make_mlp_model, name="decoder")
         self._aggregation = modules.GraphIndependent(make_mlp_model, make_mlp_model, make_mlp_model, name="agg")
 
-        edge_inits = {'w': ortho_init(1.0), 'b': tf.constant_initializer(0.0)}
-        global_inits = {'w': ortho_init(1.0), 'b': tf.constant_initializer(0.0)}
+        edge_inits = {'w': ortho_init(5.0), 'b': tf.constant_initializer(0.0)}
+        global_inits = {'w': ortho_init(5.0), 'b': tf.constant_initializer(0.0)}
 
         # Transforms the outputs into the appropriate shapes.
         edge_fn = None if edge_output_size is None else lambda: snt.Linear(edge_output_size, initializers=edge_inits,

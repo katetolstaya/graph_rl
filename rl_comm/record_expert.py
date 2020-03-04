@@ -47,18 +47,21 @@ def generate_expert_traj(env, save_path=None, n_episodes=1000):
 
     while ep_idx < n_episodes:
 
-        try:
-            action = env.env.env.controller(random=False, greedy=True)
-        except AssertionError:
-            obs = env.reset()
-            reward_sum = 0.0
-            continue
+        action = env.env.env.controller(random=False, greedy=True)
+
+        # try:
+        #     action = env.env.env.controller(random=False, greedy=True)
+        # except AssertionError:
+        #     print('bad')
+        #     obs = env.reset()
+        #     reward_sum = 0.0
+        #     continue
 
         observations.append(obs)
+        actions.append(action)
 
         obs, reward, done, _ = env.step(action)
 
-        actions.append(action)
         rewards.append(reward)
         episode_starts.append(done)
         reward_sum += reward

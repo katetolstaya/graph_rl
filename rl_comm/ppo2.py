@@ -500,7 +500,7 @@ class PPO2(ActorCriticRLModel):
         for epoch_idx in range(int(n_epochs)):
             train_loss = 0.0
             # Full pass on the training set
-            for i in range(len(dataset.train_loader)):
+            for i in range(len(dataset.train_loader)-1):
                 expert_obs, expert_actions = dataset.get_next_batch('train')
                 feed_dict = {
                     obs_ph: expert_obs,
@@ -509,25 +509,25 @@ class PPO2(ActorCriticRLModel):
                 train_loss_, _ = self.sess.run([loss, optim_op], feed_dict)
                 train_loss += train_loss_
 
-                if test_env is not None and i % 500 == 0:
-                    print('\nTesting...')
-                    results = eval_env(test_env, self, 10, render_mode='none')
-                    print('reward,          mean = {:.1f}, std = {:.1f}'.format(np.mean(results['reward']),
-                                                                                np.std(results['reward'])))
-                    print()
-
-            train_loss /= (len(dataset.train_loader))
+                # if test_env is not None and i % 500 == 0:
+                #     print('\nTesting...')
+                #     results = eval_env(test_env, self, 10, render_mode='none')
+                #     print('reward,          mean = {:.1f}, std = {:.1f}'.format(np.mean(results['reward']),
+                #                                                                 np.std(results['reward'])))
+                #     print()
+            dataset.get_next_batch('train')
+            train_loss /= (len(dataset.train_loader)-1)
 
             if self.verbose > 0 and (epoch_idx + 1) % val_interval == 0:
                 val_loss = 0.0
                 # Full pass on the validation set
-                for _ in range(len(dataset.val_loader)):
+                for _ in range(len(dataset.val_loader)-1):
                     expert_obs, expert_actions = dataset.get_next_batch('val')
                     val_loss_, = self.sess.run([loss], {obs_ph: expert_obs,
                                                         actions_ph: expert_actions})
                     val_loss += val_loss_
-
-                val_loss /= (len(dataset.val_loader))
+                dataset.get_next_batch('val')
+                val_loss /= (len(dataset.val_loader)-1)
 
                 if self.verbose > 0:
                     print("==== Training progress {:.2f}% ====".format(100 * (epoch_idx + 1) / n_epochs))
