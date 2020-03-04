@@ -10,7 +10,6 @@ from stable_baselines.common.base_class import BaseRLModel
 
 def make_env():
     env_name = "MappingRad-v0"
-
     # env_name = "MappingAirsim-v0"
     keys = ['nodes', 'edges', 'senders', 'receivers', 'step']
     env = gym.make(env_name)
