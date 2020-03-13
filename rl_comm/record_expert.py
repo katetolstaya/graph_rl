@@ -119,4 +119,4 @@ def make_env():
 
 
 # generate_expert_traj(env=make_env(), save_path='data/disc7', n_episodes=1000)
-generate_expert_traj(env=make_env(), save_path='data/feat_pad', n_episodes=1000)
+generate_expert_traj(env=make_env(), save_path='data/feat_pad', n_episodes=10)
