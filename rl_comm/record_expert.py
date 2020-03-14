@@ -125,4 +125,4 @@ else:
     name = 'feat'
 
 # generate_expert_traj(env=make_env(), save_path='data/disc7', n_episodes=1000)
-generate_expert_traj(env=make_env(), save_path='data/' + name, n_episodes=1000)
+generate_expert_traj(env=make_env(), save_path='data/' + name, n_episodes=2000)
