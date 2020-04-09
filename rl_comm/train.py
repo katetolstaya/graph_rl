@@ -64,18 +64,31 @@ def train_helper(env_param, test_env_param, train_param, policy_fn, policy_param
             model.load_parameters(params)
 
     if 'pretrain_dataset' in train_param and train_param['pretrain_dataset'] is not None:
+        ckpt_params = {
+            'ckpt_idx': ckpt_idx,
+            'ckpt_epochs': train_param['pretrain_checkpoint_epochs'],
+            'ckpt_file': ckpt_file,
+            'ckpt_dir': ckpt_dir
+        }
 
-        dataset = ExpertDataset(expert_path=train_param['pretrain_dataset'], traj_limitation=-1, batch_size=train_param['pretrain_batch'], randomize=True)
-        model.pretrain(dataset, n_epochs=train_param['pretrain_epochs'], learning_rate=train_param['pretrain_lr'],
-                       val_interval=1, test_env=test_env, adam_epsilon=train_param['pretrain_adam_eps'])
+        dataset = ExpertDataset(expert_path=train_param['pretrain_dataset'], traj_limitation=-1,
+                                batch_size=train_param['pretrain_batch'], randomize=True)
 
-        model.save(str(ckpt_file(ckpt_dir, ckpt_idx)))
-        del dataset
-        ckpt_idx += 1
+        model.pretrain(dataset, n_epochs=train_param['pretrain_epochs'],
+                       learning_rate=train_param['pretrain_lr'],
+                       val_interval=1, test_env=test_env, adam_epsilon=train_param['pretrain_adam_eps'],
+                       ckpt_params=ckpt_params)
+
+        # dataset = ExpertDataset(expert_path=train_param['pretrain_dataset'], traj_limitation=100, batch_size=train_param['pretrain_batch'], randomize=True)
+        # model.pretrain(dataset, n_epochs=5000, learning_rate=train_param['pretrain_lr'],
+        #                val_interval=20, test_env=test_env, adam_epsilon=train_param['pretrain_adam_eps'])
+        # model.save(str(ckpt_file(ckpt_dir, ckpt_idx)))
+        # del dataset
+        # ckpt_idx += 1
 
     # Training loop.
     print('\nBegin training.\n')
-    while model.num_timesteps <= train_param['total_timesteps']:
+    while train_param['total_timesteps'] > 0 and model.num_timesteps <= train_param['total_timesteps']:
         print('\nLearning...\n')
         model.learn(
             total_timesteps=train_param['checkpoint_timesteps'],
@@ -95,7 +108,7 @@ def main():
 
     j = {}
     j['policy'] = gnn_fwd.GnnFwd
-    j['policy_param'] = {'num_processing_steps': 5}  #[1, 1, 2, 2, 2]}
+    j['policy_param'] = {'num_processing_steps': 5}  # [1, 1, 2, 2, 2]}
     # j['name'] = j['policy'].policy_param_string(j['policy_param'])
 
     if len(sys.argv) >= 2:
@@ -105,7 +118,8 @@ def main():
 
     jobs.append(j)
 
-    env_name = "MappingRad-v0"
+    # env_name = "MappingRad-v0"
+    env_name = "MappingARLPartial-v0"
 
     def make_env():
         keys = ['nodes', 'edges', 'senders', 'receivers', 'step']
@@ -121,16 +135,25 @@ def main():
         'n_steps': 10,
         'checkpoint_timesteps': 100000,
         # 'total_timesteps': 50000000,
-        'total_timesteps': 1,
+        'total_timesteps': 0,
         # 'total_timesteps': 0,
         # 'load_trained_policy': None,  # 'ckpt_026.pkl'
         # 'load_trained_policy': "models/enc/enc/ckpt/ckpt_000.pkl",
         # 'pretrain_dataset': 'data/disc7.npz',
-        'pretrain_dataset': 'data/pad1k.npz',
+        # 'pretrain_dataset': 'data/pad1k.npz',
+        # 'pretrain_dataset': 'data/new100.npz',
+        # 'pretrain_dataset': 'data/partial42.npz',
+        # 'pretrain_dataset': 'data/partial.npz',
+        # 'pretrain_dataset': 'data/long.npz',
+        'pretrain_dataset': 'data/feat3275.npz',
+        # 'pretrain_dataset': 'data/rec13.npz',
         # 'pretrain_dataset': None,
-        'pretrain_epochs': 10,
+        'pretrain_epochs': 2000,
+        'pretrain_checkpoint_epochs': 2,
         'pretrain_batch': 20,
+        # 'pretrain_batch': 20,
         'pretrain_lr': 1e-6,
+        # 'pretrain_lr': 5e-6,
         # 'pretrain_lr': 1e-5,
         # 'pretrain_lr': 1e-7,
         # 'pretrain_adam_eps': 1e-4,

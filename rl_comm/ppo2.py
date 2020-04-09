@@ -423,7 +423,7 @@ class PPO2(ActorCriticRLModel):
             return self
 
     def pretrain(self, dataset, n_epochs=10, learning_rate=1e-4,
-                 adam_epsilon=1e-8, val_interval=None, test_env=None):
+                 adam_epsilon=1e-8, val_interval=None, test_env=None, ckpt_params=None):
         """
         Pretrain a model using behavior cloning:
         supervised learning given an expert dataset.
@@ -457,6 +457,10 @@ class PPO2(ActorCriticRLModel):
                 val_interval = 1
             else:
                 val_interval = int(n_epochs / 10)
+
+        tb_log_name = 'pretrain'
+        writer = tf.summary.FileWriter(self.tensorboard_log + "/" + tb_log_name, flush_secs=30)
+        writer.add_graph(self.graph)
 
         with self.graph.as_default():
             with tf.variable_scope('pretrain'):
@@ -497,6 +501,12 @@ class PPO2(ActorCriticRLModel):
         if self.verbose > 0:
             print("Pretraining with Behavior Cloning...")
 
+        if ckpt_params is not None:
+            ckpt_idx = ckpt_params['ckpt_idx']
+            ckpt_epochs = ckpt_params['ckpt_epochs']
+            ckpt_file = ckpt_params['ckpt_file']
+            ckpt_dir = ckpt_params['ckpt_dir']
+
         for epoch_idx in range(int(n_epochs)):
             train_loss = 0.0
             # Full pass on the training set
@@ -535,12 +545,32 @@ class PPO2(ActorCriticRLModel):
                     print("Training loss: {:.6f}, Validation loss: {:.6f}".format(train_loss, val_loss))
                     print()
 
+                    if writer is not None:
+                        summary = tf.Summary(
+                            value=[tf.Summary.Value(tag="pretrain_loss", simple_value=train_loss)])
+                        writer.add_summary(summary, epoch_idx)
+
+                        summary = tf.Summary(
+                            value=[tf.Summary.Value(tag="pretrain_test_loss", simple_value=val_loss)])
+                        writer.add_summary(summary, epoch_idx)
+
                 if test_env is not None:
                     print('\nTesting...')
                     results = eval_env(test_env, self, 50, render_mode='none')
-                    print('reward,          mean = {:.1f}, std = {:.1f}'.format(np.mean(results['reward']),
+                    mean_reward = np.mean(results['reward'])
+                    print('reward,          mean = {:.1f}, std = {:.1f}'.format(mean_reward,
                                                                                 np.std(results['reward'])))
                     print()
+
+                    if writer is not None:
+                        summary = tf.Summary(
+                            value=[tf.Summary.Value(tag="mean_reward", simple_value=mean_reward)])
+                        writer.add_summary(summary, epoch_idx)
+
+            if ckpt_params is not None and epoch_idx % ckpt_epochs == 0:
+                print('\nSaving model {}.\n'.format(ckpt_file(ckpt_dir, ckpt_idx).name))
+                self.save(str(ckpt_file(ckpt_dir, ckpt_idx)))
+                ckpt_idx += 1
 
             # Free memory
             del expert_obs, expert_actions

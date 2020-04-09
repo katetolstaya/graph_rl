@@ -9,7 +9,9 @@ from stable_baselines.common.base_class import BaseRLModel
 
 
 def make_env():
-    env_name = "MappingRad-v0"
+    # env_name = "MappingRad-v0"
+    env_name = "MappingARLPartial-v0"
+    # env_name = "MappingARL-v0"
     # env_name = "MappingAirsim-v0"
     keys = ['nodes', 'edges', 'senders', 'receivers', 'step']
     env = gym.make(env_name)
@@ -31,8 +33,8 @@ def eval_model(env, model, N, render_mode='none'):
                 obs, rewards, done, info = env.step(action)
                 env.render(mode=render_mode)
 
-                # if render_mode == 'human':
-                #     time.sleep(0.1)
+                if render_mode == 'human':
+                    time.sleep(0.1)
 
                 # Record results.
                 results['reward'][k] += rewards
@@ -52,7 +54,15 @@ if __name__ == '__main__':
     # model_name = 'models/cross5/cross5/ckpt/ckpt_001.pkl'
     # model_name = 'models/2020-01-20/2020-01-20/ckpt/ckpt_002.pkl'
     # model_name = 'models/disc/disc/ckpt/ckpt_000.pkl'
-    model_name = 'feat42_ckpt_000.pkl'
+    # model_name = 'ckpt_000.pkl'
+    # model_name = 'models/newnew/newnew/ckpt/ckpt_000.pkl'
+    # model_name = 'models/new200/new200/ckpt/ckpt_000.pkl'
+    # model_name = 'models/rec/rec/ckpt/ckpt_067.pkl'
+    # model_name = 'models/feat32/feat32/ckpt/ckpt_020.pkl'
+    # model_name = 'models/partial/partial/ckpt/ckpt_064.pkl'
+    # model_name = 'models/stack10/stack10/ckpt/ckpt_079.pkl'
+    model_name = 'models/feat3275/feat3275/ckpt/ckpt_041.pkl'
+    # model_name = 'models/newnew2/newnew2/ckpt/ckpt_000.pkl'
     # policy_param = {'num_processing_steps': 5}
     policy_param = {}
     n_steps = 32
@@ -76,9 +86,9 @@ if __name__ == '__main__':
     new_model.load_parameters(params)
 
     # print('\nPlay 10 games and return scores...')
-    # results = eval_model(env, new_model, 100, render_mode='none')
+    # results = eval_model(env, new_model, 10, render_mode='none')
     # print('reward,          mean = {:.1f}, std = {:.1f}'.format(np.mean(results['reward']), np.std(results['reward'])))
     # print('')
 
     print('\nPlay games with live visualization...')
-    eval_model(env, new_model, 10, render_mode='human')  # also support ffmpeg
+    eval_model(env, new_model, 10, render_mode='human')

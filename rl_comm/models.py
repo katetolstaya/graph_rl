@@ -16,6 +16,8 @@ from stable_baselines.a2c.utils import ortho_init
 NUM_LAYERS = 2
 LATENT_SIZE = 16
 USE_BIAS = True
+# USE_RECEIVER = False
+USE_RECEIVER = True
 # USE_BIAS = True
 
 
@@ -74,7 +76,9 @@ class AggregationDiffNet(snt.AbstractModule):
         # self._proc_hops = [item for sublist in self._proc_hops for item in sublist]
         # self._proc_hops = num_processing_steps  #[1, 1, 2, 2, 2]
         # self._proc_hops = [1, 1, 1, 2, 2]
-        self._proc_hops = [1, 1, 1, 1, 2, 2, 2, 2]
+        # self._proc_hops = [1, 1, 1, 1, 2, 2, 2, 2]  # **********************
+        self._proc_hops = [1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+        # self._proc_hops = [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
         # self._proc_hops = [1, 1, 1, 2, 2, 2]
         # self._proc_hops = [1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
         # self._proc_hops = [1, 1, 1, 1, 1, 1, 2, 2, 2, 2]
@@ -93,7 +97,7 @@ class AggregationDiffNet(snt.AbstractModule):
             edge_model_fn=core_func,
             node_model_fn=core_func,
             global_model_fn=core_func,
-            edge_block_opt={'use_receiver_nodes': False, 'use_globals': self._use_globals},
+            edge_block_opt={'use_receiver_nodes': USE_RECEIVER, 'use_globals': self._use_globals},
             node_block_opt={'use_globals': self._use_globals},
             name="graph_net"
             , reducer=unsorted_segment_max_or_zero
@@ -157,5 +161,7 @@ class AggregationDiffNet(snt.AbstractModule):
             n_edge=n_edge)
         # out = self._output_transform(self._aggregation(feature_graph))
         out = self._output_transform(feature_graph)
+
+        # out = self._output_transform(output_ops[-1])
 
         return out
