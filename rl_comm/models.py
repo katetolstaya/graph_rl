@@ -31,7 +31,8 @@ def make_mlp_model():
       A Sonnet module which contains the MLP and LayerNorm.
     """
     return snt.Sequential([
-        snt.nets.MLP([LATENT_SIZE] * NUM_LAYERS, activate_final=True, activation=tf.tanh, use_bias=USE_BIAS) # , snt.LayerNorm()
+        # snt.nets.MLP([LATENT_SIZE] * NUM_LAYERS, activate_final=True, activation=tf.tanh, use_bias=USE_BIAS) # , snt.LayerNorm()
+        snt.nets.MLP([LATENT_SIZE] * NUM_LAYERS, activate_final=True)  # , snt.LayerNorm()
     ])
 
 
