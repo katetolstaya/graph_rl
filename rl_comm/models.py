@@ -77,8 +77,8 @@ class AggregationDiffNet(snt.AbstractModule):
         # self._proc_hops = [item for sublist in self._proc_hops for item in sublist]
         # self._proc_hops = num_processing_steps  #[1, 1, 2, 2, 2]
         # self._proc_hops = [1, 1, 1, 2, 2]
-        # self._proc_hops = [1, 1, 1, 1, 2, 2, 2, 2]  # **********************
-        self._proc_hops = [1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+        self._proc_hops = [1, 1, 1, 1, 1, 2, 2, 2, 2, 2]  # **********************
+        # self._proc_hops = [1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
         # self._proc_hops = [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
         # self._proc_hops = [1, 1, 1, 2, 2, 2]
         # self._proc_hops = [1, 1, 1, 1, 1, 1, 1, 1, 1, 1]

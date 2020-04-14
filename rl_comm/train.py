@@ -122,6 +122,7 @@ def main():
     env_name = "MappingARLPartial-v0"
 
     def make_env():
+        # DO NOT CHANGE ORDER OF KEYS
         keys = ['nodes', 'edges', 'senders', 'receivers', 'step']
         env = gym.make(env_name)
         env = gym.wrappers.FlattenDictWrapper(env, dict_keys=keys)
