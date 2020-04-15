@@ -26,8 +26,6 @@ class GnnFwd(ActorCriticPolicy):
         super(GnnFwd, self).__init__(sess, ob_space, ac_space, n_env, n_steps, n_batch, reuse,
                                      scale=False)
 
-        if num_processing_steps is None:
-            num_processing_steps = [1, 1, 2, 2, 2]
         batch_size, n_node, nodes, n_edge, edges, senders, receivers, globs = MappingRadEnv.unpack_obs(
             self.processed_obs, ob_space)
 
@@ -61,24 +59,12 @@ class GnnFwd(ActorCriticPolicy):
                 mask = tf.logical_and(tf.logical_not(sender_type), receiver_type)
                 masked_edges = tf.boolean_mask(edge_values, tf.reshape(mask, (-1,)), axis=0)
 
-                # masked_receivers = tf.boolean_mask(receivers, tf.reshape(mask, (-1,)), axis=0)
-                # masked_receivers = tf.cast(masked_receivers, tf.int32)
-
-                # TODO assumed unchanged order of edges here - is this OK?
-
                 if isinstance(ac_space, MultiDiscrete):
                     n_actions = tf.cast(tf.reduce_sum(ac_space.nvec), tf.int32)
                 else:
                     n_actions = tf.cast(ac_space.n, tf.int32)
 
-                # policy = tf.RaggedTensor.from_value_rowids(masked_edges, masked_receivers).to_sparse()
-                # self._policy = tf.sparse_to_dense(sparse_indices=policy.indices, sparse_values=policy.values,
-                #                                   default_value=-math.inf,
-                #                                   output_shape=(batch_size * len(ac_space.nvec), ac_space.nvec[0]))
-                # self._policy = tf.reshape(self._policy, (batch_size, n_actions))
-
                 self._policy = tf.reshape(masked_edges, (batch_size, n_actions))
-                # temp = tf.Print(self._policy, [self._policy], summarize=-1)
                 self._proba_distribution = self.pdtype.proba_distribution_from_flat(self._policy)
 
         self._setup_init()

@@ -1,5 +1,8 @@
 import gym
 import gym_flock
+import configparser
+import json
+from os import path
 import functools
 import glob
 import sys
@@ -13,7 +16,7 @@ from rl_comm.ppo2 import PPO2
 from rl_comm.utils import ckpt_file, callback
 
 
-def train_helper(env_param, test_env_param, train_param, policy_fn, policy_param, directory):
+def train_helper(env_param, test_env_param, train_param, pretrain_param, policy_fn, policy_param, directory):
     save_dir = Path(directory)
     tb_dir = save_dir / 'tb'
     ckpt_dir = save_dir / 'ckpt'
@@ -45,16 +48,14 @@ def train_helper(env_param, test_env_param, train_param, policy_fn, policy_param
             policy_kwargs=policy_param,
             env=env,
             learning_rate=train_param['train_lr'],
-            cliprange=1.0,
+            cliprange=train_param['cliprange'],
             n_steps=train_param['n_steps'],
-            ent_coef=0.01,
-            vf_coef=0.5,
             verbose=1,
             tensorboard_log=str(tb_dir),
             full_tensorboard_log=False)
         ckpt_idx = 0
 
-        if 'load_trained_policy' in train_param and train_param['load_trained_policy'] is not None:
+        if 'load_trained_policy' in train_param and len(train_param['load_trained_policy']) > 0:
             model_name = train_param['load_trained_policy']
 
             # load the dictionary of parameters from file
@@ -63,28 +64,23 @@ def train_helper(env_param, test_env_param, train_param, policy_fn, policy_param
             # update new model's parameters
             model.load_parameters(params)
 
-    if 'pretrain_dataset' in train_param and train_param['pretrain_dataset'] is not None:
+    if pretrain_param is not None:
         ckpt_params = {
             'ckpt_idx': ckpt_idx,
-            'ckpt_epochs': train_param['pretrain_checkpoint_epochs'],
+            'ckpt_epochs': pretrain_param['pretrain_checkpoint_epochs'],
             'ckpt_file': ckpt_file,
             'ckpt_dir': ckpt_dir
         }
 
-        dataset = ExpertDataset(expert_path=train_param['pretrain_dataset'], traj_limitation=-1,
-                                batch_size=train_param['pretrain_batch'], randomize=True)
+        dataset = ExpertDataset(expert_path=pretrain_param['pretrain_dataset'], traj_limitation=-1,
+                                batch_size=pretrain_param['pretrain_batch'], randomize=True)
 
-        model.pretrain(dataset, n_epochs=train_param['pretrain_epochs'],
-                       learning_rate=train_param['pretrain_lr'],
-                       val_interval=1, test_env=test_env, adam_epsilon=train_param['pretrain_adam_eps'],
-                       ckpt_params=ckpt_params)
+        model.pretrain(dataset, n_epochs=pretrain_param['pretrain_epochs'],
+                       learning_rate=pretrain_param['pretrain_lr'],
+                       val_interval=1, test_env=test_env, ckpt_params=ckpt_params)
 
-        # dataset = ExpertDataset(expert_path=train_param['pretrain_dataset'], traj_limitation=100, batch_size=train_param['pretrain_batch'], randomize=True)
-        # model.pretrain(dataset, n_epochs=5000, learning_rate=train_param['pretrain_lr'],
-        #                val_interval=20, test_env=test_env, adam_epsilon=train_param['pretrain_adam_eps'])
-        # model.save(str(ckpt_file(ckpt_dir, ckpt_idx)))
-        # del dataset
-        # ckpt_idx += 1
+        del dataset
+        ckpt_idx += int(train_param['pretrain_epochs'] / ckpt_params['pretrain_checkpoint_epochs'])
 
     # Training loop.
     print('\nBegin training.\n')
@@ -103,86 +99,69 @@ def train_helper(env_param, test_env_param, train_param, policy_fn, policy_param
     print('Finished.')
 
 
-def main():
-    jobs = []  # string name, policy class, policy_kwargs
+def run_experiment(args, name):
 
-    j = {}
-    j['policy'] = gnn_fwd.GnnFwd
-    j['policy_param'] = {'num_processing_steps': 5}  # [1, 1, 2, 2, 2]}
-    # j['name'] = j['policy'].policy_param_string(j['policy_param'])
+    policy_fn = gnn_fwd.GnnFwd
+    policy_param = {
+        'num_processing_steps': json.loads(args.get('aggregation')),
+    }
 
-    if len(sys.argv) >= 2:
-        j['name'] = sys.argv[1]
-    else:
-        j['name'] = 'rad'
-
-    jobs.append(j)
-
-    # env_name = "MappingRad-v0"
-    env_name = "MappingARLPartial-v0"
+    env_name = args.get('env')
 
     def make_env():
-        # DO NOT CHANGE ORDER OF KEYS
-        keys = ['nodes', 'edges', 'senders', 'receivers', 'step']
         env = gym.make(env_name)
-        env = gym.wrappers.FlattenDictWrapper(env, dict_keys=keys)
+        env = gym.wrappers.FlattenDictWrapper(env, dict_keys=env.env.keys)
         return env
 
     env_param = {'make_env': make_env}
     test_env_param = {'make_env': make_env}
 
     train_param = {
-        'n_env': 4,
-        'n_steps': 10,
-        'checkpoint_timesteps': 10000,
-        'total_timesteps': 50000000,
-        # 'total_timesteps': 0,
-        # 'total_timesteps': 0,
-        # 'load_trained_policy': None,  # 'ckpt_026.pkl'
-        # 'load_trained_policy': "models/feat3275/feat3275/ckpt/ckpt_041.pkl",
-        # 'pretrain_dataset': 'data/disc7.npz',
-        # 'pretrain_dataset': 'data/pad1k.npz',
-        # 'pretrain_dataset': 'data/new100.npz',
-        # 'pretrain_dataset': 'data/partial42.npz',
-        # 'pretrain_dataset': 'data/partial.npz',
-        # 'pretrain_dataset': 'data/long.npz',
-        # 'pretrain_dataset': 'data/feat3275.npz',
-        # 'pretrain_dataset': 'data/nearby.npz',
-        # 'pretrain_dataset': 'data/rec13.npz',
-        'pretrain_dataset': None,
-        'pretrain_epochs': 2000,
-        'pretrain_checkpoint_epochs': 2,
-        'pretrain_batch': 20,
-        # 'pretrain_batch': 20,
-        # 'pretrain_lr': 1e-6,
-        # 'pretrain_lr': 1e-5,
-        # 'pretrain_lr': 1e-5,
-        'pretrain_lr': 5e-7,
-        # 'pretrain_adam_eps': 1e-4,
-        # 'pretrain_adam_eps': 1e-6,
-        'pretrain_adam_eps': 1e-8,
-        # 'train_lr': 1e-7,
-        # 'train_lr': 1e-6,
-        # 'train_lr': 1e-4,
-        'train_lr': 1e-5,
-        'use_checkpoint': False,
+        'use_checkpoint': args.getboolean('use_checkpoint'),
+        'load_trained_policy': args.get('load_trained_policy'),
+        'n_env': args.getint('n_env'),
+        'n_steps': args.getint('n_steps'),
+        'checkpoint_timesteps': args.getint('checkpoint_timesteps'),
+        'total_timesteps': args.getint('total_timesteps'),
+        'train_lr': args.getfloat('train_lr'),
+        'cliprange': args.getfloat('cliprange'),
     }
-    # 'pretrain_dataset' = 'data/expert_rad2.npz'
-    # 'pretrain_epochs' = 5000
-    # 'pretrain_lr' = 1e-6
 
-    root = Path('models/' + j['name'])
+    if 'pretrain' in args and args.getboolean('pretrain'):
+        pretrain_param = {
+            'pretrain_dataset': args.get('pretrain_dataset'),
+            'pretrain_epochs': args.getint('pretrain_epochs'),
+            'pretrain_checkpoint_epochs': args.getint('pretrain_checkpoint_epochs'),
+            'pretrain_batch': args.getint('pretrain_batch'),
+            'pretrain_lr': args.getfloat('pretrain_lr'),
+        }
+    else:
+        pretrain_param = None
 
-    for j in jobs:
-        directory = root / j['name']  # env_param_string(env_param) / train_param_string(train_param) / j['name']
+    directory = Path('models/' + args.get('name'))
 
-        train_helper(
-            env_param=env_param,
-            test_env_param=test_env_param,
-            train_param=train_param,
-            policy_fn=j['policy'],
-            policy_param=j['policy_param'],
-            directory=directory)
+    train_helper(
+        env_param=env_param,
+        test_env_param=test_env_param,
+        train_param=train_param,
+        pretrain_param=pretrain_param,
+        policy_fn=policy_fn,
+        policy_param=policy_param,
+        directory=directory)
+
+
+def main():
+    fname = sys.argv[1]
+    config_file = path.join(path.dirname(__file__), fname)
+    config = configparser.ConfigParser()
+    config.read(config_file)
+
+    if config.sections():
+        for section_name in config.sections():
+            print(section_name)
+            run_experiment(config[section_name], section_name)
+    else:
+        run_experiment(config[config.default_section])
 
 
 if __name__ == '__main__':

@@ -10,15 +10,7 @@ import tensorflow as tf
 from graph_nets import graphs
 from stable_baselines.a2c.utils import ortho_init
 
-# NUM_LAYERS = 2  # Hard-code number of layers in the edge/node/global models.
-# LATENT_SIZE = 8  # Hard-code latent layer sizes for demos.
-
-NUM_LAYERS = 2
-LATENT_SIZE = 16
-USE_BIAS = True
-# USE_RECEIVER = False
-USE_RECEIVER = True
-# USE_BIAS = True
+LATENT_SIZE = 16  # Hard-code latent layer sizes
 
 
 def make_mlp_model():
@@ -30,10 +22,9 @@ def make_mlp_model():
     Returns:
       A Sonnet module which contains the MLP and LayerNorm.
     """
-    return snt.Sequential([
-        # snt.nets.MLP([LATENT_SIZE] * NUM_LAYERS, activate_final=True, activation=tf.tanh, use_bias=USE_BIAS) # , snt.LayerNorm()
-        snt.nets.MLP([LATENT_SIZE] * NUM_LAYERS, activate_final=True)  # , snt.LayerNorm()
-    ])
+    # return snt.nets.MLP([LATENT_SIZE] * NUM_LAYERS, activate_final=True, activation=tf.tanh, use_bias=USE_BIAS)
+
+    return snt.nets.MLP([LATENT_SIZE] * 2, activate_final=True)
 
 
 def make_mlp4_model():
@@ -45,17 +36,8 @@ def make_mlp4_model():
     Returns:
       A Sonnet module which contains the MLP and LayerNorm.
     """
-    return snt.Sequential([
-        snt.nets.MLP([LATENT_SIZE] * 4, activate_final=True, activation=tf.tanh, use_bias=USE_BIAS) #  , snt.LayerNorm()
-    ])
-
-
-def make_linear_model():
-    """Instantiates a new linear model.
-    Returns:
-      A Sonnet module which contains the linear layer.
-    """
-    return snt.nets.MLP([LATENT_SIZE], activate_final=False, use_bias=False)
+    return snt.nets.MLP([LATENT_SIZE] * 4, activate_final=True, activation=tf.tanh)
+    # return snt.nets.MLP([LATENT_SIZE] * 4, activate_final=True, use_bias=USE_BIAS)
 
 
 class AggregationDiffNet(snt.AbstractModule):
@@ -64,7 +46,7 @@ class AggregationDiffNet(snt.AbstractModule):
     """
 
     def __init__(self,
-                 num_processing_steps,
+                 num_processing_steps=None,
                  edge_output_size=None,
                  node_output_size=None,
                  global_output_size=None,
@@ -72,21 +54,13 @@ class AggregationDiffNet(snt.AbstractModule):
         super(AggregationDiffNet, self).__init__(name=name)
 
         self._use_globals = False if global_output_size is None else True
-        # self._proc_hops = [[1] * 3, [3]*(num_processing_steps - 3)]  # [1, 1, 2, 2, 2]
-        # self._proc_hops = [[1] * 2, [2]*(num_processing_steps - 2)]  # [1, 1, 2, 2, 2]
-        # self._proc_hops = [item for sublist in self._proc_hops for item in sublist]
-        # self._proc_hops = num_processing_steps  #[1, 1, 2, 2, 2]
-        # self._proc_hops = [1, 1, 1, 2, 2]
-        self._proc_hops = [1, 1, 1, 1, 1, 2, 2, 2, 2, 2]  # **********************
-        # self._proc_hops = [1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
-        # self._proc_hops = [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
-        # self._proc_hops = [1, 1, 1, 2, 2, 2]
-        # self._proc_hops = [1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
-        # self._proc_hops = [1, 1, 1, 1, 1, 1, 2, 2, 2, 2]
-        # self._proc_hops = [3, 2, 1, 1, 1, 1]
-        # self._proc_hops = [1, 1, 1, 1, 2, 3]
-        # self._proc_hops = [1, 1, 2, 2, 2, 2]
-        # self._proc_hops = [1, 2, 3, 4, 3, 2, 1]
+
+        if num_processing_steps is None:
+            # self._proc_hops = [1, 1, 1, 2, 2]
+            # self._proc_hops = [1, 1, 1, 1, 1, 2, 2, 2, 2, 2]  # **********************
+            self._proc_hops = [1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+        else:
+            self._proc_hops = num_processing_steps
 
         self._num_processing_steps = len(self._proc_hops)
         self._n_stacked = LATENT_SIZE * self._num_processing_steps
@@ -98,7 +72,7 @@ class AggregationDiffNet(snt.AbstractModule):
             edge_model_fn=core_func,
             node_model_fn=core_func,
             global_model_fn=core_func,
-            edge_block_opt={'use_receiver_nodes': USE_RECEIVER, 'use_globals': self._use_globals},
+            edge_block_opt={'use_globals': self._use_globals},
             node_block_opt={'use_globals': self._use_globals},
             name="graph_net"
             , reducer=unsorted_segment_max_or_zero
