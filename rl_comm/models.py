@@ -86,10 +86,10 @@ class AggregationDiffNet(snt.AbstractModule):
             , reducer=unsorted_segment_max_or_zero
         )
         # TODO is MLP4 for encoder necessary?
-        self._encoder = modules.GraphIndependent(make_mlp, make_mlp, make_mlp, name="encoder")
+        # self._encoder = modules.GraphIndependent(make_mlp, make_mlp, make_mlp, name="encoder")
         # self._encoder = modules.GraphIndependent(make_mlp4_model, make_mlp4_model, make_mlp4_model, name="encoder")
         self._encoder = modules.GraphIndependent(make_mlp_tanh, make_mlp_tanh, make_mlp_tanh, name="encoder")
-        # self._decoder = modules.GraphIndependent(make_mlp, make_mlp, make_mlp, name="decoder")
+        self._decoder = modules.GraphIndependent(make_mlp, make_mlp, make_mlp, name="decoder")
         # self._aggregation = modules.GraphIndependent(make_mlp_model, make_mlp_model, make_mlp_model, name="agg")
 
         edge_inits = {'w': ortho_init(5.0), 'b': tf.constant_initializer(0.0)}
