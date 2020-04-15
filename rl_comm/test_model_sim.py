@@ -2,49 +2,39 @@ import numpy as np
 import gym
 import gym_flock
 import time
+import copy
+
 import rl_comm.gnn_fwd as gnn_fwd
 from stable_baselines.common.vec_env import SubprocVecEnv
 from stable_baselines.common.base_class import BaseRLModel
+from rl_comm.ppo2 import PPO2
 
-import copy
 import rospy
 from mav_manager.srv import Vec4Request, Vec4
 from geometry_msgs.msg import PoseStamped
-from stable_baselines import PPO2
 
-
-def make_env():
-    env_name = "MappingARLPartial-v0"
-    # env_name = "MappingAirsim-v0"
-    keys = ['nodes', 'edges', 'senders', 'receivers', 'step']
-    env = gym.make(env_name)
-    env = gym.wrappers.FlattenDictWrapper(env, dict_keys=keys)
-    return env
 
 if __name__ == '__main__':
+
     n_robots = 10
     x = np.zeros((n_robots, 2))
     names = ['quadrotor' + str(i + 1) for i in range(n_robots)]
+    altitudes = np.linspace(start=3.0, stop=8.0, num=n_robots)
 
     rospy.init_node('gnn')
-    # TODO smaller rate here?
     r = rospy.Rate(10.0)
 
-    altitudes = np.linspace(start=3.0, stop=8.0, num=n_robots)
+    def make_env():
+        env_name = "CoverageARL-v0"
+        my_env = gym.make(env_name)
+        my_env = gym.wrappers.FlattenDictWrapper(my_env, dict_keys=my_env.env.keys)
+        return my_env
 
     vec_env = SubprocVecEnv([make_env])
 
     # Specify pre-trained model checkpoint file.
-    # model_name = 'models/diff7/diff7/ckpt/ckpt_034.pkl'
-    # model_name = 'models/cross5/cross5/ckpt/ckpt_001.pkl'
-    # model_name = 'models/2020-01-20/2020-01-20/ckpt/ckpt_002.pkl'
-    # model_name = 'models/disc/disc/ckpt/ckpt_000.pkl'
-    # model_name = 'ckpt_000.pkl'
-    # model_name = 'models/newnew/newnew/ckpt/ckpt_000.pkl'
-    # model_name = 'models/rec/rec/ckpt/ckpt_067.pkl'
-    # model_name = 'models/feat32/feat32/ckpt/ckpt_020.pkl'
-    # policy_param = {'num_processing_steps': 5}
     model_name = 'models/feat3275/feat3275/ckpt/ckpt_041.pkl'
+
     policy_param = {}
     n_steps = 32
 
@@ -113,15 +103,12 @@ if __name__ == '__main__':
             loc_commands = np.reshape(arl_env.x[next_loc, 0:2], (arl_env.n_robots, 2))
 
             # update last loc
-            # TODO does this go here or before update state/recompute graph?
             old_last_loc = arl_env.last_loc
             arl_env.last_loc = arl_env.closest_targets
 
             # send new waypoints
             for i, service in enumerate(services):
-                # TODO convert GNN output to next location
                 goal_position = [loc_commands[i, 0], loc_commands[i, 1], altitudes[i], -1.57]
-                # goal_position = [x[i, 0]+0.1, x[i, 1], 5.0, -1.57]
                 goal_position = Vec4Request(goal_position)
                 try:
                     service(goal_position)

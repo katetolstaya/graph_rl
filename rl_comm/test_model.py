@@ -9,14 +9,11 @@ from stable_baselines.common.base_class import BaseRLModel
 
 
 def make_env():
-    # env_name = "MappingRad-v0"
-    env_name = "MappingARLPartial-v0"
-    # env_name = "MappingARL-v0"
-    # env_name = "MappingAirsim-v0"
-    keys = ['nodes', 'edges', 'senders', 'receivers', 'step']
-    env = gym.make(env_name)
-    env = gym.wrappers.FlattenDictWrapper(env, dict_keys=keys)
-    return env
+    env_name = "CoverageARL-v0"
+    my_env = gym.make(env_name)
+    my_env = gym.wrappers.FlattenDictWrapper(my_env, dict_keys=my_env.env.keys)
+    return my_env
+
 
 def eval_model(env, model, N, render_mode='none'):
     """
