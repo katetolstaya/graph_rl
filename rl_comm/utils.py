@@ -42,7 +42,7 @@ def eval_env(env, model, n_episodes, render_mode='none'):
     return results
 
 
-def callback(locals_, globals_, test_env):
+def callback(locals_, globals_, test_env, interval, n_episodes=50):
     self_ = locals_['self']
 
     # Periodically run extra test evaluation.
@@ -50,12 +50,12 @@ def callback(locals_, globals_, test_env):
         self_.next_test_eval = 0
     if self_.num_timesteps >= self_.next_test_eval:
         print('\nTesting...')
-        results = eval_env(test_env, self_, 50, render_mode='none')
+        results = eval_env(test_env, self_, n_episodes, render_mode='none')
         print('reward,          mean = {:.1f}, std = {:.1f}'.format(np.mean(results['reward']),
                                                                     np.std(results['reward'])))
         print('')
         score = np.mean(results['reward'])
         summary = tf.Summary(value=[tf.Summary.Value(tag='reward', simple_value=score)])
         locals_['writer'].add_summary(summary, self_.num_timesteps)
-        self_.next_test_eval += 5000
+        self_.next_test_eval += interval
     return True
