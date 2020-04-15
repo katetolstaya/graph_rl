@@ -79,7 +79,7 @@ class AggregationDiffNet(snt.AbstractModule):
         self._encoder = modules.GraphIndependent(make_mlp_model, make_mlp_model, make_mlp_model, name="encoder")
         # self._encoder = modules.GraphIndependent(make_mlp4_model, make_mlp4_model, make_mlp4_model, name="encoder")
         self._decoder = modules.GraphIndependent(make_mlp_model, make_mlp_model, make_mlp_model, name="decoder")
-        self._aggregation = modules.GraphIndependent(make_mlp_model, make_mlp_model, make_mlp_model, name="agg")
+        # self._aggregation = modules.GraphIndependent(make_mlp_model, make_mlp_model, make_mlp_model, name="agg")
 
         edge_inits = {'w': ortho_init(5.0), 'b': tf.constant_initializer(0.0)}
         global_inits = {'w': ortho_init(5.0), 'b': tf.constant_initializer(0.0)}
@@ -135,8 +135,8 @@ class AggregationDiffNet(snt.AbstractModule):
             n_edge=n_edge)
 
         # TODO is aggregation layer necessary?
-        out = self._output_transform(self._aggregation(feature_graph))
-        # out = self._output_transform(feature_graph)
+        # out = self._output_transform(self._aggregation(feature_graph))
+        out = self._output_transform(feature_graph)
 
         # out = self._output_transform(output_ops[-1])
 
