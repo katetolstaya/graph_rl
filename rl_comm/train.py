@@ -99,7 +99,7 @@ def train_helper(env_param, test_env_param, train_param, pretrain_param, policy_
     print('Finished.')
 
 
-def run_experiment(args, name):
+def run_experiment(args, section_name=''):
 
     policy_fn = gnn_fwd.GnnFwd
     policy_param = {
@@ -138,7 +138,7 @@ def run_experiment(args, name):
     else:
         pretrain_param = None
 
-    directory = Path('models/' + args.get('name'))
+    directory = Path('models/' + args.get('name') + section_name)
 
     train_helper(
         env_param=env_param,
