@@ -90,7 +90,7 @@ def train_helper(env_param, test_env_param, train_param, pretrain_param, policy_
             total_timesteps=train_param['checkpoint_timesteps'],
             log_interval=500,
             reset_num_timesteps=False,
-            callback=functools.partial(callback, test_env=test_env, interval=5000))
+            callback=functools.partial(callback, test_env=test_env, interval=5000, n_episodes=20))
 
         print('\nSaving model {}.\n'.format(ckpt_file(ckpt_dir, ckpt_idx).name))
         model.save(str(ckpt_file(ckpt_dir, ckpt_idx)))
