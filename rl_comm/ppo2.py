@@ -54,12 +54,13 @@ class PPO2(ActorCriticRLModel):
 
     def __init__(self, policy, env, gamma=0.99, n_steps=128, ent_coef=0.01, learning_rate=2.5e-4, vf_coef=0.5,
                  max_grad_norm=0.5, lam=0.95, nminibatches=4, noptepochs=4, cliprange=0.2, cliprange_vf=None,
-                 verbose=0, tensorboard_log=None, _init_setup_model=True, policy_kwargs=None,
+                 adam_epsilon=1e-4, verbose=0, tensorboard_log=None, _init_setup_model=True, policy_kwargs=None,
                  full_tensorboard_log=False, seed=None, n_cpu_tf_sess=None):
 
         self.learning_rate = learning_rate
         self.cliprange = cliprange
         self.cliprange_vf = cliprange_vf
+        self.edam_epsilon = adam_epsilon
         self.n_steps = n_steps
         self.ent_coef = ent_coef
         self.vf_coef = vf_coef
@@ -215,7 +216,8 @@ class PPO2(ActorCriticRLModel):
                     if self.max_grad_norm is not None:
                         grads, _grad_norm = tf.clip_by_global_norm(grads, self.max_grad_norm)
                     grads = list(zip(grads, self.params))
-                trainer = tf.train.AdamOptimizer(learning_rate=self.learning_rate_ph, epsilon=1e-5)
+
+                trainer = tf.train.AdamOptimizer(learning_rate=self.learning_rate_ph, epsilon=self.edam_epsilon)
                 self._train = trainer.apply_gradients(grads)
 
                 self.loss_names = ['policy_loss', 'value_loss', 'policy_entropy', 'approxkl', 'clipfrac']
@@ -510,7 +512,7 @@ class PPO2(ActorCriticRLModel):
         for epoch_idx in range(int(n_epochs)):
             train_loss = 0.0
             # Full pass on the training set
-            for i in range(len(dataset.train_loader)-1):
+            for i in range(len(dataset.train_loader) - 1):
                 expert_obs, expert_actions = dataset.get_next_batch('train')
                 feed_dict = {
                     obs_ph: expert_obs,
@@ -526,18 +528,18 @@ class PPO2(ActorCriticRLModel):
                 #                                                                 np.std(results['reward'])))
                 #     print()
             dataset.get_next_batch('train')
-            train_loss /= (len(dataset.train_loader)-1)
+            train_loss /= (len(dataset.train_loader) - 1)
 
             if self.verbose > 0 and (epoch_idx + 1) % val_interval == 0:
                 val_loss = 0.0
                 # Full pass on the validation set
-                for _ in range(len(dataset.val_loader)-1):
+                for _ in range(len(dataset.val_loader) - 1):
                     expert_obs, expert_actions = dataset.get_next_batch('val')
                     val_loss_, = self.sess.run([loss], {obs_ph: expert_obs,
                                                         actions_ph: expert_actions})
                     val_loss += val_loss_
                 dataset.get_next_batch('val')
-                val_loss /= (len(dataset.val_loader)-1)
+                val_loss /= (len(dataset.val_loader) - 1)
 
                 if self.verbose > 0:
                     print("==== Training progress {:.2f}% ====".format(100 * (epoch_idx + 1) / n_epochs))

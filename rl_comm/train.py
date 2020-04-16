@@ -49,6 +49,7 @@ def train_helper(env_param, test_env_param, train_param, pretrain_param, policy_
             env=env,
             learning_rate=train_param['train_lr'],
             cliprange=train_param['cliprange'],
+            adam_epsilon=train_param['adam_epsilon'],
             n_steps=train_param['n_steps'],
             verbose=1,
             tensorboard_log=str(tb_dir),
@@ -125,6 +126,7 @@ def run_experiment(args, section_name=''):
         'total_timesteps': args.getint('total_timesteps'),
         'train_lr': args.getfloat('train_lr'),
         'cliprange': args.getfloat('cliprange'),
+        'adam_epsilon': args.getfloat('adam_epsilon'),
     }
 
     if 'pretrain' in args and args.getboolean('pretrain'):
