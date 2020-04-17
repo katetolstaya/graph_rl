@@ -81,8 +81,8 @@ class AggregationDiffNet(snt.AbstractModule):
         # def make_mlp_tanh():
         #     return snt.nets.MLP([latent_size] * 2, activate_final=True, activation=tf.tanh)
 
-        def make_lin():
-            return snt.nets.MLP([latent_size], activate_final=False)
+        def make_tanh():
+            return snt.nets.MLP([latent_size]*2, activate_final=True, activation=tf.tanh)
 
         # # core_func = make_linear_model
         # core_func = make_mlp
@@ -97,7 +97,7 @@ class AggregationDiffNet(snt.AbstractModule):
             , reducer=unsorted_segment_max_or_zero
         )
 
-        self._encoder = modules.GraphIndependent(make_lin, make_lin, make_lin, name="encoder")
+        self._encoder = modules.GraphIndependent(make_tanh, make_tanh, make_tanh, name="encoder")
         self._decoder = modules.GraphIndependent(make_mlp, make_mlp, make_mlp, name="decoder")
 
         edge_inits = {'w': ortho_init(5.0), 'b': tf.constant_initializer(0.0)}
