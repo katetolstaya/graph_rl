@@ -558,7 +558,7 @@ class PPO2(ActorCriticRLModel):
 
                 if test_env is not None:
                     print('\nTesting...')
-                    results = eval_env(test_env, self, 50, render_mode='none')
+                    results = eval_env(test_env, self, 20, render_mode='none')
                     mean_reward = np.mean(results['reward'])
                     print('reward,          mean = {:.1f}, std = {:.1f}'.format(mean_reward,
                                                                                 np.std(results['reward'])))

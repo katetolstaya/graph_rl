@@ -5,6 +5,7 @@ import gym_flock
 from gym import spaces
 import sys
 
+
 def generate_expert_traj(env, save_path=None, n_episodes=1000):
     """
     Train expert controller (if needed) and record expert trajectories.
@@ -108,22 +109,15 @@ def generate_expert_traj(env, save_path=None, n_episodes=1000):
     return numpy_dict
 
 
-# env_name = "MappingRad-v0"
-env_name = "MappingARLPartial-v0"
+env_name = "CoverageARL-v0"
 
 
 def make_env():
-    keys = ['nodes', 'edges', 'senders', 'receivers', 'step']
     env = gym.make(env_name)
-    env = gym.wrappers.FlattenDictWrapper(env, dict_keys=keys)
+    env = gym.wrappers.FlattenDictWrapper(env, dict_keys=env.env.keys)
     return env
 
 
+fname = sys.argv[1]
 
-if len(sys.argv) >= 2:
-    name = sys.argv[1]
-else:
-    name = 'feat'
-
-# generate_expert_traj(env=make_env(), save_path='data/disc7', n_episodes=1000)
-generate_expert_traj(env=make_env(), save_path='data/' + name, n_episodes=500)
+generate_expert_traj(env=make_env(), save_path='data/' + fname, n_episodes=500)
