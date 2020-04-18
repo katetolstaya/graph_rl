@@ -2,11 +2,12 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+import numpy as np
+import tensorflow as tf
+import sonnet as snt
 from graph_nets import modules
 from graph_nets.blocks import unsorted_segment_max_or_zero
 from graph_nets import utils_tf
-import sonnet as snt
-import tensorflow as tf
 from graph_nets import graphs
 from stable_baselines.a2c.utils import ortho_init
 
@@ -71,7 +72,9 @@ class AggregationDiffNet(snt.AbstractModule):
         else:
             self._proc_hops = num_processing_steps
 
-        self._num_processing_steps = len(self._proc_hops)
+        self._agg_ind = (np.cumsum(self._proc_hops) - 1).astype(np.int).tolist()
+
+        self._num_processing_steps = sum(self._proc_hops)
         self._n_stacked = LATENT_SIZE * self._num_processing_steps
 
         # TODO is MLP4 for encoder necessary?
@@ -82,7 +85,7 @@ class AggregationDiffNet(snt.AbstractModule):
         #     return snt.nets.MLP([latent_size] * 2, activate_final=True, activation=tf.tanh)
 
         def make_tanh():
-            return snt.nets.MLP([latent_size]*2, activate_final=True, activation=tf.tanh)
+            return snt.nets.MLP([latent_size]*1, activate_final=True, activation=tf.tanh)
 
         # # core_func = make_linear_model
         # core_func = make_mlp
@@ -125,16 +128,17 @@ class AggregationDiffNet(snt.AbstractModule):
         latent0 = latent
         output_ops = []
         for i in range(self._num_processing_steps):
-            for j in range(self._proc_hops[i]):
-                core_input = utils_tf.concat([latent0, latent], axis=1)
-                latent = self._core(core_input)
+            # core_input = utils_tf.concat([latent0, latent], axis=1)
+            # latent = self._core(core_input)
+            # decoded_op = self._decoder(latent)
+            # output_ops.append(decoded_op)
 
-                # latent = self._core(latent)
-
+            # don't append latent0
+            latent = self._core(latent)
             decoded_op = self._decoder(latent)
             output_ops.append(decoded_op)
 
-            # output_ops.append(latent)
+        output_ops = [output_ops[i] for i in self._agg_ind]
 
         stacked_edges = tf.stack([g.edges for g in output_ops], axis=1)
         stacked_nodes = tf.stack([g.nodes for g in output_ops], axis=1)

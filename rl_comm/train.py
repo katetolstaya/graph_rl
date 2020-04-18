@@ -117,17 +117,21 @@ def run_experiment(args, section_name=''):
     env_param = {'make_env': make_env}
     test_env_param = {'make_env': make_env}
 
-    train_param = {
-        'use_checkpoint': args.getboolean('use_checkpoint'),
-        'load_trained_policy': args.get('load_trained_policy'),
-        'n_env': args.getint('n_env'),
-        'n_steps': args.getint('n_steps'),
-        'checkpoint_timesteps': args.getint('checkpoint_timesteps'),
-        'total_timesteps': args.getint('total_timesteps'),
-        'train_lr': args.getfloat('train_lr'),
-        'cliprange': args.getfloat('cliprange'),
-        'adam_epsilon': args.getfloat('adam_epsilon'),
-    }
+    if args.getint('total_timesteps') == 0:
+        train_param = {'total_timesteps': args.getint('total_timesteps')}
+    else:
+        train_param = {
+            'use_checkpoint': args.getboolean('use_checkpoint'),
+            'load_trained_policy': args.get('load_trained_policy'),
+            'n_env': args.getint('n_env'),
+            'n_steps': args.getint('n_steps'),
+            'checkpoint_timesteps': args.getint('checkpoint_timesteps'),
+            'total_timesteps': args.getint('total_timesteps'),
+            'train_lr': args.getfloat('train_lr'),
+            'cliprange': args.getfloat('cliprange'),
+            'adam_epsilon': args.getfloat('adam_epsilon'),
+            'vf_coef': args.getfloat('vf_coef'),
+        }
 
     if 'pretrain' in args and args.getboolean('pretrain'):
         pretrain_param = {
