@@ -72,9 +72,10 @@ class AggregationDiffNet(snt.AbstractModule):
         else:
             self._proc_hops = num_processing_steps
 
-        self._agg_ind = (np.cumsum(self._proc_hops) - 1).astype(np.int).tolist()
+        self._agg_ind = (np.cumsum(self._proc_hops) - 1).flatten().astype(np.int).tolist()
+        print(self._agg_ind)
 
-        self._num_processing_steps = sum(self._proc_hops)
+        self._num_processing_steps = len(self._proc_hops)
         self._n_stacked = LATENT_SIZE * self._num_processing_steps
 
         # TODO is MLP4 for encoder necessary?
@@ -125,20 +126,22 @@ class AggregationDiffNet(snt.AbstractModule):
         n_edge = input_op.n_edge
 
         latent = self._encoder(input_op)
-        latent0 = latent
+        # latent0 = latent
         output_ops = []
-        for i in range(self._num_processing_steps):
-            # core_input = utils_tf.concat([latent0, latent], axis=1)
-            # latent = self._core(core_input)
-            # decoded_op = self._decoder(latent)
-            # output_ops.append(decoded_op)
 
-            # don't append latent0
-            latent = self._core(latent)
+        for i in range(self._num_processing_steps):
+            for j in range(self._proc_hops[i]):
+                # core_input = utils_tf.concat([latent0, latent], axis=1)
+                # latent = self._core(core_input)
+
+                # don't append latent0
+                latent = self._core(latent)
+
             decoded_op = self._decoder(latent)
             output_ops.append(decoded_op)
 
-        output_ops = [output_ops[i] for i in self._agg_ind]
+        # print(self._agg_ind)
+        # output_ops = [output_ops[i] for i in self._agg_ind]
 
         stacked_edges = tf.stack([g.edges for g in output_ops], axis=1)
         stacked_nodes = tf.stack([g.nodes for g in output_ops], axis=1)
