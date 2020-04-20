@@ -61,10 +61,11 @@ if __name__ == '__main__':
     # model_name = 'models/newnew2/newnew2/ckpt/ckpt_000.pkl'
 
     # model_name = 'models/feat3275/feat3275/ckpt/ckpt_001.pkl'
-    model_name = 'models/newactions2/newactions2/ckpt/ckpt_005.pkl'
+    # model_name = 'models/newactions2/newactions2/ckpt/ckpt_005.pkl'
+    model_name = 'models/imitation_no2/ckpt/ckpt_021.pkl'
 
     # policy_param = {'num_processing_steps': 5}
-    policy_param = {}
+    policy_param = {'num_processing_steps':[1,1,1,1,1,1,1,1,1,1,2,2,2,2,2]}
     n_steps = 32
 
     new_model = PPO2(
