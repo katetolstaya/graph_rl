@@ -65,6 +65,7 @@ if __name__ == '__main__':
 
     # model_name = 'models/imitation_no2/ckpt/ckpt_021.pkl'
     model_name = 'models/imitation_no3/ckpt/ckpt_017.pkl'
+    # model_name = 'models/rl_fromtrain2/ckpt/ckpt_012.pkl'
 
     # policy_param = {'num_processing_steps': 5}
     # policy_param = {'num_processing_steps':[1,1,1,1,1,1,1,1,1,1,2,2,2,2,2]}
