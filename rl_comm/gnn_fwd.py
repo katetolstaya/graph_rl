@@ -21,7 +21,7 @@ class GnnFwd(ActorCriticPolicy):
     """
 
     def __init__(self, sess, ob_space, ac_space, n_env, n_steps, n_batch, reuse=False,
-                 num_processing_steps=None):
+                 num_processing_steps=None, latent_size=None, n_layers=None):
 
         super(GnnFwd, self).__init__(sess, ob_space, ac_space, n_env, n_steps, n_batch, reuse,
                                      scale=False)
@@ -40,22 +40,36 @@ class GnnFwd(ActorCriticPolicy):
 
         with tf.variable_scope("model", reuse=reuse):
             with tf.variable_scope("value", reuse=reuse):
+                # self.value_model = models.AggregationDiffNet(num_processing_steps=num_processing_steps,
+                #                                              latent_size=latent_size,
+                #                                              global_output_size=1, name="value_model")
+                # value_graph = self.value_model(agent_graph)
+                # self._value_fn = value_graph.globals
+
                 self.value_model = models.AggregationDiffNet(num_processing_steps=num_processing_steps,
-                                                             global_output_size=1, name="value_model")
+                                                             latent_size=latent_size,
+                                                             node_output_size=1, name="value_model")
                 value_graph = self.value_model(agent_graph)
-                self._value_fn = value_graph.globals
+
+                # sum the outputs of robot nodes to compute value
+                node_type_mask = tf.reshape(tf.cast(nodes[:, 0], tf.bool), (-1,))
+                masked_nodes = tf.boolean_mask(value_graph.nodes, node_type_mask, axis=0)
+                masked_nodes = tf.reshape(masked_nodes, (batch_size, len(ac_space.nvec)))
+                self._value_fn = tf.reduce_sum(masked_nodes, axis=1, keepdims=True)
+
                 self.q_value = None  # unused by PPO2
 
             with tf.variable_scope("policy", reuse=reuse):
                 self.policy_model = models.AggregationDiffNet(num_processing_steps=num_processing_steps,
+                                                              latent_size=latent_size,
+                                                              n_layers=n_layers,
                                                               edge_output_size=1, name="policy_model")
                 policy_graph = self.policy_model(agent_graph)
                 edge_values = policy_graph.edges
 
-                # keep only edges in to controlled agents and out of uncontrolled agents
+                # keep only edges for which senders are the landmarks, receivers are robots
                 sender_type = tf.cast(tf.gather(nodes[:, 0], senders), tf.bool)
                 receiver_type = tf.cast(tf.gather(nodes[:, 0], receivers), tf.bool)
-                # senders are the landmarks, receivers - robots
                 mask = tf.logical_and(tf.logical_not(sender_type), receiver_type)
                 masked_edges = tf.boolean_mask(edge_values, tf.reshape(mask, (-1,)), axis=0)
 

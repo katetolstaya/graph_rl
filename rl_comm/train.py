@@ -105,6 +105,8 @@ def run_experiment(args, section_name=''):
     policy_fn = gnn_fwd.GnnFwd
     policy_param = {
         'num_processing_steps': json.loads(args.get('aggregation')),
+        'latent_size': json.loads(args.get('latent_size')),
+        'n_layers': json.loads(args.get('n_layers'))
     }
 
     env_name = args.get('env')
@@ -128,6 +130,7 @@ def run_experiment(args, section_name=''):
         'cliprange': args.getfloat('cliprange'),
         'adam_epsilon': args.getfloat('adam_epsilon'),
         'vf_coef': args.getfloat('vf_coef'),
+        'ent_coef': args.getfloat('ent_coef'),
     }
 
     if 'pretrain' in args and args.getboolean('pretrain'):

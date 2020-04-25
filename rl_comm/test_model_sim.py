@@ -25,7 +25,7 @@ if __name__ == '__main__':
     r = rospy.Rate(10.0)
 
     def make_env():
-        env_name = "CoverageARL-v0"
+        env_name = "CoverageFull-v0"
         my_env = gym.make(env_name)
         my_env = gym.wrappers.FlattenDictWrapper(my_env, dict_keys=my_env.env.keys)
         return my_env
@@ -33,22 +33,20 @@ if __name__ == '__main__':
     vec_env = SubprocVecEnv([make_env])
 
     # Specify pre-trained model checkpoint file.
-    model_name = 'models/feat3275/feat3275/ckpt/ckpt_041.pkl'
+    model_name = 'models/imitation_test/ckpt/ckpt_036.pkl'
 
-    policy_param = {}
+    policy_param = {
+        'num_processing_steps': [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+        'n_layers': 2,
+        'latent_size': 16,
+    }
+
     n_steps = 32
 
     new_model = PPO2(
         policy=gnn_fwd.GnnFwd,
         policy_kwargs=policy_param,
-        env=vec_env,
-        learning_rate=1e-6,
-        cliprange=1.0,
-        n_steps=n_steps,
-        ent_coef=0.0001,
-        vf_coef=0.5,
-        verbose=1,
-        full_tensorboard_log=False)
+        env=vec_env)
 
     # load the dictionary of parameters from file
     _, params = BaseRLModel._load_from_file(model_name)
@@ -63,6 +61,7 @@ if __name__ == '__main__':
     env = make_env()
 
     env.reset()
+    env.render(mode=render_mode)
 
     arl_env = env.env.env
 

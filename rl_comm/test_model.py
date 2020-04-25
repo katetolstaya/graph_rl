@@ -47,42 +47,18 @@ if __name__ == '__main__':
     vec_env = SubprocVecEnv([make_env])
 
     # Specify pre-trained model checkpoint file.
-    # model_name = 'models/diff7/diff7/ckpt/ckpt_034.pkl'
-    # model_name = 'models/cross5/cross5/ckpt/ckpt_001.pkl'
-    # model_name = 'models/2020-01-20/2020-01-20/ckpt/ckpt_002.pkl'
-    # model_name = 'models/disc/disc/ckpt/ckpt_000.pkl'
-    # model_name = 'ckpt_000.pkl'
-    # model_name = 'models/newnew/newnew/ckpt/ckpt_000.pkl'
-    # model_name = 'models/new200/new200/ckpt/ckpt_000.pkl'
-    # model_name = 'models/rec/rec/ckpt/ckpt_067.pkl'
-    # model_name = 'models/feat32/feat32/ckpt/ckpt_020.pkl'
-    # model_name = 'models/partial/partial/ckpt/ckpt_064.pkl'
-    # model_name = 'models/stack10/stack10/ckpt/ckpt_079.pkl'
-    # model_name = 'models/newnew2/newnew2/ckpt/ckpt_000.pkl'
+    model_name = 'models/imitation_test/ckpt/ckpt_036.pkl'
 
-    # model_name = 'models/feat3275/feat3275/ckpt/ckpt_001.pkl'
-    # model_name = 'models/newactions2/newactions2/ckpt/ckpt_005.pkl'
-
-    # model_name = 'models/imitation_no2/ckpt/ckpt_021.pkl'
-    model_name = 'models/imitation_no3/ckpt/ckpt_017.pkl'
-    # model_name = 'models/rl_fromtrain2/ckpt/ckpt_012.pkl'
-
-    # policy_param = {'num_processing_steps': 5}
-    # policy_param = {'num_processing_steps':[1,1,1,1,1,1,1,1,1,1,2,2,2,2,2]}
-    policy_param = {'num_processing_steps':[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]}
-    n_steps = 32
+    policy_param = {
+        'num_processing_steps': [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+        'n_layers': 2,
+        'latent_size': 16,
+    }
 
     new_model = PPO2(
         policy=gnn_fwd.GnnFwd,
         policy_kwargs=policy_param,
-        env=vec_env,
-        learning_rate=1e-6,
-        cliprange=1.0,
-        n_steps=n_steps,
-        ent_coef=0.0001,
-        vf_coef=0.5,
-        verbose=1,
-        full_tensorboard_log=False)
+        env=vec_env)
 
     # load the dictionary of parameters from file
     _, params = BaseRLModel._load_from_file(model_name)
