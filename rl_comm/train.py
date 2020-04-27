@@ -32,7 +32,7 @@ def train_helper(env_param, test_env_param, train_param, pretrain_param, policy_
         if len(ckpt_list) == 0:
             ckpt_idx = None
         else:
-            ckpt_idx = int(ckpt_list[-1][-7:-4])
+            ckpt_idx = int(ckpt_list[-2][-7:-4])
     else:
         ckpt_idx = None
 
