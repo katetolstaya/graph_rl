@@ -424,7 +424,7 @@ class PPO2(ActorCriticRLModel):
 
             return self
 
-    def pretrain(self, dataset, n_epochs=10, learning_rate=1e-4,
+    def pretrain(self, dataset, n_epochs=10, learning_rate=1e-4, ent_coef=0.0001,
                  adam_epsilon=1e-8, val_interval=None, test_env=None, ckpt_params=None):
         """
         Pretrain a model using behavior cloning:
@@ -432,6 +432,8 @@ class PPO2(ActorCriticRLModel):
 
         NOTE: only Box and Discrete spaces are supported for now.
 
+        :param ent_coef:
+        :param ckpt_params:
         :param test_env: Test environment
         :param dataset: (ExpertDataset) Dataset manager
         :param n_epochs: (int) Number of iterations on the training set
@@ -466,21 +468,7 @@ class PPO2(ActorCriticRLModel):
 
         with self.graph.as_default():
             with tf.variable_scope('pretrain'):
-                if continuous_actions:
-                    obs_ph, actions_ph, deterministic_actions_ph = self._get_pretrain_placeholders()
-                    loss = tf.reduce_mean(tf.square(actions_ph - deterministic_actions_ph))
-                elif discrete_actions:
-                    obs_ph, actions_ph, actions_logits_ph = self._get_pretrain_placeholders()
-                    # actions_ph has a shape if (n_batch,), we reshape it to (n_batch, 1)
-                    # so no additional changes is needed in the dataloader
-                    actions_ph = tf.expand_dims(actions_ph, axis=1)
-                    one_hot_actions = tf.one_hot(actions_ph, self.action_space.n)
-                    loss = tf.nn.softmax_cross_entropy_with_logits_v2(
-                        logits=actions_logits_ph,
-                        labels=tf.stop_gradient(one_hot_actions)
-                    )
-                    loss = tf.reduce_mean(loss)
-                elif multidiscrete_actions:
+                if multidiscrete_actions:
                     obs_ph, actions_ph, actions_logits_ph = self._get_pretrain_placeholders()
                     actions_ph = tf.reshape(actions_ph, (-1, n_agents))
                     one_hot_actions = tf.one_hot(actions_ph, n_actions)
@@ -491,7 +479,23 @@ class PPO2(ActorCriticRLModel):
                         labels=tf.stop_gradient(one_hot_actions),
                         axis=2
                     )
-                    loss = tf.reduce_mean(loss)
+                    entropy_loss = tf.reduce_mean(self.act_model.proba_distribution.entropy())
+                    loss = tf.reduce_mean(loss) - ent_coef * entropy_loss
+                    # if continuous_actions:
+                    #     obs_ph, actions_ph, deterministic_actions_ph = self._get_pretrain_placeholders()
+                    #     loss = tf.reduce_mean(tf.square(actions_ph - deterministic_actions_ph))
+                    # elif discrete_actions:
+                    #     obs_ph, actions_ph, actions_logits_ph = self._get_pretrain_placeholders()
+                    #     # actions_ph has a shape if (n_batch,), we reshape it to (n_batch, 1)
+                    #     # so no additional changes is needed in the dataloader
+                    #     actions_ph = tf.expand_dims(actions_ph, axis=1)
+                    #     one_hot_actions = tf.one_hot(actions_ph, self.action_space.n)
+                    #     loss = tf.nn.softmax_cross_entropy_with_logits_v2(
+                    #         logits=actions_logits_ph,
+                    #         labels=tf.stop_gradient(one_hot_actions)
+                    #     )
+                    #     loss = tf.reduce_mean(loss)
+                    # el
                 else:
                     raise ValueError("Invalid action space")
 

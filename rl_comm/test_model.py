@@ -9,6 +9,7 @@ from stable_baselines.common.base_class import BaseRLModel
 
 
 def make_env():
+    # env_name = "CoverageFull-v0"
     env_name = "CoverageARL-v0"
     my_env = gym.make(env_name)
     my_env = gym.wrappers.FlattenDictWrapper(my_env, dict_keys=my_env.env.keys)
@@ -47,10 +48,13 @@ if __name__ == '__main__':
     vec_env = SubprocVecEnv([make_env])
 
     # Specify pre-trained model checkpoint file.
-    model_name = 'models/imitation_test/ckpt/ckpt_036.pkl'
+    # model_name = 'models/imitation_test/ckpt/ckpt_036.pkl' # [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+    # model_name = 'models/imitation_20/ckpt/ckpt_013.pkl'  # [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
+    # model_name = 'models/imitation_105/ckpt/ckpt_015.pkl'  # [1,1,1,1,1,1,1,1,1,1,2,2,2,2,2]
+    model_name = 'models/imitation_77/ckpt/ckpt_127.pkl'  # [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
 
     policy_param = {
-        'num_processing_steps': [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+        'num_processing_steps': [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
         'n_layers': 2,
         'latent_size': 16,
     }

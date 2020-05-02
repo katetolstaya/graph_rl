@@ -12,6 +12,7 @@ from stable_baselines.common.vec_env import SubprocVecEnv
 from stable_baselines.gail import ExpertDataset
 
 import rl_comm.gnn_fwd as gnn_fwd
+from rl_comm.gnn_fwd import GnnFwd
 from rl_comm.ppo2 import PPO2
 from rl_comm.utils import ckpt_file, callback
 
@@ -78,7 +79,8 @@ def train_helper(env_param, test_env_param, train_param, pretrain_param, policy_
 
         model.pretrain(dataset, n_epochs=pretrain_param['pretrain_epochs'],
                        learning_rate=pretrain_param['pretrain_lr'],
-                       val_interval=1, test_env=test_env, ckpt_params=ckpt_params)
+                       val_interval=1, test_env=test_env, ckpt_params=ckpt_params,
+                       ent_coef=pretrain_param['pretrain_ent_coef'])
 
         del dataset
         ckpt_idx += int(train_param['pretrain_epochs'] / ckpt_params['pretrain_checkpoint_epochs'])
@@ -101,8 +103,8 @@ def train_helper(env_param, test_env_param, train_param, pretrain_param, policy_
 
 
 def run_experiment(args, section_name=''):
+    policy_fn = GnnFwd
 
-    policy_fn = gnn_fwd.GnnFwd
     policy_param = {
         'num_processing_steps': json.loads(args.get('aggregation')),
         'latent_size': json.loads(args.get('latent_size')),
@@ -140,6 +142,7 @@ def run_experiment(args, section_name=''):
             'pretrain_checkpoint_epochs': args.getint('pretrain_checkpoint_epochs'),
             'pretrain_batch': args.getint('pretrain_batch'),
             'pretrain_lr': args.getfloat('pretrain_lr'),
+            'pretrain_ent_coef': args.getfloat('pretrain_ent_coef'),
         }
     else:
         pretrain_param = None
