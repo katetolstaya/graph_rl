@@ -51,7 +51,8 @@ if __name__ == '__main__':
     # model_name = 'models/imitation_test/ckpt/ckpt_036.pkl' # [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
     # model_name = 'models/imitation_20/ckpt/ckpt_013.pkl'  # [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
     # model_name = 'models/imitation_105/ckpt/ckpt_015.pkl'  # [1,1,1,1,1,1,1,1,1,1,2,2,2,2,2]
-    model_name = 'models/imitation_77/ckpt/ckpt_127.pkl'  # [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
+    # model_name = 'models/imitation_77/ckpt/ckpt_127.pkl'  # [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
+    model_name = 'models/imitation_81/ckpt/ckpt_061.pkl'  # [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
 
     policy_param = {
         'num_processing_steps': [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
