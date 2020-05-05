@@ -447,7 +447,7 @@ class PPO2(ActorCriticRLModel):
         discrete_actions = isinstance(self.action_space, gym.spaces.Discrete)
         multidiscrete_actions = isinstance(self.action_space, gym.spaces.MultiDiscrete)
 
-        assert discrete_actions or continuous_actions or multidiscrete_actions, 'Only Discrete, MultiDiscrete, or Box action spaces are supported'
+        assert discrete_actions or multidiscrete_actions, 'Only Discrete, MultiDiscrete action spaces are supported'
         if multidiscrete_actions:
             assert np.all(
                 self.action_space.nvec == self.action_space.nvec[0]), "Ragged MultiDiscrete action spaces not allowed"
@@ -481,21 +481,20 @@ class PPO2(ActorCriticRLModel):
                     )
                     entropy_loss = tf.reduce_mean(self.act_model.proba_distribution.entropy())
                     loss = tf.reduce_mean(loss) - ent_coef * entropy_loss
-                    # if continuous_actions:
-                    #     obs_ph, actions_ph, deterministic_actions_ph = self._get_pretrain_placeholders()
-                    #     loss = tf.reduce_mean(tf.square(actions_ph - deterministic_actions_ph))
-                    # elif discrete_actions:
-                    #     obs_ph, actions_ph, actions_logits_ph = self._get_pretrain_placeholders()
-                    #     # actions_ph has a shape if (n_batch,), we reshape it to (n_batch, 1)
-                    #     # so no additional changes is needed in the dataloader
-                    #     actions_ph = tf.expand_dims(actions_ph, axis=1)
-                    #     one_hot_actions = tf.one_hot(actions_ph, self.action_space.n)
-                    #     loss = tf.nn.softmax_cross_entropy_with_logits_v2(
-                    #         logits=actions_logits_ph,
-                    #         labels=tf.stop_gradient(one_hot_actions)
-                    #     )
-                    #     loss = tf.reduce_mean(loss)
-                    # el
+
+                elif discrete_actions:
+                    obs_ph, actions_ph, actions_logits_ph = self._get_pretrain_placeholders()
+                    # actions_ph has a shape if (n_batch,), we reshape it to (n_batch, 1)
+                    # so no additional changes is needed in the dataloader
+                    actions_ph = tf.expand_dims(actions_ph, axis=1)
+                    one_hot_actions = tf.one_hot(actions_ph, self.action_space.n)
+                    loss = tf.nn.softmax_cross_entropy_with_logits_v2(
+                        logits=actions_logits_ph,
+                        labels=tf.stop_gradient(one_hot_actions)
+                    )
+                    entropy_loss = tf.reduce_mean(self.act_model.proba_distribution.entropy())
+                    loss = tf.reduce_mean(loss) - ent_coef * entropy_loss
+
                 else:
                     raise ValueError("Invalid action space")
 

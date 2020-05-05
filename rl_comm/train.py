@@ -43,6 +43,7 @@ def train_helper(env_param, test_env_param, train_param, pretrain_param, policy_
         model = PPO2.load(str(ckpt_file(ckpt_dir, ckpt_idx)), env, tensorboard_log=str(tb_dir))
         ckpt_idx += 1
     else:
+
         print('\nCreating new model.\n')
         model = PPO2(
             policy=policy_fn,
@@ -52,6 +53,8 @@ def train_helper(env_param, test_env_param, train_param, pretrain_param, policy_
             cliprange=train_param['cliprange'],
             adam_epsilon=train_param['adam_epsilon'],
             n_steps=train_param['n_steps'],
+            ent_coef=train_param['ent_coef'],
+            vf_coef=train_param['vf_coef'],
             verbose=1,
             tensorboard_log=str(tb_dir),
             full_tensorboard_log=False)
