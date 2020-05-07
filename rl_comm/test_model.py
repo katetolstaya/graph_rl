@@ -4,13 +4,14 @@ import gym
 import gym_flock
 import time
 import rl_comm.gnn_fwd as gnn_fwd
+from rl_comm.ppo2 import PPO2
 from stable_baselines.common.vec_env import SubprocVecEnv
 from stable_baselines.common.base_class import BaseRLModel
 
 
 def make_env():
-    # env_name = "CoverageFull-v0"
-    env_name = "CoverageARL-v0"
+    env_name = "CoverageFull-v0"
+    # env_name = "CoverageARL-v0"
     my_env = gym.make(env_name)
     my_env = gym.wrappers.FlattenDictWrapper(my_env, dict_keys=my_env.env.keys)
     return my_env
@@ -42,33 +43,26 @@ def eval_model(env, model, N, render_mode='none'):
 
 
 if __name__ == '__main__':
-    from stable_baselines import PPO2
-
     env = make_env()
     vec_env = SubprocVecEnv([make_env])
 
     # Specify pre-trained model checkpoint file.
-    # model_name = 'models/imitation_test/ckpt/ckpt_036.pkl' # [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
-    # model_name = 'models/imitation_20/ckpt/ckpt_013.pkl'  # [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
-    # model_name = 'models/imitation_105/ckpt/ckpt_015.pkl'  # [1,1,1,1,1,1,1,1,1,1,2,2,2,2,2]
-    # model_name = 'models/imitation_77/ckpt/ckpt_127.pkl'  # [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
-    # model_name = 'models/imitation_81/ckpt/ckpt_061.pkl'  # [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
-    # model_name = 'models/rl_86/ckpt/ckpt_012.pkl'  # [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
-    model_name = 'models/rl_90/ckpt/ckpt_007.pkl'  # [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
+    # model_name = 'models/imitation_test/ckpt/ckpt_036.pkl'
+    # model_name = 'models/imitation_20/ckpt/ckpt_013.pkl'
+    # model_name = 'models/imitation_105/ckpt/ckpt_015.pkl'
+    # model_name = 'models/imitation_77/ckpt/ckpt_127.pkl'
+    # model_name = 'models/imitation_81/ckpt/ckpt_061.pkl'
+    # model_name = 'models/rl_86/ckpt/ckpt_012.pkl'
+    # model_name = 'models/rl_90/ckpt/ckpt_007.pkl'
+    model_name = 'models/rl_94/ckpt/ckpt_100.pkl'
 
-    policy_param = {
-        'num_processing_steps': [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
-        'n_layers': 2,
-        'latent_size': 16,
-    }
+    # load the dictionary of parameters from file
+    model_params, params = BaseRLModel._load_from_file(model_name)
 
     new_model = PPO2(
         policy=gnn_fwd.GnnFwd,
-        policy_kwargs=policy_param,
+        policy_kwargs=model_params['policy_kwargs'],
         env=vec_env)
-
-    # load the dictionary of parameters from file
-    _, params = BaseRLModel._load_from_file(model_name)
 
     # update new model's parameters
     new_model.load_parameters(params)

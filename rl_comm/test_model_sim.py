@@ -36,21 +36,13 @@ if __name__ == '__main__':
     # Specify pre-trained model checkpoint file.
     model_name = 'models/imitation_test/ckpt/ckpt_036.pkl'
 
-    policy_param = {
-        'num_processing_steps': [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-        'n_layers': 2,
-        'latent_size': 16,
-    }
-
-    n_steps = 32
+    # load the dictionary of parameters from file
+    model_params, params = BaseRLModel._load_from_file(model_name)
 
     new_model = PPO2(
         policy=gnn_fwd.GnnFwd,
-        policy_kwargs=policy_param,
+        policy_kwargs=model_params['policy_kwargs'],
         env=vec_env)
-
-    # load the dictionary of parameters from file
-    _, params = BaseRLModel._load_from_file(model_name)
 
     # update new model's parameters
     new_model.load_parameters(params)
