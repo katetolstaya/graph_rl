@@ -10,8 +10,8 @@ from stable_baselines.common.base_class import BaseRLModel
 
 
 def make_env():
-    env_name = "CoverageFull-v0"
-    # env_name = "CoverageARL-v0"
+    # env_name = "CoverageFull-v0"
+    env_name = "CoverageARL-v0"
     my_env = gym.make(env_name)
     my_env = gym.wrappers.FlattenDictWrapper(my_env, dict_keys=my_env.env.keys)
     return my_env
@@ -54,7 +54,8 @@ if __name__ == '__main__':
     # model_name = 'models/imitation_81/ckpt/ckpt_061.pkl'
     # model_name = 'models/rl_86/ckpt/ckpt_012.pkl'
     # model_name = 'models/rl_90/ckpt/ckpt_007.pkl'
-    model_name = 'models/rl_94/ckpt/ckpt_100.pkl'
+    # model_name = 'models/rl_94/ckpt/ckpt_100.pkl'  # ent_coef  = 1e-5
+    model_name = 'models/rl_95/ckpt/ckpt_100.pkl'  # ent_coef  = 1e-6
 
     # load the dictionary of parameters from file
     model_params, params = BaseRLModel._load_from_file(model_name)
