@@ -60,16 +60,24 @@ if __name__ == '__main__':
     # load the dictionary of parameters from file
     model_params, params = BaseRLModel._load_from_file(model_name)
 
+    # policy_kwargs = model_params['policy_kwargs']
+
+    policy_kwargs = {
+        'num_processing_steps': [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],  #[1,1,1,1,1,1,3,3,3,1,1,1,1,1,1], #[1,1,1,3,1,1,3,1,1,1,3,1,1,1,1],
+        'n_layers': 2,
+        'latent_size': 16,
+    }
+
     new_model = PPO2(
         policy=gnn_fwd.GnnFwd,
-        policy_kwargs=model_params['policy_kwargs'],
+        policy_kwargs=policy_kwargs,
         env=vec_env)
 
     # update new model's parameters
     new_model.load_parameters(params)
 
     print('\nPlay 10 games and return scores...')
-    results = eval_model(env, new_model, 10, render_mode='none')
+    results = eval_model(env, new_model, 30, render_mode='none')
     print('reward,          mean = {:.1f}, std = {:.1f}'.format(np.mean(results['reward']), np.std(results['reward'])))
     print('')
 

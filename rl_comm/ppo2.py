@@ -1,11 +1,13 @@
 import time
 import gym
+import os
+import glob
 import numpy as np
 import tensorflow as tf
 from collections import deque
 
 from stable_baselines import logger
-from stable_baselines.common import explained_variance, ActorCriticRLModel, tf_util, SetVerbosity, TensorboardWriter
+from stable_baselines.common import explained_variance, ActorCriticRLModel, tf_util, SetVerbosity
 from stable_baselines.common.runners import AbstractEnvRunner
 from stable_baselines.common.policies import ActorCriticPolicy, RecurrentActorCriticPolicy
 from stable_baselines.a2c.utils import total_episode_reward_logger
@@ -464,7 +466,8 @@ class PPO2(ActorCriticRLModel):
 
         tb_log_name = 'pretrain'
         writer = tf.summary.FileWriter(self.tensorboard_log + "/" + tb_log_name, flush_secs=30)
-        writer.add_graph(self.graph)
+        # Do not save graph
+        # writer.add_graph(self.graph)
 
         with self.graph.as_default():
             with tf.variable_scope('pretrain'):
@@ -610,3 +613,51 @@ class PPO2(ActorCriticRLModel):
         params_to_save = self.get_parameters()
 
         self._save_to_file(save_path, data=data, params=params_to_save, cloudpickle=cloudpickle)
+
+
+class TensorboardWriter:
+    def __init__(self, graph, tensorboard_log_path, tb_log_name, new_tb_log=True):
+        """
+        Create a Tensorboard writer for a code segment, and saves it to the log directory as its own run
+
+        :param graph: (Tensorflow Graph) the model graph
+        :param tensorboard_log_path: (str) the save path for the log (can be None for no logging)
+        :param tb_log_name: (str) the name of the run for tensorboard log
+        :param new_tb_log: (bool) whether or not to create a new logging folder for tensorboard
+        """
+        self.graph = graph
+        self.tensorboard_log_path = tensorboard_log_path
+        self.tb_log_name = tb_log_name
+        self.writer = None
+        self.new_tb_log = new_tb_log
+
+    def __enter__(self):
+        if self.tensorboard_log_path is not None:
+            latest_run_id = self._get_latest_run_id()
+            if self.new_tb_log:
+                latest_run_id = latest_run_id + 1
+            save_path = os.path.join(self.tensorboard_log_path, "{}_{}".format(self.tb_log_name, latest_run_id))
+            # self.writer = tf.summary.FileWriter(save_path, graph=self.graph)
+            # do not save huge graph
+            self.writer = tf.summary.FileWriter(save_path)
+        return self.writer
+
+    def _get_latest_run_id(self):
+        """
+        returns the latest run number for the given log name and log path,
+        by finding the greatest number in the directories.
+
+        :return: (int) latest run number
+        """
+        max_run_id = 0
+        for path in glob.glob("{}/{}_[0-9]*".format(self.tensorboard_log_path, self.tb_log_name)):
+            file_name = path.split(os.sep)[-1]
+            ext = file_name.split("_")[-1]
+            if self.tb_log_name == "_".join(file_name.split("_")[:-1]) and ext.isdigit() and int(ext) > max_run_id:
+                max_run_id = int(ext)
+        return max_run_id
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        if self.writer is not None:
+            # self.writer.add_graph(self.graph)
+            self.writer.flush()
