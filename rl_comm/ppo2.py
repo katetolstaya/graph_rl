@@ -6,6 +6,8 @@ import numpy as np
 import tensorflow as tf
 from collections import deque
 
+
+# from tf_agents.replay_buffers.py_uniform_replay_buffer import PyUniformReplayBuffer
 from stable_baselines import logger
 from stable_baselines.common import explained_variance, ActorCriticRLModel, tf_util, SetVerbosity
 from stable_baselines.common.runners import AbstractEnvRunner
@@ -13,7 +15,7 @@ from stable_baselines.common.policies import ActorCriticPolicy, RecurrentActorCr
 from stable_baselines.a2c.utils import total_episode_reward_logger
 from stable_baselines.ppo2.ppo2 import safe_mean, get_schedule_fn, Runner
 from rl_comm.utils import eval_env
-
+from rl_comm.replay_buffer import ReplayBuffer
 
 class PPO2(ActorCriticRLModel):
     """
@@ -445,7 +447,7 @@ class PPO2(ActorCriticRLModel):
             By default, every 10th of the maximum number of epochs.
         :return: (BaseRLModel) the pretrained model
         """
-        continuous_actions = isinstance(self.action_space, gym.spaces.Box)
+
         discrete_actions = isinstance(self.action_space, gym.spaces.Discrete)
         multidiscrete_actions = isinstance(self.action_space, gym.spaces.MultiDiscrete)
 
@@ -524,6 +526,7 @@ class PPO2(ActorCriticRLModel):
                     obs_ph: expert_obs,
                     actions_ph: expert_actions,
                 }
+
                 train_loss_, _ = self.sess.run([loss, optim_op], feed_dict)
                 train_loss += train_loss_
 
@@ -585,6 +588,183 @@ class PPO2(ActorCriticRLModel):
         if self.verbose > 0:
             print("Pretraining done.")
         return self
+
+
+    def pretrain_dagger(self, env, n_epochs=10, learning_rate=1e-4, ent_coef=0.0001,
+                 adam_epsilon=1e-8, buffer_size=1000, val_interval=None, test_env=None, ckpt_params=None):
+        """
+        Pretrain a model using behavior cloning:
+        supervised learning given an expert dataset.
+
+        NOTE: only Box and Discrete spaces are supported for now.
+
+        :param ent_coef:
+        :param ckpt_params:
+        :param test_env: Test environment
+        :param env: Environment that implements a controller() method
+        :param n_epochs: (int) Number of iterations on the training set
+        :param learning_rate: (float) Learning rate
+        :param adam_epsilon: (float) the epsilon value for the adam optimizer
+        :param val_interval: (int) Report training and validation losses every n epochs.
+            By default, every 10th of the maximum number of epochs.
+        :return: (BaseRLModel) the pretrained model
+        """
+        discrete_actions = isinstance(self.action_space, gym.spaces.Discrete)
+        multidiscrete_actions = isinstance(self.action_space, gym.spaces.MultiDiscrete)
+
+        assert discrete_actions or multidiscrete_actions, 'Only Discrete, MultiDiscrete action spaces are supported'
+        if multidiscrete_actions:
+            assert np.all(
+                self.action_space.nvec == self.action_space.nvec[0]), "Ragged MultiDiscrete action spaces not allowed"
+            n_actions = self.action_space.nvec[0]
+            n_agents = len(self.action_space.nvec)
+
+        # Validate the model every 10% of the total number of iteration
+        if val_interval is None:
+            # Prevent modulo by zero
+            if n_epochs < 10:
+                val_interval = 1
+            else:
+                val_interval = int(n_epochs / 10)
+
+        tb_log_name = 'pretrain'
+        writer = tf.summary.FileWriter(self.tensorboard_log + "/" + tb_log_name, flush_secs=30)
+        # Do not save graph
+        # writer.add_graph(self.graph)
+
+        with self.graph.as_default():
+            with tf.variable_scope('pretrain'):
+                if multidiscrete_actions:
+                    obs_ph, actions_ph, actions_logits_ph = self._get_pretrain_placeholders()
+                    actions_ph = tf.reshape(actions_ph, (-1, n_agents))
+                    one_hot_actions = tf.one_hot(actions_ph, n_actions)
+
+                    actions_logits_ph = tf.reshape(actions_logits_ph, (-1, n_agents, n_actions))
+                    loss = tf.nn.softmax_cross_entropy_with_logits_v2(
+                        logits=actions_logits_ph,
+                        labels=tf.stop_gradient(one_hot_actions),
+                        axis=2
+                    )
+                    entropy_loss = tf.reduce_mean(self.act_model.proba_distribution.entropy())
+                    loss = tf.reduce_mean(loss) - ent_coef * entropy_loss
+
+                elif discrete_actions:
+                    obs_ph, actions_ph, actions_logits_ph = self._get_pretrain_placeholders()
+                    # actions_ph has a shape if (n_batch,), we reshape it to (n_batch, 1)
+                    # so no additional changes is needed in the dataloader
+                    actions_ph = tf.expand_dims(actions_ph, axis=1)
+                    one_hot_actions = tf.one_hot(actions_ph, self.action_space.n)
+                    loss = tf.nn.softmax_cross_entropy_with_logits_v2(
+                        logits=actions_logits_ph,
+                        labels=tf.stop_gradient(one_hot_actions)
+                    )
+                    entropy_loss = tf.reduce_mean(self.act_model.proba_distribution.entropy())
+                    loss = tf.reduce_mean(loss) - ent_coef * entropy_loss
+
+                else:
+                    raise ValueError("Invalid action space")
+
+                optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate, epsilon=adam_epsilon)
+                optim_op = optimizer.minimize(loss, var_list=self.params)
+
+            self.sess.run(tf.global_variables_initializer())
+
+        if self.verbose > 0:
+            print("Pretraining with DAgger...")
+
+        if ckpt_params is not None:
+            ckpt_idx = ckpt_params['ckpt_idx']
+            ckpt_epochs = ckpt_params['ckpt_epochs']
+            ckpt_file = ckpt_params['ckpt_file']
+            ckpt_dir = ckpt_params['ckpt_dir']
+
+        batch_size = 20
+        buffer_size = 1000
+        updates_per_step = 20
+        n_train_episodes = 400
+        beta_coeff = 0.993
+
+        beta = 1
+
+        memory = ReplayBuffer(max_size=buffer_size)
+
+        for i in range(n_train_episodes):
+
+            beta = max(beta * beta_coeff, 0.5)
+            state = env.reset()
+            done = False
+            n_updates = 0
+            train_loss_ = 0
+            epoch_idx = 0
+
+            while not done:
+
+                optimal_action = env.env.env.controller()
+                if np.random.binomial(1, beta) > 0:
+                    action = optimal_action
+                else:
+                    state = np.array(state).reshape((1, -1))
+                    action, _ = self.predict(state, deterministic=False)
+                    action = np.array(action).reshape((-1, 1))
+
+                next_state, reward, done, _ = env.step(action)
+
+                memory.insert((state, optimal_action))
+
+            if memory.curr_size > batch_size:
+                for _ in range(updates_per_step):
+                    samples = memory.sample(batch_size)
+                    expert_obs, expert_actions = zip(*samples)
+
+                    expert_obs_arr = np.array(expert_obs).reshape((batch_size, -1))
+                    expert_actions_arr = np.array(expert_actions).reshape((batch_size, -1))
+
+                    feed_dict = {
+                        obs_ph: expert_obs_arr,
+                        actions_ph: expert_actions_arr,
+                    }
+                    train_loss_, _ = self.sess.run([loss, optim_op], feed_dict)
+                    n_updates += 1
+                epoch_idx = int(n_updates / batch_size)
+
+
+            if self.verbose > 0 and (epoch_idx + 1) % val_interval == 0:
+                if self.verbose > 0:
+                    print("==== Training progress {:.2f}% ====".format(100 * (epoch_idx + 1) / n_epochs))
+                    print('Epoch {}'.format(epoch_idx + 1))
+                    print("Training loss: {:.6f}".format(train_loss_))
+                    print()
+
+                    if writer is not None:
+                        summary = tf.Summary(
+                            value=[tf.Summary.Value(tag="pretrain_loss", simple_value=train_loss_)])
+                        writer.add_summary(summary, epoch_idx)
+
+                if test_env is not None:
+                    print('\nTesting...')
+                    results = eval_env(test_env, self, 20, render_mode='none')
+                    mean_reward = np.mean(results['reward'])
+                    print('reward,          mean = {:.1f}, std = {:.1f}'.format(mean_reward,
+                                                                                np.std(results['reward'])))
+                    print()
+
+                    if writer is not None:
+                        summary = tf.Summary(
+                            value=[tf.Summary.Value(tag="mean_reward", simple_value=mean_reward)])
+                        writer.add_summary(summary, epoch_idx)
+
+            if ckpt_params is not None and epoch_idx % ckpt_epochs == 0:
+                print('\nSaving model {}.\n'.format(ckpt_file(ckpt_dir, ckpt_idx).name))
+                self.save(str(ckpt_file(ckpt_dir, ckpt_idx)))
+                ckpt_idx += 1
+
+            # Free memory
+            del expert_obs, expert_actions
+        if self.verbose > 0:
+            print("Pretraining done.")
+        return self
+
+
 
     def save(self, save_path, cloudpickle=False):
         data = {

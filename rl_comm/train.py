@@ -77,16 +77,21 @@ def train_helper(env_param, test_env_param, train_param, pretrain_param, policy_
             'ckpt_dir': ckpt_dir
         }
 
-        dataset = ExpertDataset(expert_path=pretrain_param['pretrain_dataset'], traj_limitation=-1,
-                                batch_size=pretrain_param['pretrain_batch'], randomize=True)
+        # dataset = ExpertDataset(expert_path=pretrain_param['pretrain_dataset'], traj_limitation=-1,
+        #                         batch_size=pretrain_param['pretrain_batch'], randomize=True)
+        #
+        # model.pretrain(dataset, n_epochs=pretrain_param['pretrain_epochs'],
+        #                learning_rate=pretrain_param['pretrain_lr'],
+        #                val_interval=1, test_env=test_env, ckpt_params=ckpt_params,
+        #                ent_coef=pretrain_param['pretrain_ent_coef'])
+        #
+        # del dataset
+        # ckpt_idx += int(train_param['pretrain_epochs'] / ckpt_params['ckpt_epochs'])
 
-        model.pretrain(dataset, n_epochs=pretrain_param['pretrain_epochs'],
+        model.pretrain_dagger(env_param['make_env'](), n_epochs=pretrain_param['pretrain_epochs'],
                        learning_rate=pretrain_param['pretrain_lr'],
                        val_interval=1, test_env=test_env, ckpt_params=ckpt_params,
                        ent_coef=pretrain_param['pretrain_ent_coef'])
-
-        del dataset
-        ckpt_idx += int(train_param['pretrain_epochs'] / ckpt_params['pretrain_checkpoint_epochs'])
 
     # Training loop.
     print('\nBegin training.\n')
