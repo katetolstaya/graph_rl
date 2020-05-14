@@ -5,9 +5,10 @@ from __future__ import print_function
 import tensorflow as tf
 import sonnet as snt
 from graph_nets import modules, blocks
-from graph_nets.blocks import unsorted_segment_max_or_zero
+
 from graph_nets import graphs
 from stable_baselines.a2c.utils import ortho_init
+from rl_comm.utils import segment_logsumexp
 
 
 class AggregationDiffNet(snt.AbstractModule):
@@ -49,7 +50,7 @@ class AggregationDiffNet(snt.AbstractModule):
             edge_block_opt={'use_globals': False},
             node_block_opt={'use_globals': False},
             name="graph_net",
-            reducer=unsorted_segment_max_or_zero
+            reducer=segment_logsumexp  #unsorted_segment_max_or_zero
         )
 
         self._encoder = modules.GraphIndependent(make_mlp, make_mlp, make_mlp, name="encoder")
@@ -67,16 +68,6 @@ class AggregationDiffNet(snt.AbstractModule):
                                                                                initializers=global_inits,
                                                                                name="global_output")
 
-        # if global_output_size is not None:
-        #     self.global_output = blocks.GlobalBlock(
-        #         global_model_fn=lambda: snt.nets.MLP([latent_size]*2, activate_final=True),
-        #         use_nodes=True,
-        #         use_edges=False,
-        #         use_globals=False,
-        #         name='global_output')
-        # else:
-        #     self.global_output = None
-
         with self._enter_variable_scope():
             self._output_transform = modules.GraphIndependent(edge_fn, node_fn, global_fn, name="output")
 
@@ -87,15 +78,10 @@ class AggregationDiffNet(snt.AbstractModule):
         n_edge = input_op.n_edge
 
         latent = self._encoder(input_op)
-        # latent0 = latent
         output_ops = []
 
         for i in range(self._num_processing_steps):
             for j in range(self._proc_hops[i]):
-                # core_input = utils_tf.concat([latent0, latent], axis=1)
-                # latent = self._core(core_input)
-
-                # don't append latent0
                 latent = self._core(latent)
 
             decoded_op = self._decoder(latent)
@@ -118,11 +104,4 @@ class AggregationDiffNet(snt.AbstractModule):
             n_node=n_node,
             n_edge=n_edge)
 
-        # TODO is aggregation layer necessary?
-        # out = self._output_transform(self._aggregation(feature_graph))
-        # if self.global_output is None:
-        out = self._output_transform(feature_graph)
-        # else:
-        #     out = self._output_transform(self.global_output(feature_graph))
-
-        return out
+        return self._output_transform(feature_graph)

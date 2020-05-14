@@ -55,18 +55,20 @@ if __name__ == '__main__':
     # model_name = 'models/rl_86/ckpt/ckpt_012.pkl'
     # model_name = 'models/rl_90/ckpt/ckpt_007.pkl'
     # model_name = 'models/rl_94/ckpt/ckpt_100.pkl'  # ent_coef  = 1e-5
-    model_name = 'models/rl_95/ckpt/ckpt_100.pkl'  # ent_coef  = 1e-6
+    # model_name = 'models/rl_95/ckpt/ckpt_100.pkl'  # ent_coef  = 1e-6
+    model_name = 'models/dagger_3/ckpt/ckpt_022.pkl'  # ent_coef  = 1e-6
 
     # load the dictionary of parameters from file
     model_params, params = BaseRLModel._load_from_file(model_name)
 
-    # policy_kwargs = model_params['policy_kwargs']
+    policy_kwargs = model_params['policy_kwargs']
 
-    policy_kwargs = {
-        'num_processing_steps': [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],  #[1,1,1,1,1,1,3,3,3,1,1,1,1,1,1], #[1,1,1,3,1,1,3,1,1,1,3,1,1,1,1],
-        'n_layers': 2,
-        'latent_size': 16,
-    }
+    # policy_kwargs = {
+    #     # 'num_processing_steps': [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],  #[1,1,1,1,1,1,3,3,3,1,1,1,1,1,1], #[1,1,1,3,1,1,3,1,1,1,3,1,1,1,1],
+    #     'num_processing_steps': [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+    #     'n_layers': 2,
+    #     'latent_size': 16,
+    # }
 
     new_model = PPO2(
         policy=gnn_fwd.GnnFwd,

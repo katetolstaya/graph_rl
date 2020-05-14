@@ -15,7 +15,7 @@ from stable_baselines.common.policies import ActorCriticPolicy, RecurrentActorCr
 from stable_baselines.a2c.utils import total_episode_reward_logger
 from stable_baselines.ppo2.ppo2 import safe_mean, get_schedule_fn, Runner
 from rl_comm.utils import eval_env
-from rl_comm.replay_buffer import ReplayBuffer
+from rl_comm.utils import ReplayBuffer
 
 class PPO2(ActorCriticRLModel):
     """
@@ -591,7 +591,7 @@ class PPO2(ActorCriticRLModel):
 
 
     def pretrain_dagger(self, env, n_epochs=10, learning_rate=1e-4, ent_coef=0.0001,
-                 adam_epsilon=1e-8, buffer_size=1000, val_interval=None, test_env=None, ckpt_params=None):
+                 adam_epsilon=1e-8, buffer_size=1000, val_interval=None, test_env=None, ckpt_params=None, batch_size=20):
         """
         Pretrain a model using behavior cloning:
         supervised learning given an expert dataset.
@@ -678,55 +678,62 @@ class PPO2(ActorCriticRLModel):
             ckpt_file = ckpt_params['ckpt_file']
             ckpt_dir = ckpt_params['ckpt_dir']
 
-        batch_size = 20
-        buffer_size = 1000
+        buffer_size = 10000
         updates_per_step = 20
-        n_train_episodes = 400
-        beta_coeff = 0.993
+        n_train_episodes = 3000
+        beta_coeff = 0.998
+        # beta_coeff = 0.993
 
         beta = 1
 
         memory = ReplayBuffer(max_size=buffer_size)
+        n_updates = 0
+        epoch_idx = 0
 
         for i in range(n_train_episodes):
 
-            beta = max(beta * beta_coeff, 0.5)
+            beta = beta * beta_coeff  # max(beta * beta_coeff, 0.5)
             state = env.reset()
             done = False
-            n_updates = 0
             train_loss_ = 0
-            epoch_idx = 0
 
             while not done:
 
-                optimal_action = env.env.env.controller()
+                try:
+                    optimal_action = env.env.env.controller(random=False, greedy=False)
+                except AssertionError:
+                    state = env.reset()
+                    continue
+
                 if np.random.binomial(1, beta) > 0:
                     action = optimal_action
                 else:
-                    state = np.array(state).reshape((1, -1))
-                    action, _ = self.predict(state, deterministic=False)
+                    state_arr = np.array(state).reshape((1, -1))
+                    action, _ = self.predict(state_arr, deterministic=False)
                     action = np.array(action).reshape((-1, 1))
 
                 next_state, reward, done, _ = env.step(action)
 
                 memory.insert((state, optimal_action))
 
+                state = next_state
+
             if memory.curr_size > batch_size:
                 for _ in range(updates_per_step):
                     samples = memory.sample(batch_size)
                     expert_obs, expert_actions = zip(*samples)
 
-                    expert_obs_arr = np.array(expert_obs).reshape((batch_size, -1))
-                    expert_actions_arr = np.array(expert_actions).reshape((batch_size, -1))
+                    expert_obs_arr = np.concatenate(expert_obs, axis=0).reshape((batch_size, -1))
+                    expert_actions_arr = np.concatenate(expert_actions, axis=0).reshape((batch_size, -1))
 
                     feed_dict = {
                         obs_ph: expert_obs_arr,
                         actions_ph: expert_actions_arr,
                     }
+
                     train_loss_, _ = self.sess.run([loss, optim_op], feed_dict)
                     n_updates += 1
-                epoch_idx = int(n_updates / batch_size)
-
+                epoch_idx += 1
 
             if self.verbose > 0 and (epoch_idx + 1) % val_interval == 0:
                 if self.verbose > 0:
@@ -751,6 +758,10 @@ class PPO2(ActorCriticRLModel):
                     if writer is not None:
                         summary = tf.Summary(
                             value=[tf.Summary.Value(tag="mean_reward", simple_value=mean_reward)])
+                        writer.add_summary(summary, epoch_idx)
+
+                        summary = tf.Summary(
+                            value=[tf.Summary.Value(tag="beta", simple_value=beta)])
                         writer.add_summary(summary, epoch_idx)
 
             if ckpt_params is not None and epoch_idx % ckpt_epochs == 0:
