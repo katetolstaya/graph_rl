@@ -9,6 +9,7 @@ from graph_nets import modules, blocks
 from graph_nets import graphs
 from stable_baselines.a2c.utils import ortho_init
 from rl_comm.utils import segment_logsumexp
+from graph_nets.blocks import unsorted_segment_max_or_zero
 
 
 class AggregationDiffNet(snt.AbstractModule):
@@ -23,6 +24,7 @@ class AggregationDiffNet(snt.AbstractModule):
                  edge_output_size=None,
                  node_output_size=None,
                  global_output_size=None,
+                 reducer=None,
                  name="AggregationNet"):
         super(AggregationDiffNet, self).__init__(name=name)
 
@@ -30,6 +32,16 @@ class AggregationDiffNet(snt.AbstractModule):
             self._proc_hops = [1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
         else:
             self._proc_hops = num_processing_steps
+
+        if reducer is None or reducer == 'max':
+            reducer = unsorted_segment_max_or_zero
+        elif reducer == 'logsumexp':
+            print('logsumexp')
+            reducer = segment_logsumexp
+        elif reducer == 'sum':
+            reducer = tf.math.unsorted_segment_sum
+        else:
+            raise ValueError('Unkown reducer!')
 
         if latent_size is None:
             latent_size = 16
@@ -50,7 +62,7 @@ class AggregationDiffNet(snt.AbstractModule):
             edge_block_opt={'use_globals': False},
             node_block_opt={'use_globals': False},
             name="graph_net",
-            reducer=segment_logsumexp  #unsorted_segment_max_or_zero
+            reducer=reducer
         )
 
         self._encoder = modules.GraphIndependent(make_mlp, make_mlp, make_mlp, name="encoder")

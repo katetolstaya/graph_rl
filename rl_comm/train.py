@@ -119,7 +119,8 @@ def run_experiment(args, section_name=''):
     policy_param = {
         'num_processing_steps': json.loads(args.get('aggregation')),
         'latent_size': json.loads(args.get('latent_size')),
-        'n_layers': json.loads(args.get('n_layers'))
+        'n_layers': json.loads(args.get('n_layers')),
+        'reducer': args.get('reducer'),
     }
 
     env_name = args.get('env')
