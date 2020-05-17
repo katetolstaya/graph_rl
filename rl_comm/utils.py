@@ -7,6 +7,29 @@ from graph_nets.blocks import unsorted_segment_max_or_zero
 from progress.bar import Bar
 
 
+def segment_softmax(data, segments_ids, num_segments, name=None):
+    """ Compute softmax based on first feature """
+    # softmax over the segment based on norm of the features
+    # data_norm_exp = tf.exp(tf.norm(data, axis=1, keepdims=True))
+    data_norm_exp = tf.exp(tf.slice(data, [0, 0], [-1, 1]))
+    data_sums = tf.math.unsorted_segment_sum(data_norm_exp, segments_ids, num_segments, name)
+    data_norm2 = tf.math.divide_no_nan(data_norm_exp, tf.gather(data_sums, segments_ids, axis=0))
+    data_softmax = tf.multiply(data, data_norm2)
+    return tf.math.unsorted_segment_sum(data_softmax, segments_ids, num_segments)
+
+
+def segment_softmax_norm(data, segments_ids, num_segments, name=None):
+    """ Compute softmax based on norm of features """
+    # softmax over the segment based on norm of the features, with stability improvements
+    data_norm = tf.norm(data, axis=1, keepdims=True)
+    data_norm_max = unsorted_segment_max_or_zero(data_norm, segments_ids, num_segments, name)
+    data_norm_exp = tf.exp(data_norm - tf.gather(data_norm_max, segments_ids, axis=0))
+    data_sums = tf.math.unsorted_segment_sum(data_norm_exp, segments_ids, num_segments, name)
+    data_weights = tf.math.divide_no_nan(data_norm_exp, tf.gather(data_sums, segments_ids, axis=0))
+    data_softmax = tf.multiply(data, data_weights)
+    return tf.math.unsorted_segment_sum(data_softmax, segments_ids, num_segments)
+
+
 def segment_logsumexp(data, segments_ids, num_segments, name=None):
     """ Compute logsumexp over segments via logsumexp trick """
     # reference: https://github.com/becxer/rejection-qa/blob/master/docqa/nn/ops.py#L12

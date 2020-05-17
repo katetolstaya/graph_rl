@@ -56,7 +56,7 @@ if __name__ == '__main__':
     # model_name = 'models/rl_90/ckpt/ckpt_007.pkl'
     # model_name = 'models/rl_94/ckpt/ckpt_100.pkl'  # ent_coef  = 1e-5
     # model_name = 'models/rl_95/ckpt/ckpt_100.pkl'  # ent_coef  = 1e-6
-    model_name = 'models/dagger_3/ckpt/ckpt_022.pkl'  # ent_coef  = 1e-6
+    model_name = 'models/rl_118/ckpt/ckpt_016.pkl'  # ent_coef  = 1e-6
 
     # load the dictionary of parameters from file
     model_params, params = BaseRLModel._load_from_file(model_name)

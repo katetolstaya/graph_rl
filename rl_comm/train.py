@@ -8,10 +8,9 @@ import glob
 import sys
 from pathlib import Path
 from stable_baselines.common import BaseRLModel
-from stable_baselines.common.vec_env import SubprocVecEnv
+from stable_baselines.common.vec_env import SubprocVecEnv, VecNormalize
 from stable_baselines.gail import ExpertDataset
 
-import rl_comm.gnn_fwd as gnn_fwd
 from rl_comm.gnn_fwd import GnnFwd
 from rl_comm.ppo2 import PPO2
 from rl_comm.utils import ckpt_file, callback
@@ -25,6 +24,9 @@ def train_helper(env_param, test_env_param, train_param, pretrain_param, policy_
         d.mkdir(parents=True, exist_ok=True)
 
     env = SubprocVecEnv([env_param['make_env']] * train_param['n_env'])
+
+    if 'normalize_reward' in train_param and train_param['normalize_reward']:
+        env = VecNormalize(env, norm_obs=False, norm_reward=True)
     test_env = SubprocVecEnv([test_env_param['make_env']])
 
     if train_param['use_checkpoint']:
@@ -117,13 +119,13 @@ def run_experiment(args, section_name=''):
     policy_fn = GnnFwd
 
     policy_param = {
-        'num_processing_steps': json.loads(args.get('aggregation')),
-        'latent_size': json.loads(args.get('latent_size')),
-        'n_layers': json.loads(args.get('n_layers')),
-        'reducer': args.get('reducer'),
+        'num_processing_steps': json.loads(args.get('aggregation', '[1,1,1,1,1,1,1,1,1,1]')),
+        'latent_size': args.getint('latent_size', 16),
+        'n_layers': args.getint('n_layers', 2),
+        'reducer': args.get('reducer', 'max'),
     }
 
-    env_name = args.get('env')
+    env_name = args.get('env', 'CoverageARL-v0')
 
     def make_env():
         env = gym.make(env_name)
@@ -134,27 +136,28 @@ def run_experiment(args, section_name=''):
     test_env_param = {'make_env': make_env}
 
     train_param = {
-        'use_checkpoint': args.getboolean('use_checkpoint'),
-        'load_trained_policy': args.get('load_trained_policy'),
-        'n_env': args.getint('n_env'),
-        'n_steps': args.getint('n_steps'),
-        'checkpoint_timesteps': args.getint('checkpoint_timesteps'),
-        'total_timesteps': args.getint('total_timesteps'),
-        'train_lr': args.getfloat('train_lr'),
-        'cliprange': args.getfloat('cliprange'),
-        'adam_epsilon': args.getfloat('adam_epsilon'),
-        'vf_coef': args.getfloat('vf_coef'),
-        'ent_coef': args.getfloat('ent_coef'),
+        'use_checkpoint': args.getboolean('use_checkpoint', False),
+        'load_trained_policy': args.get('load_trained_policy', ''),
+        'normalize_reward': args.get('normalize_reward', False),
+        'n_env': args.getint('n_env', 4),
+        'n_steps': args.getint('n_steps', 10),
+        'checkpoint_timesteps': args.getint('checkpoint_timesteps', 10000),
+        'total_timesteps': args.getint('total_timesteps', 50000000),
+        'train_lr': args.getfloat('train_lr', 1e-4),
+        'cliprange': args.getfloat('cliprange', 0.2),
+        'adam_epsilon': args.getfloat('adam_epsilon', 1e-6),
+        'vf_coef': args.getfloat('vf_coef', 0.5),
+        'ent_coef': args.getfloat('ent_coef', 0.01),
     }
 
     if 'pretrain' in args and args.getboolean('pretrain'):
         pretrain_param = {
             'pretrain_dataset': args.get('pretrain_dataset'),
-            'pretrain_epochs': args.getint('pretrain_epochs'),
-            'pretrain_checkpoint_epochs': args.getint('pretrain_checkpoint_epochs'),
+            'pretrain_epochs': args.getint('pretrain_epochs', 2000),
+            'pretrain_checkpoint_epochs': args.getint('pretrain_checkpoint_epochs', 2),
             'pretrain_batch': args.getint('pretrain_batch'),
-            'pretrain_lr': args.getfloat('pretrain_lr'),
-            'pretrain_ent_coef': args.getfloat('pretrain_ent_coef'),
+            'pretrain_lr': args.getfloat('pretrain_lr', 1e-4),
+            'pretrain_ent_coef': args.getfloat('pretrain_ent_coef', 1e-6),
         }
     else:
         pretrain_param = None

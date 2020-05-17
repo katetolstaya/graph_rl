@@ -8,7 +8,7 @@ from graph_nets import modules, blocks
 
 from graph_nets import graphs
 from stable_baselines.a2c.utils import ortho_init
-from rl_comm.utils import segment_logsumexp
+from rl_comm.utils import segment_logsumexp, segment_softmax
 from graph_nets.blocks import unsorted_segment_max_or_zero
 
 
@@ -36,8 +36,9 @@ class AggregationDiffNet(snt.AbstractModule):
         if reducer is None or reducer == 'max':
             reducer = unsorted_segment_max_or_zero
         elif reducer == 'logsumexp':
-            print('logsumexp')
             reducer = segment_logsumexp
+        elif reducer == 'softmax':
+            reducer = segment_softmax
         elif reducer == 'sum':
             reducer = tf.math.unsorted_segment_sum
         else:
