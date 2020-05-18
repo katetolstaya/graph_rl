@@ -67,7 +67,8 @@ def eval_env(env, model, n_episodes, render_mode='none'):
             ep_reward = 0
             # Run one game.
             while not done:
-                action, states = model.predict(obs, deterministic=True)  # TODO need to reformat here?
+                # action, states = model.predict(obs, deterministic=True)  # TODO need to reformat here?
+                action, states = model.predict(obs, deterministic=False)  # TODO need to reformat here?
                 obs, r, done, _ = env.step(action)
                 ep_reward += r
                 # env.render(mode=render_mode)
