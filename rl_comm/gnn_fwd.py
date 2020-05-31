@@ -58,7 +58,7 @@ class GnnFwd(ActorCriticPolicy):
                 self.policy_model = models.AggregationDiffNet(num_processing_steps=num_processing_steps,
                                                               latent_size=latent_size,
                                                               n_layers=n_layers, reducer=reducer,
-                                                              edge_output_size=1, name="policy_model")
+                                                              edge_output_size=1, out_init_scale=1.0, name="policy_model")
                 policy_graph = self.policy_model(agent_graph)
                 edge_values = policy_graph.edges
 

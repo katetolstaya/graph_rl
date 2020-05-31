@@ -245,6 +245,12 @@ class PPO2(ActorCriticRLModel):
                         grads, _grad_norm = tf.clip_by_global_norm(grads, self.max_grad_norm)
                     grads = list(zip(grads, self.params))
 
+
+                # global_step = tf.Variable(0, trainable=False)
+                # decayed_lr = tf.train.exponential_decay(learning_rate,
+                #                                         global_step, 1000,
+                #                                         0.95, staircase=True)
+
                 trainer = tf.train.AdamOptimizer(learning_rate=self.learning_rate_ph, epsilon=self.edam_epsilon)
                 self._train = trainer.apply_gradients(grads)
 
@@ -527,8 +533,16 @@ class PPO2(ActorCriticRLModel):
                 else:
                     raise ValueError("Invalid action space")
 
-                optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate, epsilon=adam_epsilon)
-                optim_op = optimizer.minimize(loss, var_list=self.params)
+                global_step = tf.Variable(0, trainable=False)
+                # TODO tune the decay parameters:
+                decayed_lr = tf.train.exponential_decay(learning_rate,
+                                                        global_step, 1000,
+                                                        0.95, staircase=True)
+                optimizer = tf.train.AdamOptimizer(learning_rate=decayed_lr, epsilon=adam_epsilon)
+                optim_op = optimizer.minimize(loss, var_list=self.params, global_step=global_step)
+
+                # optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate, epsilon=adam_epsilon, decay=0.99)
+                # optim_op = optimizer.minimize(loss, var_list=self.params)
 
             self.sess.run(tf.global_variables_initializer())
 
@@ -575,9 +589,12 @@ class PPO2(ActorCriticRLModel):
                 val_loss /= (len(dataset.val_loader) - 1)
 
                 if self.verbose > 0:
+                    curr_lr, curr_global_step = self.sess.run([optimizer._lr, global_step])
+
                     print("==== Training progress {:.2f}% ====".format(100 * (epoch_idx + 1) / n_epochs))
                     print('Epoch {}'.format(epoch_idx + 1))
-                    print("Training loss: {:.6f}, Validation loss: {:.6f}".format(train_loss, val_loss))
+                    print("Training loss: {:.6f}, Validation loss: {:.6f}, Learning rate: {:10.3e}".format(train_loss, val_loss, curr_lr))
+                    # print("Training loss: {:.6f}, Validation loss: {:.6f}".format(train_loss, val_loss))
                     print()
 
                     if writer is not None:

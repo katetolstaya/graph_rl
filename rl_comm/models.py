@@ -8,7 +8,7 @@ from graph_nets import modules, blocks
 
 from graph_nets import graphs
 from stable_baselines.a2c.utils import ortho_init
-from rl_comm.utils import segment_logsumexp, segment_softmax
+from rl_comm.utils import segment_logsumexp, segment_softmax, segment_softmax_norm, segment_transformer
 from graph_nets.blocks import unsorted_segment_max_or_zero
 
 
@@ -25,6 +25,7 @@ class AggregationDiffNet(snt.AbstractModule):
                  node_output_size=None,
                  global_output_size=None,
                  reducer=None,
+                 out_init_scale=5.0,
                  name="AggregationNet"):
         super(AggregationDiffNet, self).__init__(name=name)
 
@@ -38,7 +39,7 @@ class AggregationDiffNet(snt.AbstractModule):
         elif reducer == 'logsumexp':
             reducer = segment_logsumexp
         elif reducer == 'softmax':
-            reducer = segment_softmax
+            reducer = segment_transformer
         elif reducer == 'sum':
             reducer = tf.math.unsorted_segment_sum
         else:
@@ -56,12 +57,15 @@ class AggregationDiffNet(snt.AbstractModule):
         def make_mlp():
             return snt.nets.MLP([latent_size] * n_layers, activate_final=True)
 
+        def make_linear():
+            return snt.nets.MLP([latent_size], activate_final=False)
+
         self._core = modules.GraphNetwork(
-            edge_model_fn=make_mlp,
+            edge_model_fn=make_linear,
             node_model_fn=make_mlp,
             global_model_fn=make_mlp,
             edge_block_opt={'use_globals': False},
-            node_block_opt={'use_globals': False},
+            node_block_opt={'use_globals': False, 'use_sent_edges': False},
             name="graph_net",
             reducer=reducer
         )
@@ -69,16 +73,15 @@ class AggregationDiffNet(snt.AbstractModule):
         self._encoder = modules.GraphIndependent(make_mlp, make_mlp, make_mlp, name="encoder")
         self._decoder = modules.GraphIndependent(make_mlp, make_mlp, make_mlp, name="decoder")
 
-        edge_inits = {'w': ortho_init(5.0), 'b': tf.constant_initializer(0.0)}
-        global_inits = {'w': ortho_init(5.0), 'b': tf.constant_initializer(0.0)}
+        inits = {'w': ortho_init(out_init_scale), 'b': tf.constant_initializer(0.0)}
 
         # Transforms the outputs into the appropriate shapes.
-        edge_fn = None if edge_output_size is None else lambda: snt.Linear(edge_output_size, initializers=edge_inits,
+        edge_fn = None if edge_output_size is None else lambda: snt.Linear(edge_output_size, initializers=inits,
                                                                            name="edge_output")
-        node_fn = None if node_output_size is None else lambda: snt.Linear(node_output_size, initializers=edge_inits,
+        node_fn = None if node_output_size is None else lambda: snt.Linear(node_output_size, initializers=inits,
                                                                            name="node_output")
         global_fn = None if global_output_size is None else lambda: snt.Linear(global_output_size,
-                                                                               initializers=global_inits,
+                                                                               initializers=inits,
                                                                                name="global_output")
 
         with self._enter_variable_scope():
