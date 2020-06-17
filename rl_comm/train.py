@@ -155,7 +155,7 @@ def run_experiment(args, section_name=''):
             'pretrain_dataset': args.get('pretrain_dataset'),
             'pretrain_epochs': args.getint('pretrain_epochs', 2000),
             'pretrain_checkpoint_epochs': args.getint('pretrain_checkpoint_epochs', 2),
-            'pretrain_batch': args.getint('pretrain_batch'),
+            'pretrain_batch': args.getint('pretrain_batch', 20),
             'pretrain_lr': args.getfloat('pretrain_lr', 1e-4),
             'pretrain_ent_coef': args.getfloat('pretrain_ent_coef', 1e-6),
         }
