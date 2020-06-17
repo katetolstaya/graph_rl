@@ -6,26 +6,45 @@ import tensorflow as tf
 from graph_nets.blocks import unsorted_segment_max_or_zero
 from progress.bar import Bar
 
+KEY_SIZE = 8
 
 def segment_softmax(data, segments_ids, num_segments, name=None):
     """ Compute softmax based on first feature """
     # softmax over the segment based on norm of the features
     # data_norm_exp = tf.exp(tf.norm(data, axis=1, keepdims=True))
-    data_norm_exp = tf.exp(tf.slice(data, [0, 0], [-1, 1]))
-    data_sums = tf.math.unsorted_segment_sum(data_norm_exp, segments_ids, num_segments, name)
-    data_norm2 = tf.math.divide_no_nan(data_norm_exp, tf.gather(data_sums, segments_ids, axis=0))
-    data_softmax = tf.multiply(data, data_norm2)
+    weight = tf.exp(tf.slice(data, [0, 0], [-1, 1]))
+    data_sums = tf.math.unsorted_segment_sum(weight, segments_ids, num_segments, name)
+    data_norm2 = tf.math.divide_no_nan(weight, tf.gather(data_sums, segments_ids, axis=0))
+    data_slice = tf.slice(data, [0, 1], [-1, -1])  # TODO is this necessary?
+    data_softmax = tf.multiply(data_slice, data_norm2)
+    return tf.math.unsorted_segment_sum(data_softmax, segments_ids, num_segments)
+
+
+def segment_transformer(data, segments_ids, num_segments, name=None):
+    """ Compute softmax based on norm of features """
+    # softmax over the segment based on norm of the features, with stability improvements
+    key = tf.slice(data, [0, 0], [-1, KEY_SIZE])
+    query = tf.slice(data, [0, KEY_SIZE], [-1, KEY_SIZE])
+    # value = data #tf.slice(data, [0, LATENT_SIZE * 2], [-1, LATENT_SIZE])
+    weight = tf.reduce_sum(tf.multiply(key, query), axis=1, keepdims=True)
+    # weight = tf.norm(data, axis=1, keepdims=True)
+    weight_max = unsorted_segment_max_or_zero(weight, segments_ids, num_segments, name)
+    weight_exp = tf.exp(weight - tf.gather(weight_max, segments_ids, axis=0))
+    data_sums = tf.math.unsorted_segment_sum(weight_exp, segments_ids, num_segments, name)
+    data_weights = tf.math.divide_no_nan(weight_exp, tf.gather(data_sums, segments_ids, axis=0))
+    # data_softmax = tf.multiply(value, data_weights)
+    data_softmax = tf.multiply(data, data_weights)
     return tf.math.unsorted_segment_sum(data_softmax, segments_ids, num_segments)
 
 
 def segment_softmax_norm(data, segments_ids, num_segments, name=None):
     """ Compute softmax based on norm of features """
     # softmax over the segment based on norm of the features, with stability improvements
-    data_norm = tf.norm(data, axis=1, keepdims=True)
-    data_norm_max = unsorted_segment_max_or_zero(data_norm, segments_ids, num_segments, name)
-    data_norm_exp = tf.exp(data_norm - tf.gather(data_norm_max, segments_ids, axis=0))
-    data_sums = tf.math.unsorted_segment_sum(data_norm_exp, segments_ids, num_segments, name)
-    data_weights = tf.math.divide_no_nan(data_norm_exp, tf.gather(data_sums, segments_ids, axis=0))
+    weight = tf.norm(data, axis=1, keepdims=True)
+    weight_max = unsorted_segment_max_or_zero(weight, segments_ids, num_segments, name)
+    weight_exp = tf.exp(weight - tf.gather(weight_max, segments_ids, axis=0))
+    data_sums = tf.math.unsorted_segment_sum(weight_exp, segments_ids, num_segments, name)
+    data_weights = tf.math.divide_no_nan(weight_exp, tf.gather(data_sums, segments_ids, axis=0))
     data_softmax = tf.multiply(data, data_weights)
     return tf.math.unsorted_segment_sum(data_softmax, segments_ids, num_segments)
 
@@ -67,7 +86,8 @@ def eval_env(env, model, n_episodes, render_mode='none'):
             ep_reward = 0
             # Run one game.
             while not done:
-                action, states = model.predict(obs, deterministic=True)  # TODO need to reformat here?
+                action, states = model.predict(obs, deterministic=True)
+                # action, states = model.predict(obs, deterministic=False)
                 obs, r, done, _ = env.step(action)
                 ep_reward += r
                 # env.render(mode=render_mode)

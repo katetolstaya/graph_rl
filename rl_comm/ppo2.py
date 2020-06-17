@@ -1,3 +1,27 @@
+# The MIT License
+#
+# Copyright (c) 2017 OpenAI (http://openai.com)
+# Copyright (c) 2018-2019 Stable-Baselines Team
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in
+# all copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+# THE SOFTWARE.
+
+
 import time
 import gym
 import os
@@ -220,6 +244,12 @@ class PPO2(ActorCriticRLModel):
                     if self.max_grad_norm is not None:
                         grads, _grad_norm = tf.clip_by_global_norm(grads, self.max_grad_norm)
                     grads = list(zip(grads, self.params))
+
+
+                # global_step = tf.Variable(0, trainable=False)
+                # decayed_lr = tf.train.exponential_decay(learning_rate,
+                #                                         global_step, 1000,
+                #                                         0.95, staircase=True)
 
                 trainer = tf.train.AdamOptimizer(learning_rate=self.learning_rate_ph, epsilon=self.edam_epsilon)
                 self._train = trainer.apply_gradients(grads)
@@ -503,8 +533,16 @@ class PPO2(ActorCriticRLModel):
                 else:
                     raise ValueError("Invalid action space")
 
-                optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate, epsilon=adam_epsilon)
-                optim_op = optimizer.minimize(loss, var_list=self.params)
+                global_step = tf.Variable(0, trainable=False)
+                # TODO tune the decay parameters:
+                decayed_lr = tf.train.exponential_decay(learning_rate,
+                                                        global_step, 1000,
+                                                        0.95, staircase=True)
+                optimizer = tf.train.AdamOptimizer(learning_rate=decayed_lr, epsilon=adam_epsilon)
+                optim_op = optimizer.minimize(loss, var_list=self.params, global_step=global_step)
+
+                # optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate, epsilon=adam_epsilon, decay=0.99)
+                # optim_op = optimizer.minimize(loss, var_list=self.params)
 
             self.sess.run(tf.global_variables_initializer())
 
@@ -551,9 +589,12 @@ class PPO2(ActorCriticRLModel):
                 val_loss /= (len(dataset.val_loader) - 1)
 
                 if self.verbose > 0:
+                    curr_lr, curr_global_step = self.sess.run([optimizer._lr, global_step])
+
                     print("==== Training progress {:.2f}% ====".format(100 * (epoch_idx + 1) / n_epochs))
                     print('Epoch {}'.format(epoch_idx + 1))
-                    print("Training loss: {:.6f}, Validation loss: {:.6f}".format(train_loss, val_loss))
+                    print("Training loss: {:.6f}, Validation loss: {:.6f}, Learning rate: {:10.3e}".format(train_loss, val_loss, curr_lr))
+                    # print("Training loss: {:.6f}, Validation loss: {:.6f}".format(train_loss, val_loss))
                     print()
 
                     if writer is not None:
