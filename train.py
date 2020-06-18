@@ -10,6 +10,7 @@ from pathlib import Path
 from stable_baselines.common import BaseRLModel
 from stable_baselines.common.vec_env import SubprocVecEnv, VecNormalize
 from stable_baselines.gail import ExpertDataset
+from stable_baselines.common.schedules import LinearSchedule
 
 from rl_comm.gnn_fwd import GnnFwd
 from rl_comm.ppo2 import PPO2
@@ -45,13 +46,15 @@ def train_helper(env_param, test_env_param, train_param, pretrain_param, policy_
         model = PPO2.load(str(ckpt_file(ckpt_dir, ckpt_idx)), env, tensorboard_log=str(tb_dir))
         ckpt_idx += 1
     else:
-
         print('\nCreating new model.\n')
+        lr_schedule = LinearSchedule(schedule_timesteps=1e9, initial_p=train_param['train_lr'],
+                                     final_p=0.01 * train_param['train_lr'])
+
         model = PPO2(
             policy=policy_fn,
             policy_kwargs=policy_param,
             env=env,
-            learning_rate=train_param['train_lr'],
+            learning_rate=lr_schedule,
             cliprange=train_param['cliprange'],
             adam_epsilon=train_param['adam_epsilon'],
             n_steps=train_param['n_steps'],
@@ -60,6 +63,7 @@ def train_helper(env_param, test_env_param, train_param, pretrain_param, policy_
             verbose=1,
             tensorboard_log=str(tb_dir),
             full_tensorboard_log=False)
+        
         ckpt_idx = 0
 
         if 'load_trained_policy' in train_param and len(train_param['load_trained_policy']) > 0:

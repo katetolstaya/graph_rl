@@ -57,11 +57,11 @@ class AggregationDiffNet(snt.AbstractModule):
         def make_mlp():
             return snt.nets.MLP([latent_size] * n_layers, activate_final=True)
 
-        def make_linear():
-            return snt.nets.MLP([latent_size], activate_final=False)
+        # def make_linear():
+        #     return snt.nets.MLP([latent_size], activate_final=False)
 
         self._core = modules.GraphNetwork(
-            edge_model_fn=make_linear,
+            edge_model_fn=make_mlp,
             node_model_fn=make_mlp,
             global_model_fn=make_mlp,
             edge_block_opt={'use_globals': False},
