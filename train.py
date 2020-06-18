@@ -47,7 +47,7 @@ def train_helper(env_param, test_env_param, train_param, pretrain_param, policy_
         ckpt_idx += 1
     else:
         print('\nCreating new model.\n')
-        lr_schedule = LinearSchedule(schedule_timesteps=1e9, initial_p=train_param['train_lr'],
+        lr_schedule = LinearSchedule(schedule_timesteps=1e6, initial_p=train_param['train_lr'],
                                      final_p=0.01 * train_param['train_lr'])
 
         model = PPO2(
@@ -63,7 +63,7 @@ def train_helper(env_param, test_env_param, train_param, pretrain_param, policy_
             verbose=1,
             tensorboard_log=str(tb_dir),
             full_tensorboard_log=False)
-        
+
         ckpt_idx = 0
 
         if 'load_trained_policy' in train_param and len(train_param['load_trained_policy']) > 0:
