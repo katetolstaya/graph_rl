@@ -356,7 +356,7 @@ class PPO2(ActorCriticRLModel):
     def learn(self, total_timesteps, callback=None, log_interval=1, tb_log_name="PPO2",
               reset_num_timesteps=True):
         # Transform to callable if needed
-        self.learning_rate = get_schedule_fn(self.learning_rate)
+        self.learning_rate = get_schedule_fn(self.learning_rate.value)
         self.cliprange = get_schedule_fn(self.cliprange)
         cliprange_vf = get_schedule_fn(self.cliprange_vf)
 
