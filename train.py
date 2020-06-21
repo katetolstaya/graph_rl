@@ -47,14 +47,14 @@ def train_helper(env_param, test_env_param, train_param, pretrain_param, policy_
         ckpt_idx += 1
     else:
         print('\nCreating new model.\n')
-        lr_schedule = LinearSchedule(schedule_timesteps=1e6, initial_p=train_param['train_lr'],
-                                     final_p=0.01 * train_param['train_lr'])
+        # lr_schedule = LinearSchedule(schedule_timesteps=1e6, initial_p=train_param['train_lr'],
+        #                              final_p=0.01 * train_param['train_lr'])
 
         model = PPO2(
             policy=policy_fn,
             policy_kwargs=policy_param,
             env=env,
-            learning_rate=lr_schedule,
+            learning_rate=train_param['train_lr'],
             cliprange=train_param['cliprange'],
             adam_epsilon=train_param['adam_epsilon'],
             n_steps=train_param['n_steps'],

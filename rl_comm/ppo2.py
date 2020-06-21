@@ -356,7 +356,7 @@ class PPO2(ActorCriticRLModel):
     def learn(self, total_timesteps, callback=None, log_interval=1, tb_log_name="PPO2",
               reset_num_timesteps=True):
         # Transform to callable if needed
-        # self.learning_rate = get_schedule_fn(self.learning_rate)
+        self.learning_rate = get_schedule_fn(self.learning_rate)
         self.cliprange = get_schedule_fn(self.cliprange)
         cliprange_vf = get_schedule_fn(self.cliprange_vf)
 
@@ -378,7 +378,7 @@ class PPO2(ActorCriticRLModel):
                 batch_size = self.n_batch // self.nminibatches
                 t_start = time.time()
                 frac = 1.0 - (update - 1.0) / n_updates
-                lr_now = get_schedule_fn(self.learning_rate)(frac)
+                lr_now = self.learning_rate(frac) * (0.01**frac)  # TODO
                 cliprange_now = self.cliprange(frac)
                 cliprange_vf_now = cliprange_vf(frac)
                 # true_reward is the reward without discount
