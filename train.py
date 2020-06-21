@@ -93,7 +93,7 @@ def train_helper(env_param, test_env_param, train_param, pretrain_param, policy_
                            ent_coef=pretrain_param['pretrain_ent_coef'])
 
             del dataset
-            ckpt_idx += int(train_param['pretrain_epochs'] / ckpt_params['ckpt_epochs'])
+            ckpt_idx += int(pretrain_param['pretrain_epochs'] / ckpt_params['ckpt_epochs'])
         else:
             model.pretrain_dagger(env_param['make_env'](), n_epochs=pretrain_param['pretrain_epochs'],
                                   learning_rate=pretrain_param['pretrain_lr'],

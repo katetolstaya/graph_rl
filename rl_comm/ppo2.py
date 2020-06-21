@@ -356,7 +356,7 @@ class PPO2(ActorCriticRLModel):
     def learn(self, total_timesteps, callback=None, log_interval=1, tb_log_name="PPO2",
               reset_num_timesteps=True):
         # Transform to callable if needed
-        self.learning_rate = get_schedule_fn(self.learning_rate.value)
+        # self.learning_rate = get_schedule_fn(self.learning_rate)
         self.cliprange = get_schedule_fn(self.cliprange)
         cliprange_vf = get_schedule_fn(self.cliprange_vf)
 
@@ -529,7 +529,7 @@ class PPO2(ActorCriticRLModel):
 
                 global_step = tf.Variable(0, trainable=False)
                 # TODO tune the decay parameters:
-                decayed_lr = tf.train.exponential_decay(learning_rate,  global_step, 10000, 0.95, staircase=True)
+                decayed_lr = tf.train.exponential_decay(learning_rate,  global_step, 10000, 0.97, staircase=True)
                 optimizer = tf.train.AdamOptimizer(learning_rate=decayed_lr, epsilon=adam_epsilon)
                 optim_op = optimizer.minimize(loss, var_list=self.params, global_step=global_step)
 
