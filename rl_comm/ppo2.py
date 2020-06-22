@@ -122,6 +122,8 @@ class PPO2(ActorCriticRLModel):
         self._runner = None
         self.ep_info_buf = None
         self.episode_reward = None
+        self.global_step = None
+        self.trainer = None
 
         super().__init__(policy=policy, env=env, verbose=verbose, requires_vec_env=True,
                          _init_setup_model=_init_setup_model, policy_kwargs=policy_kwargs,
@@ -245,8 +247,14 @@ class PPO2(ActorCriticRLModel):
                         grads, _grad_norm = tf.clip_by_global_norm(grads, self.max_grad_norm)
                     grads = list(zip(grads, self.params))
 
-                trainer = tf.train.AdamOptimizer(learning_rate=self.learning_rate_ph, epsilon=self.edam_epsilon)
-                self._train = trainer.apply_gradients(grads)
+                self.global_step = tf.Variable(0, trainable=False)
+                # TODO tune the decay parameters:
+                decayed_lr = tf.train.exponential_decay(self.learning_rate,  self.global_step, 10000, 0.97)
+                self.trainer = tf.train.AdamOptimizer(learning_rate=decayed_lr, epsilon=self.adam_epsilon)
+                # optim_op = optimizer.minimize(loss, var_list=self.params, global_step=global_step)
+                #
+                # trainer = tf.train.AdamOptimizer(learning_rate=self.learning_rate_ph, epsilon=self.edam_epsilon)
+                self._train = self.trainer.apply_gradients(grads)
 
                 self.loss_names = ['policy_loss', 'value_loss', 'policy_entropy', 'approxkl', 'clipfrac']
 
@@ -321,6 +329,8 @@ class PPO2(ActorCriticRLModel):
         else:
             update_fac = self.n_batch // self.nminibatches // self.noptepochs // self.n_steps + 1
 
+        curr_lr, curr_global_step = self.sess.run([self.trainer._lr, self.global_step])
+
         if writer is not None:
             # run loss backprop with summary, but once every 10 runs save the metadata (memory, compute time, ...)
             if self.full_tensorboard_log and (1 + update) % 10 == 0:
@@ -334,6 +344,10 @@ class PPO2(ActorCriticRLModel):
                 summary, policy_loss, value_loss, policy_entropy, approxkl, clipfrac, _ = self.sess.run(
                     [self.summary, self.pg_loss, self.vf_loss, self.entropy, self.approxkl, self.clipfrac, self._train],
                     td_map)
+            writer.add_summary(summary, (update * update_fac))
+
+            summary = tf.Summary(
+                value=[tf.Summary.Value(tag="curr_learning_rate", simple_value=curr_lr)])
             writer.add_summary(summary, (update * update_fac))
         else:
             policy_loss, value_loss, policy_entropy, approxkl, clipfrac, _ = self.sess.run(
@@ -378,7 +392,7 @@ class PPO2(ActorCriticRLModel):
                 batch_size = self.n_batch // self.nminibatches
                 t_start = time.time()
                 frac = 1.0 - (update - 1.0) / n_updates
-                lr_now = self.learning_rate(frac) * (0.01**frac)  # TODO
+                lr_now = self.learning_rate(frac)
                 cliprange_now = self.cliprange(frac)
                 cliprange_vf_now = cliprange_vf(frac)
                 # true_reward is the reward without discount
@@ -529,7 +543,7 @@ class PPO2(ActorCriticRLModel):
 
                 global_step = tf.Variable(0, trainable=False)
                 # TODO tune the decay parameters:
-                decayed_lr = tf.train.exponential_decay(learning_rate,  global_step, 10000, 0.97)
+                decayed_lr = tf.train.exponential_decay(learning_rate,  global_step, 5000, 0.97)
                 optimizer = tf.train.AdamOptimizer(learning_rate=decayed_lr, epsilon=adam_epsilon)
                 optim_op = optimizer.minimize(loss, var_list=self.params, global_step=global_step)
 
