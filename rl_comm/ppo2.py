@@ -250,7 +250,7 @@ class PPO2(ActorCriticRLModel):
                 self.global_step = tf.Variable(0, trainable=False)
                 # TODO tune the decay parameters:
                 decayed_lr = tf.train.exponential_decay(self.learning_rate,  self.global_step, 10000, 0.97)
-                self.trainer = tf.train.AdamOptimizer(learning_rate=decayed_lr, epsilon=self.adam_epsilon)
+                self.trainer = tf.train.AdamOptimizer(learning_rate=decayed_lr, epsilon=self.edam_epsilon)
                 # optim_op = optimizer.minimize(loss, var_list=self.params, global_step=global_step)
                 #
                 # trainer = tf.train.AdamOptimizer(learning_rate=self.learning_rate_ph, epsilon=self.edam_epsilon)
