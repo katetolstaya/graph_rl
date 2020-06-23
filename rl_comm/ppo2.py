@@ -30,7 +30,6 @@ import numpy as np
 import tensorflow as tf
 from collections import deque
 
-
 # from tf_agents.replay_buffers.py_uniform_replay_buffer import PyUniformReplayBuffer
 from stable_baselines import logger
 from stable_baselines.common import explained_variance, ActorCriticRLModel, tf_util, SetVerbosity
@@ -40,6 +39,7 @@ from stable_baselines.a2c.utils import total_episode_reward_logger
 from stable_baselines.ppo2.ppo2 import safe_mean, get_schedule_fn, Runner
 from rl_comm.utils import eval_env
 from rl_comm.utils import ReplayBuffer
+
 
 class PPO2(ActorCriticRLModel):
     """
@@ -184,7 +184,7 @@ class PPO2(ActorCriticRLModel):
                     self.rewards_ph = tf.placeholder(tf.float32, [None], name="rewards_ph")
                     self.old_neglog_pac_ph = tf.placeholder(tf.float32, [None], name="old_neglog_pac_ph")
                     self.old_vpred_ph = tf.placeholder(tf.float32, [None], name="old_vpred_ph")
-                    self.learning_rate_ph = tf.placeholder(tf.float32, [], name="learning_rate_ph")
+                    # self.learning_rate_ph = tf.placeholder(tf.float32, [], name="learning_rate_ph")
                     self.clip_range_ph = tf.placeholder(tf.float32, [], name="clip_range_ph")
 
                     neglogpac = train_model.proba_distribution.neglogp(self.action_ph)
@@ -249,18 +249,17 @@ class PPO2(ActorCriticRLModel):
 
                 self.global_step = tf.Variable(0, trainable=False)
                 # TODO tune the decay parameters:
-                decayed_lr = tf.train.exponential_decay(self.learning_rate,  self.global_step, 10000, 0.97)
+                decayed_lr = tf.train.exponential_decay(self.learning_rate, self.global_step, 10000, 0.97)
                 self.trainer = tf.train.AdamOptimizer(learning_rate=decayed_lr, epsilon=self.edam_epsilon)
-                # optim_op = optimizer.minimize(loss, var_list=self.params, global_step=global_step)
-                #
+
                 # trainer = tf.train.AdamOptimizer(learning_rate=self.learning_rate_ph, epsilon=self.edam_epsilon)
-                self._train = self.trainer.apply_gradients(grads)
+                self._train = self.trainer.apply_gradients(grads, global_step=self.global_step)
 
                 self.loss_names = ['policy_loss', 'value_loss', 'policy_entropy', 'approxkl', 'clipfrac']
 
                 with tf.variable_scope("input_info", reuse=False):
                     tf.summary.scalar('discounted_rewards', tf.reduce_mean(self.rewards_ph))
-                    tf.summary.scalar('learning_rate', tf.reduce_mean(self.learning_rate_ph))
+                    tf.summary.scalar('learning_rate', tf.reduce_mean(self.trainer._lr))
                     tf.summary.scalar('advantage', tf.reduce_mean(self.advs_ph))
                     tf.summary.scalar('clip_range', tf.reduce_mean(self.clip_range_ph))
                     if self.clip_range_vf_ph is not None:
@@ -271,7 +270,7 @@ class PPO2(ActorCriticRLModel):
 
                     if self.full_tensorboard_log:
                         tf.summary.histogram('discounted_rewards', self.rewards_ph)
-                        tf.summary.histogram('learning_rate', self.learning_rate_ph)
+                        tf.summary.histogram('learning_rate', self.trainer._lr)
                         tf.summary.histogram('advantage', self.advs_ph)
                         tf.summary.histogram('clip_range', self.clip_range_ph)
                         tf.summary.histogram('old_neglog_action_probability', self.old_neglog_pac_ph)
@@ -315,7 +314,7 @@ class PPO2(ActorCriticRLModel):
         advs = (advs - advs.mean()) / (advs.std() + 1e-8)
         td_map = {self.train_model.obs_ph: obs, self.action_ph: actions,
                   self.advs_ph: advs, self.rewards_ph: returns,
-                  self.learning_rate_ph: learning_rate, self.clip_range_ph: cliprange,
+                  self.clip_range_ph: cliprange,
                   self.old_neglog_pac_ph: neglogpacs, self.old_vpred_ph: values}
         if states is not None:
             td_map[self.train_model.states_ph] = states
@@ -329,29 +328,26 @@ class PPO2(ActorCriticRLModel):
         else:
             update_fac = self.n_batch // self.nminibatches // self.noptepochs // self.n_steps + 1
 
-        curr_lr, curr_global_step = self.sess.run([self.trainer._lr, self.global_step])
-
         if writer is not None:
             # run loss backprop with summary, but once every 10 runs save the metadata (memory, compute time, ...)
             if self.full_tensorboard_log and (1 + update) % 10 == 0:
                 run_options = tf.RunOptions(trace_level=tf.RunOptions.FULL_TRACE)
                 run_metadata = tf.RunMetadata()
-                summary, policy_loss, value_loss, policy_entropy, approxkl, clipfrac, _ = self.sess.run(
-                    [self.summary, self.pg_loss, self.vf_loss, self.entropy, self.approxkl, self.clipfrac, self._train],
+                curr_lr, curr_global_step, summary, policy_loss, value_loss, policy_entropy, approxkl, clipfrac, _ = self.sess.run(
+                    [self.trainer._lr, self.global_step, self.summary, self.pg_loss, self.vf_loss, self.entropy,
+                     self.approxkl, self.clipfrac, self._train],
                     td_map, options=run_options, run_metadata=run_metadata)
                 writer.add_run_metadata(run_metadata, 'step%d' % (update * update_fac))
             else:
-                summary, policy_loss, value_loss, policy_entropy, approxkl, clipfrac, _ = self.sess.run(
-                    [self.summary, self.pg_loss, self.vf_loss, self.entropy, self.approxkl, self.clipfrac, self._train],
+                curr_lr, curr_global_step, summary, policy_loss, value_loss, policy_entropy, approxkl, clipfrac, _ = self.sess.run(
+                    [self.trainer._lr, self.global_step, self.summary, self.pg_loss, self.vf_loss, self.entropy,
+                     self.approxkl, self.clipfrac, self._train],
                     td_map)
             writer.add_summary(summary, (update * update_fac))
-
-            summary = tf.Summary(
-                value=[tf.Summary.Value(tag="curr_learning_rate", simple_value=curr_lr)])
-            writer.add_summary(summary, (update * update_fac))
         else:
-            policy_loss, value_loss, policy_entropy, approxkl, clipfrac, _ = self.sess.run(
-                [self.pg_loss, self.vf_loss, self.entropy, self.approxkl, self.clipfrac, self._train], td_map)
+            curr_global_step, policy_loss, value_loss, policy_entropy, approxkl, clipfrac, _ = self.sess.run(
+                [self.global_step, self.pg_loss, self.vf_loss, self.entropy, self.approxkl, self.clipfrac, self._train],
+                td_map)
 
         return policy_loss, value_loss, policy_entropy, approxkl, clipfrac
 
@@ -543,7 +539,7 @@ class PPO2(ActorCriticRLModel):
 
                 global_step = tf.Variable(0, trainable=False)
                 # TODO tune the decay parameters:
-                decayed_lr = tf.train.exponential_decay(learning_rate,  global_step, 5000, 0.97)
+                decayed_lr = tf.train.exponential_decay(learning_rate, global_step, 5000, 0.97)
                 optimizer = tf.train.AdamOptimizer(learning_rate=decayed_lr, epsilon=adam_epsilon)
                 optim_op = optimizer.minimize(loss, var_list=self.params, global_step=global_step)
 
@@ -599,7 +595,9 @@ class PPO2(ActorCriticRLModel):
                 if self.verbose > 0:
                     print("==== Training progress {:.2f}% ====".format(100 * (epoch_idx + 1) / n_epochs))
                     print('Epoch {}'.format(epoch_idx + 1))
-                    print("Training loss: {:.6f}, Validation loss: {:.6f}, Learning rate: {:10.3e}".format(train_loss, val_loss, curr_lr))
+                    print("Training loss: {:.6f}, Validation loss: {:.6f}, Learning rate: {:10.3e}".format(train_loss,
+                                                                                                           val_loss,
+                                                                                                           curr_lr))
                     # print("Training loss: {:.6f}, Validation loss: {:.6f}".format(train_loss, val_loss))
                     print()
 
@@ -639,9 +637,9 @@ class PPO2(ActorCriticRLModel):
             print("Pretraining done.")
         return self
 
-
     def pretrain_dagger(self, env, n_epochs=10, learning_rate=1e-4, ent_coef=0.0001,
-                 adam_epsilon=1e-8, buffer_size=1000, val_interval=None, test_env=None, ckpt_params=None, batch_size=20):
+                        adam_epsilon=1e-8, buffer_size=1000, val_interval=None, test_env=None, ckpt_params=None,
+                        batch_size=20):
         """
         Pretrain a model using behavior cloning:
         supervised learning given an expert dataset.
@@ -824,8 +822,6 @@ class PPO2(ActorCriticRLModel):
         if self.verbose > 0:
             print("Pretraining done.")
         return self
-
-
 
     def save(self, save_path, cloudpickle=False):
         data = {
