@@ -62,7 +62,10 @@ def train_helper(env_param, test_env_param, train_param, pretrain_param, policy_
             vf_coef=train_param['vf_coef'],
             verbose=1,
             tensorboard_log=str(tb_dir),
-            full_tensorboard_log=False)
+            full_tensorboard_log=False,
+            lr_decay_factor=train_param['lr_decay_factor'],
+            lr_decay_steps=train_param['lr_decay_steps'],
+        )
 
         ckpt_idx = 0
 
@@ -90,7 +93,9 @@ def train_helper(env_param, test_env_param, train_param, pretrain_param, policy_
             model.pretrain(dataset, n_epochs=pretrain_param['pretrain_epochs'],
                            learning_rate=pretrain_param['pretrain_lr'],
                            val_interval=1, test_env=test_env, ckpt_params=ckpt_params,
-                           ent_coef=pretrain_param['pretrain_ent_coef'])
+                           ent_coef=pretrain_param['pretrain_ent_coef'],
+                           lr_decay_factor=pretrain_param['pretrain_lr_decay_factor'],
+                           lr_decay_steps=pretrain_param['pretrain_lr_decay_steps'])
 
             del dataset
             ckpt_idx += int(pretrain_param['pretrain_epochs'] / ckpt_params['ckpt_epochs'])
@@ -100,7 +105,9 @@ def train_helper(env_param, test_env_param, train_param, pretrain_param, policy_
                                   val_interval=pretrain_param['pretrain_checkpoint_epochs'], test_env=test_env,
                                   ckpt_params=ckpt_params,
                                   ent_coef=pretrain_param['pretrain_ent_coef'],
-                                  batch_size=pretrain_param['pretrain_batch'])
+                                  batch_size=pretrain_param['pretrain_batch'],
+                                  lr_decay_factor=pretrain_param['pretrain_lr_decay_factor'],
+                                  lr_decay_steps=pretrain_param['pretrain_lr_decay_steps'])
 
     # Training loop.
     print('\nBegin training.\n')
@@ -152,6 +159,8 @@ def run_experiment(args, section_name=''):
         'adam_epsilon': args.getfloat('adam_epsilon', 1e-6),
         'vf_coef': args.getfloat('vf_coef', 0.5),
         'ent_coef': args.getfloat('ent_coef', 0.01),
+        'lr_decay_factor': args.getfloat('lr_decay_factor', 0.97),
+        'lr_decay_steps': args.getfloat('lr_decay_steps', 10000),
     }
 
     if 'pretrain' in args and args.getboolean('pretrain'):
@@ -162,6 +171,8 @@ def run_experiment(args, section_name=''):
             'pretrain_batch': args.getint('pretrain_batch', 20),
             'pretrain_lr': args.getfloat('pretrain_lr', 1e-4),
             'pretrain_ent_coef': args.getfloat('pretrain_ent_coef', 1e-6),
+            'pretrain_lr_decay_factor': args.getfloat('pretrain_lr_decay_factor', 0.97),
+            'pretrain_lr_decay_steps': args.getfloat('pretrain_lr_decay_steps', 5000),
         }
     else:
         pretrain_param = None

@@ -83,8 +83,11 @@ class PPO2(ActorCriticRLModel):
     def __init__(self, policy, env, gamma=0.99, n_steps=128, ent_coef=0.01, learning_rate=2.5e-4, vf_coef=0.5,
                  max_grad_norm=0.5, lam=0.95, nminibatches=4, noptepochs=4, cliprange=0.2, cliprange_vf=None,
                  adam_epsilon=1e-4, verbose=0, tensorboard_log=None, _init_setup_model=True, policy_kwargs=None,
-                 full_tensorboard_log=False, seed=None, n_cpu_tf_sess=None):
+                 full_tensorboard_log=False, seed=None, n_cpu_tf_sess=None, lr_decay_factor=0.97,
+                 lr_decay_steps=10000):
 
+        self.lr_decay_factor = lr_decay_factor
+        self.lr_decay_steps = lr_decay_steps
         self.learning_rate = learning_rate
         self.cliprange = cliprange
         self.cliprange_vf = cliprange_vf
@@ -248,11 +251,9 @@ class PPO2(ActorCriticRLModel):
                     grads = list(zip(grads, self.params))
 
                 self.global_step = tf.Variable(0, trainable=False)
-                # TODO tune the decay parameters:
-                decayed_lr = tf.train.exponential_decay(self.learning_rate, self.global_step, 10000, 0.97)
+                decayed_lr = tf.train.exponential_decay(self.learning_rate, self.global_step, self.lr_decay_steps,
+                                                        self.lr_decay_factor)
                 self.trainer = tf.train.AdamOptimizer(learning_rate=decayed_lr, epsilon=self.edam_epsilon)
-
-                # trainer = tf.train.AdamOptimizer(learning_rate=self.learning_rate_ph, epsilon=self.edam_epsilon)
                 self._train = self.trainer.apply_gradients(grads, global_step=self.global_step)
 
                 self.loss_names = ['policy_loss', 'value_loss', 'policy_entropy', 'approxkl', 'clipfrac']
@@ -463,7 +464,8 @@ class PPO2(ActorCriticRLModel):
             return self
 
     def pretrain(self, dataset, n_epochs=10, learning_rate=1e-4, ent_coef=0.0001,
-                 adam_epsilon=1e-8, val_interval=None, test_env=None, ckpt_params=None):
+                 adam_epsilon=1e-8, val_interval=None, test_env=None, ckpt_params=None, lr_decay_factor=0.97,
+                 lr_decay_steps=5000):
         """
         Pretrain a model using behavior cloning:
         supervised learning given an expert dataset.
@@ -538,8 +540,7 @@ class PPO2(ActorCriticRLModel):
                     raise ValueError("Invalid action space")
 
                 global_step = tf.Variable(0, trainable=False)
-                # TODO tune the decay parameters:
-                decayed_lr = tf.train.exponential_decay(learning_rate, global_step, 5000, 0.97)
+                decayed_lr = tf.train.exponential_decay(learning_rate, global_step, lr_decay_steps, lr_decay_factor)
                 optimizer = tf.train.AdamOptimizer(learning_rate=decayed_lr, epsilon=adam_epsilon)
                 optim_op = optimizer.minimize(loss, var_list=self.params, global_step=global_step)
 
@@ -639,7 +640,7 @@ class PPO2(ActorCriticRLModel):
 
     def pretrain_dagger(self, env, n_epochs=10, learning_rate=1e-4, ent_coef=0.0001,
                         adam_epsilon=1e-8, buffer_size=1000, val_interval=None, test_env=None, ckpt_params=None,
-                        batch_size=20):
+                        batch_size=20, lr_decay_factor=0.97, lr_decay_steps=5000):
         """
         Pretrain a model using behavior cloning:
         supervised learning given an expert dataset.
@@ -712,8 +713,10 @@ class PPO2(ActorCriticRLModel):
                 else:
                     raise ValueError("Invalid action space")
 
-                optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate, epsilon=adam_epsilon)
-                optim_op = optimizer.minimize(loss, var_list=self.params)
+                global_step = tf.Variable(0, trainable=False)
+                decayed_lr = tf.train.exponential_decay(learning_rate, global_step, lr_decay_steps, lr_decay_factor)
+                optimizer = tf.train.AdamOptimizer(learning_rate=decayed_lr, epsilon=adam_epsilon)
+                optim_op = optimizer.minimize(loss, var_list=self.params, global_step=global_step)
 
             self.sess.run(tf.global_variables_initializer())
 
@@ -779,7 +782,9 @@ class PPO2(ActorCriticRLModel):
                         actions_ph: expert_actions_arr,
                     }
 
+                    curr_lr, curr_global_step = self.sess.run([optimizer._lr, global_step])
                     train_loss_, _ = self.sess.run([loss, optim_op], feed_dict)
+
                     n_updates += 1
                 epoch_idx += 1
 
