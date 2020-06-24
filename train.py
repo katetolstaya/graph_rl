@@ -10,7 +10,6 @@ from pathlib import Path
 from stable_baselines.common import BaseRLModel
 from stable_baselines.common.vec_env import SubprocVecEnv, VecNormalize
 from stable_baselines.gail import ExpertDataset
-from stable_baselines.common.schedules import LinearSchedule
 
 from rl_comm.gnn_fwd import GnnFwd
 from rl_comm.ppo2 import PPO2
