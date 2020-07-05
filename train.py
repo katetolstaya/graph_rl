@@ -9,7 +9,7 @@ import sys
 from pathlib import Path
 from stable_baselines.common import BaseRLModel
 from stable_baselines.common.vec_env import SubprocVecEnv, VecNormalize
-from stable_baselines.gail import ExpertDataset
+from rl_comm.dataset import ExpertDataset
 
 from rl_comm.gnn_fwd import GnnFwd
 from rl_comm.ppo2 import PPO2
