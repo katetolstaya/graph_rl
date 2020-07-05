@@ -8,6 +8,9 @@ from rl_comm.ppo2 import PPO2
 from stable_baselines.common.vec_env import SubprocVecEnv
 from stable_baselines.common.base_class import BaseRLModel
 
+import warnings
+warnings.filterwarnings('ignore')
+
 
 def make_env():
     # env_name = "CoverageFull-v0"
@@ -69,6 +72,7 @@ if __name__ == '__main__':
         print('Testing model ' + model_name)
         results = eval_model(env, load_model(model_name, vec_env), 10, render_mode='none')
         new_score = np.mean(results['reward'])
+        print(new_score)
 
         if new_score > best_score:
             best_score = new_score
