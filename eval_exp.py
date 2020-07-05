@@ -81,4 +81,5 @@ if __name__ == '__main__':
     model_name = ckpt_dir + '/ckpt_' + str(best_idx).zfill(3) + '.pkl'
     results = eval_model(env, load_model(model_name, vec_env), 50, render_mode='none')
     print('reward,          mean = {:.1f}, std = {:.1f}'.format(np.mean(results['reward']), np.std(results['reward'])))
+    print(model_name)
     print('')
