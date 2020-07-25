@@ -763,9 +763,9 @@ class PPO2(ActorCriticRLModel):
                     state_arr = np.array(state).reshape((1, -1))
                     action, _ = self.predict(state_arr, deterministic=False)
                     action = np.array(action).reshape((-1, 1))
-                    train_reward += reward
 
                 next_state, reward, done, _ = env.step(action)
+                train_reward += reward
 
                 memory.insert((state, optimal_action))
 
