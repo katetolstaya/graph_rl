@@ -747,6 +747,7 @@ class PPO2(ActorCriticRLModel):
             state = env.reset()
             done = False
             train_loss_ = 0
+            train_reward = 0
 
             while not done:
 
@@ -762,6 +763,7 @@ class PPO2(ActorCriticRLModel):
                     state_arr = np.array(state).reshape((1, -1))
                     action, _ = self.predict(state_arr, deterministic=False)
                     action = np.array(action).reshape((-1, 1))
+                    train_reward += reward
 
                 next_state, reward, done, _ = env.step(action)
 
@@ -792,7 +794,7 @@ class PPO2(ActorCriticRLModel):
                 if self.verbose > 0:
                     print("==== Training progress {:.2f}% ====".format(100 * (epoch_idx + 1) / n_epochs))
                     print('Epoch {}'.format(epoch_idx + 1))
-                    print("Training loss: {:.6f}".format(train_loss_))
+                    print("Training loss: {:.6f}, Training reward: {:.6f}".format(train_loss_, train_reward))
                     print()
 
                     if writer is not None:
