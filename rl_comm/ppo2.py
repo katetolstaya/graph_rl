@@ -752,7 +752,7 @@ class PPO2(ActorCriticRLModel):
             while not done:
 
                 try:
-                    optimal_action = env.env.env.controller(random=False, greedy=False, reset_solution=True)
+                    optimal_action = env.env.env.controller(random=False, greedy=False, reset_solution=False)
                 except AssertionError:
                     state = env.reset()
                     continue
