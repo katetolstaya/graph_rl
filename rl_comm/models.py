@@ -61,28 +61,28 @@ class AggregationDiffNet(snt.AbstractModule):
         # def make_linear():
         #     return snt.nets.MLP([latent_size], activate_final=False)
 
-        self.cores = []
-        for i in range(len(self._proc_hops)):
-            core = modules.GraphNetwork(
-                edge_model_fn=make_mlp,
-                node_model_fn=make_mlp,
-                global_model_fn=make_mlp,
-                edge_block_opt={'use_globals': False},
-                node_block_opt={'use_globals': False, 'use_sent_edges': False},
-                name="graph_net",
-                reducer=reducer
-            )
-            self.cores.append(core)
+        # self.cores = []
+        # for i in range(len(self._proc_hops)):
+        #     core = modules.GraphNetwork(
+        #         edge_model_fn=make_mlp,
+        #         node_model_fn=make_mlp,
+        #         global_model_fn=make_mlp,
+        #         edge_block_opt={'use_globals': False},
+        #         node_block_opt={'use_globals': False, 'use_sent_edges': False},
+        #         name="graph_net",
+        #         reducer=reducer
+        #     )
+        #     self.cores.append(core)
 
-        # self._core = modules.GraphNetwork(
-        #     edge_model_fn=make_mlp,
-        #     node_model_fn=make_mlp,
-        #     global_model_fn=make_mlp,
-        #     edge_block_opt={'use_globals': False},
-        #     node_block_opt={'use_globals': False, 'use_sent_edges': False},
-        #     name="graph_net",
-        #     reducer=reducer
-        # )
+        self._core = modules.GraphNetwork(
+            edge_model_fn=make_mlp,
+            node_model_fn=make_mlp,
+            global_model_fn=make_mlp,
+            edge_block_opt={'use_globals': False},
+            node_block_opt={'use_globals': False, 'use_sent_edges': False},
+            name="graph_net",
+            reducer=reducer
+        )
 
         self._encoder = modules.GraphIndependent(make_mlp, make_mlp, make_mlp, name="encoder")
         self._decoder = modules.GraphIndependent(make_mlp, make_mlp, make_mlp, name="decoder")
@@ -112,8 +112,8 @@ class AggregationDiffNet(snt.AbstractModule):
 
         for i in range(self._num_processing_steps):
             for j in range(self._proc_hops[i]):
-                # latent = self._core(latent)
-                latent = self.cores[i](latent)
+                latent = self._core(latent)
+                # latent = self.cores[i](latent)
 
             decoded_op = self._decoder(latent)
             output_ops.append(decoded_op)
