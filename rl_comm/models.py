@@ -55,7 +55,8 @@ class AggregationDiffNet(snt.AbstractModule):
         self._n_stacked = latent_size * self._num_processing_steps
 
         def make_mlp():
-            return snt.nets.MLP([latent_size] * n_layers, activate_final=True)
+            return snt.nets.MLP([latent_size] * n_layers, activate_final=False)
+            # return snt.nets.MLP([latent_size] * n_layers, activate_final=True)
 
         # def make_linear():
         #     return snt.nets.MLP([latent_size], activate_final=False)
