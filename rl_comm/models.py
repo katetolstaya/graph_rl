@@ -38,8 +38,10 @@ class AggregationDiffNet(snt.AbstractModule):
             reducer = unsorted_segment_max_or_zero
         elif reducer == 'logsumexp':
             reducer = segment_logsumexp
-        elif reducer == 'softmax':
+        elif reducer == 'transformer':
             reducer = segment_transformer
+        elif reducer == 'softmax_norm':
+            reducer = segment_softmax_norm
         elif reducer == 'sum':
             reducer = tf.math.unsorted_segment_sum
         else:
