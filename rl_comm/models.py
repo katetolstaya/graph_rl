@@ -60,26 +60,13 @@ class AggregationDiffNet(snt.AbstractModule):
             return snt.nets.MLP([latent_size] * n_layers, activate_final=False)
             # return snt.nets.MLP([latent_size] * n_layers, activate_final=True)
 
-        # def make_linear():
-        #     return snt.nets.MLP([latent_size], activate_final=False)
-
-        # self.cores = []
-        # for i in range(len(self._proc_hops)):
-        #     core = modules.GraphNetwork(
-        #         edge_model_fn=make_mlp,
-        #         node_model_fn=make_mlp,
-        #         global_model_fn=make_mlp,
-        #         edge_block_opt={'use_globals': False},
-        #         node_block_opt={'use_globals': False, 'use_sent_edges': False},
-        #         name="graph_net",
-        #         reducer=reducer
-        #     )
-        #     self.cores.append(core)
+        def make_linear():
+            return snt.Linear(latent_size)
 
         self._core = modules.GraphNetwork(
-            edge_model_fn=make_mlp,
-            node_model_fn=make_mlp,
-            global_model_fn=make_mlp,
+            edge_model_fn=make_linear,
+            node_model_fn=make_linear,
+            global_model_fn=make_linear,
             edge_block_opt={'use_globals': False},
             node_block_opt={'use_globals': False, 'use_sent_edges': False},
             name="graph_net",
@@ -117,8 +104,9 @@ class AggregationDiffNet(snt.AbstractModule):
                 latent = self._core(latent)
                 # latent = self.cores[i](latent)
 
-            decoded_op = self._decoder(latent)
-            output_ops.append(decoded_op)
+            # decoded_op = self._decoder(latent)
+            # output_ops.append(decoded_op)
+            output_ops.append(latent)
 
         stacked_edges = tf.stack([g.edges for g in output_ops], axis=1)
         stacked_nodes = tf.stack([g.nodes for g in output_ops], axis=1)
