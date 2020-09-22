@@ -5,6 +5,7 @@ import gym_flock
 import tensorflow as tf
 from graph_nets.blocks import unsorted_segment_max_or_zero
 from progress.bar import Bar
+from stable_baselines.common.policies import RecurrentActorCriticPolicy
 
 KEY_SIZE = 8
 
@@ -81,13 +82,14 @@ def eval_env(env, model, n_episodes, render_mode='none'):
     }
     with Bar('Eval', max=n_episodes) as bar:
         for k in range(n_episodes):
-            done = False
+            done, state = False, None
             obs = env.reset()
             ep_reward = 0
             # Run one game.
             while not done:
-                action, states = model.predict(obs, deterministic=True)
-                # action, states = model.predict(obs, deterministic=False)
+                action, state = model.predict(obs, state=state, deterministic=True)
+                if not issubclass(model, RecurrentActorCriticPolicy):
+                    state = None
                 obs, r, done, _ = env.step(action)
                 ep_reward += r
                 # env.render(mode=render_mode)

@@ -11,7 +11,7 @@ from stable_baselines.common import BaseRLModel
 from stable_baselines.common.vec_env import SubprocVecEnv, VecNormalize
 from rl_comm.dataset import ExpertDataset
 
-from rl_comm.gnn_fwd import GnnFwd
+from rl_comm.gnn_fwd import GnnFwd, RecurrentGnnFwd
 from rl_comm.ppo2 import PPO2
 from rl_comm.utils import ckpt_file, callback
 
@@ -27,6 +27,7 @@ def train_helper(env_param, test_env_param, train_param, pretrain_param, policy_
 
     if 'normalize_reward' in train_param and train_param['normalize_reward']:
         env = VecNormalize(env, norm_obs=False, norm_reward=True)
+    # test_env = SubprocVecEnv([test_env_param['make_env']] * train_param['n_env'])
     test_env = SubprocVecEnv([test_env_param['make_env']])
 
     if train_param['use_checkpoint']:
@@ -126,7 +127,6 @@ def train_helper(env_param, test_env_param, train_param, pretrain_param, policy_
 
 
 def run_experiment(args, section_name=''):
-    policy_fn = GnnFwd
 
     policy_param = {
         'num_processing_steps': json.loads(args.get('aggregation', '[1,1,1,1,1,1,1,1,1,1]')),
@@ -134,6 +134,14 @@ def run_experiment(args, section_name=''):
         'n_layers': args.getint('n_layers', 2),
         'reducer': args.get('reducer', 'max'),
     }
+    policy_type = args.get('policy', 'GNNFwd')
+
+    if policy_type == 'GNNFwd':
+        policy_fn = GnnFwd
+    elif policy_type == 'RecurrentGNNFwd':
+        policy_fn = RecurrentGnnFwd
+    else:
+        raise ValueError('Unknown policy type.')
 
     env_name = args.get('env', 'CoverageARL-v0')
 

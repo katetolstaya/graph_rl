@@ -168,8 +168,8 @@ class PPO2(ActorCriticRLModel):
                 n_batch_step = None
                 n_batch_train = None
                 if issubclass(self.policy, RecurrentActorCriticPolicy):
-                    assert self.n_envs % self.nminibatches == 0, "For recurrent policies, " \
-                                                                 "the number of environments run in parallel should be a multiple of nminibatches."
+                    if not self.n_envs % self.nminibatches == 0:
+                        self.nminibatches = 1
                     n_batch_step = self.n_envs
                     n_batch_train = self.n_batch // self.nminibatches
 
