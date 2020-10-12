@@ -145,7 +145,7 @@ class MultiGnnFwd(ActorCriticPolicy):
         with tf.variable_scope("model", reuse=reuse):
             with tf.variable_scope("value", reuse=reuse):
                 for i in range(n_gnn_layers - 1):
-                    self.value_model_i = models.AggregationDiffNet(num_processing_steps=num_processing_steps,
+                    self.value_model_i = models.LinearGraphNet(num_processing_steps=num_processing_steps,
                                                                    latent_size=latent_size,
                                                                    n_layers=n_layers, reducer=reducer,
                                                                    node_output_size=latent_size,
@@ -153,7 +153,7 @@ class MultiGnnFwd(ActorCriticPolicy):
                     agent_graph = self.value_model_i(agent_graph)
 
                 # The readout GNN layer
-                self.value_model = models.AggregationDiffNet(num_processing_steps=num_processing_steps,
+                self.value_model = models.LinearGraphNet(num_processing_steps=num_processing_steps,
                                                              latent_size=latent_size,
                                                              n_layers=n_layers, reducer=reducer,
                                                              node_output_size=1, name="value_model")
@@ -171,7 +171,7 @@ class MultiGnnFwd(ActorCriticPolicy):
 
             with tf.variable_scope("policy", reuse=reuse):
                 for i in range(n_gnn_layers - 1):
-                    self.policy_model_i = models.AggregationDiffNet(num_processing_steps=num_processing_steps,
+                    self.policy_model_i = models.LinearGraphNet(num_processing_steps=num_processing_steps,
                                                                     latent_size=latent_size,
                                                                     n_layers=n_layers, reducer=reducer,
                                                                     node_output_size=latent_size,
@@ -179,7 +179,7 @@ class MultiGnnFwd(ActorCriticPolicy):
                     agent_graph = self.policy_model_i(agent_graph)
 
                 # The readout GNN layer
-                self.policy_model = models.AggregationDiffNet(num_processing_steps=num_processing_steps,
+                self.policy_model = models.LinearGraphNet(num_processing_steps=num_processing_steps,
                                                               latent_size=latent_size,
                                                               n_layers=n_layers, reducer=reducer,
                                                               edge_output_size=1, out_init_scale=1.0,
