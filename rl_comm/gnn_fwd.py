@@ -41,7 +41,7 @@ class GnnFwd(ActorCriticPolicy):
 
         with tf.variable_scope("model", reuse=reuse):
             with tf.variable_scope("value", reuse=reuse):
-                self.value_model = models.AggregationDiffNet(num_processing_steps=num_processing_steps,
+                self.value_model = models.LinearGraphNet(num_processing_steps=num_processing_steps,
                                                              latent_size=latent_size,
                                                              n_layers=n_layers, reducer=reducer,
                                                              node_output_size=1, name="value_model")
@@ -60,7 +60,7 @@ class GnnFwd(ActorCriticPolicy):
                 self.q_value = None  # unused by PPO2
 
             with tf.variable_scope("policy", reuse=reuse):
-                self.policy_model = models.AggregationDiffNet(num_processing_steps=num_processing_steps,
+                self.policy_model = models.LinearGraphNet(num_processing_steps=num_processing_steps,
                                                               latent_size=latent_size,
                                                               n_layers=n_layers, reducer=reducer,
                                                               edge_output_size=1, out_init_scale=1.0,

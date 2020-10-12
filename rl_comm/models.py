@@ -173,9 +173,9 @@ class LinearGraphNet(snt.AbstractModule):
             return snt.Linear(latent_size)
 
         self._core = modules.GraphNetwork(
-            edge_model_fn=make_linear,
-            node_model_fn=make_linear,
-            global_model_fn=make_linear,
+            edge_model_fn=make_mlp,
+            node_model_fn=make_mlp,
+            global_model_fn=make_mlp,
             edge_block_opt={'use_globals': False},
             node_block_opt={'use_globals': False, 'use_sent_edges': False},
             name="graph_net",
