@@ -167,7 +167,7 @@ class LinearGraphNet(snt.AbstractModule):
         self._n_stacked = latent_size * self._num_processing_steps
 
         def make_mlp():
-            return snt.nets.MLP([latent_size] * n_layers, activate_final=True)
+            return snt.nets.MLP([latent_size] * n_layers, activate_final=False)
 
         def make_linear():
             return snt.Linear(latent_size)
