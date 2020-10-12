@@ -8,6 +8,10 @@ from rl_comm.ppo2 import PPO2
 from stable_baselines.common.vec_env import SubprocVecEnv
 from stable_baselines.common.base_class import BaseRLModel
 
+import os
+import tensorflow as tf
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
+
 
 def make_env():
     # env_name = "CoverageFull-v0"
@@ -64,17 +68,23 @@ if __name__ == '__main__':
     best_score = -np.Inf
     best_idx = 0
 
-    for i in range(0, ckpt_idx, 3):
+    for i in range(0, ckpt_idx, 5):
+        print('Current best:')
+        print(best_idx)
+        print(best_score)
+
         model_name = ckpt_dir + '/ckpt_' + str(i).zfill(3) + '.pkl'
         print('Testing model ' + model_name)
-        results = eval_model(env, load_model(model_name, vec_env), 10, render_mode='none')
+        results = eval_model(env, load_model(model_name, vec_env), 50, render_mode='none')
         new_score = np.mean(results['reward'])
+        print(i)
+        print(new_score)
 
         if new_score > best_score:
             best_score = new_score
             best_idx = i
 
     model_name = ckpt_dir + '/ckpt_' + str(best_idx).zfill(3) + '.pkl'
-    results = eval_model(env, load_model(model_name, vec_env), 50, render_mode='none')
+    results = eval_model(env, load_model(model_name, vec_env), 100, render_mode='none')
     print('reward,          mean = {:.1f}, std = {:.1f}'.format(np.mean(results['reward']), np.std(results['reward'])))
     print('')

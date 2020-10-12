@@ -82,7 +82,7 @@ class PPO2(ActorCriticRLModel):
 
     def __init__(self, policy, env, gamma=0.99, n_steps=128, ent_coef=0.01, learning_rate=2.5e-4, vf_coef=0.5,
                  max_grad_norm=0.5, lam=0.95, nminibatches=4, noptepochs=4, cliprange=0.2, cliprange_vf=None,
-                 adam_epsilon=1e-4, verbose=0, tensorboard_log=None, _init_setup_model=True, policy_kwargs=None,
+                 adam_epsilon=1e-4, verbose=1, tensorboard_log=None, _init_setup_model=True, policy_kwargs=None,
                  full_tensorboard_log=False, seed=None, n_cpu_tf_sess=None, lr_decay_factor=0.97,
                  lr_decay_steps=10000):
 
@@ -233,15 +233,15 @@ class PPO2(ActorCriticRLModel):
                                                                       self.clip_range_ph), tf.float32))
                     loss = self.pg_loss - self.entropy * self.ent_coef + self.vf_loss * self.vf_coef
 
-                    tf.summary.scalar('entropy_loss', self.entropy)
-                    tf.summary.scalar('policy_gradient_loss', self.pg_loss)
-                    tf.summary.scalar('value_function_loss', self.vf_loss)
-                    tf.summary.scalar('approximate_kullback-leibler', self.approxkl)
-                    tf.summary.scalar('clip_factor', self.clipfrac)
-                    tf.summary.scalar('loss', loss)
+                    tf.compat.v1.summary.scalar('entropy_loss', self.entropy)
+                    tf.compat.v1.summary.scalar('policy_gradient_loss', self.pg_loss)
+                    tf.compat.v1.summary.scalar('value_function_loss', self.vf_loss)
+                    tf.compat.v1.summary.scalar('approximate_kullback-leibler', self.approxkl)
+                    tf.compat.v1.summary.scalar('clip_factor', self.clipfrac)
+                    tf.compat.v1.summary.scalar('loss', loss)
 
                     with tf.variable_scope('model'):
-                        self.params = tf.trainable_variables()
+                        self.params = tf.compat.v1.trainable_variables()
                         if self.full_tensorboard_log:
                             for var in self.params:
                                 tf.summary.histogram(var.name, var)
@@ -251,23 +251,23 @@ class PPO2(ActorCriticRLModel):
                     grads = list(zip(grads, self.params))
 
                 self.global_step = tf.Variable(0, trainable=False)
-                decayed_lr = tf.train.exponential_decay(self.learning_rate, self.global_step, self.lr_decay_steps,
+                decayed_lr = tf.compat.v1.train.exponential_decay(self.learning_rate, self.global_step, self.lr_decay_steps,
                                                         self.lr_decay_factor)
-                self.trainer = tf.train.AdamOptimizer(learning_rate=decayed_lr, epsilon=self.edam_epsilon)
+                self.trainer = tf.compat.v1.train.AdamOptimizer(learning_rate=decayed_lr, epsilon=self.edam_epsilon)
                 self._train = self.trainer.apply_gradients(grads, global_step=self.global_step)
 
                 self.loss_names = ['policy_loss', 'value_loss', 'policy_entropy', 'approxkl', 'clipfrac']
 
                 with tf.variable_scope("input_info", reuse=False):
-                    tf.summary.scalar('discounted_rewards', tf.reduce_mean(self.rewards_ph))
-                    tf.summary.scalar('learning_rate', tf.reduce_mean(self.trainer._lr))
-                    tf.summary.scalar('advantage', tf.reduce_mean(self.advs_ph))
-                    tf.summary.scalar('clip_range', tf.reduce_mean(self.clip_range_ph))
+                    tf.compat.v1.summary.scalar('discounted_rewards', tf.reduce_mean(self.rewards_ph))
+                    tf.compat.v1.summary.scalar('learning_rate', tf.reduce_mean(self.trainer._lr))
+                    tf.compat.v1.summary.scalar('advantage', tf.reduce_mean(self.advs_ph))
+                    tf.compat.v1.summary.scalar('clip_range', tf.reduce_mean(self.clip_range_ph))
                     if self.clip_range_vf_ph is not None:
-                        tf.summary.scalar('clip_range_vf', tf.reduce_mean(self.clip_range_vf_ph))
+                        tf.compat.v1.summary.scalar('clip_range_vf', tf.reduce_mean(self.clip_range_vf_ph))
 
-                    tf.summary.scalar('old_neglog_action_probability', tf.reduce_mean(self.old_neglog_pac_ph))
-                    tf.summary.scalar('old_value_pred', tf.reduce_mean(self.old_vpred_ph))
+                    tf.compat.v1.summary.scalar('old_neglog_action_probability', tf.reduce_mean(self.old_neglog_pac_ph))
+                    tf.compat.v1.summary.scalar('old_value_pred', tf.reduce_mean(self.old_vpred_ph))
 
                     if self.full_tensorboard_log:
                         tf.summary.histogram('discounted_rewards', self.rewards_ph)
@@ -287,9 +287,9 @@ class PPO2(ActorCriticRLModel):
                 self.proba_step = act_model.proba_step
                 self.value = act_model.value
                 self.initial_state = act_model.initial_state
-                tf.global_variables_initializer().run(session=self.sess)  # pylint: disable=E1101
+                tf.compat.v1.global_variables_initializer().run(session=self.sess)  # pylint: disable=E1101
 
-                self.summary = tf.summary.merge_all()
+                self.summary = tf.compat.v1.summary.merge_all()
 
     def _train_step(self, learning_rate, cliprange, obs, returns, masks, actions, values, neglogpacs, update,
                     writer, states=None, cliprange_vf=None):
@@ -540,7 +540,7 @@ class PPO2(ActorCriticRLModel):
                     raise ValueError("Invalid action space")
 
                 global_step = tf.Variable(0, trainable=False)
-                decayed_lr = tf.train.exponential_decay(learning_rate, global_step, lr_decay_steps, lr_decay_factor)
+                decayed_lr = tf.compat.v1.train.exponential_decay(learning_rate, global_step, lr_decay_steps, lr_decay_factor)
                 optimizer = tf.train.AdamOptimizer(learning_rate=decayed_lr, epsilon=adam_epsilon)
                 optim_op = optimizer.minimize(loss, var_list=self.params, global_step=global_step)
 
@@ -714,7 +714,7 @@ class PPO2(ActorCriticRLModel):
                     raise ValueError("Invalid action space")
 
                 global_step = tf.Variable(0, trainable=False)
-                decayed_lr = tf.train.exponential_decay(learning_rate, global_step, lr_decay_steps, lr_decay_factor)
+                decayed_lr = tf.compat.v1.train.exponential_decay(learning_rate, global_step, lr_decay_steps, lr_decay_factor)
                 optimizer = tf.train.AdamOptimizer(learning_rate=decayed_lr, epsilon=adam_epsilon)
                 optim_op = optimizer.minimize(loss, var_list=self.params, global_step=global_step)
 

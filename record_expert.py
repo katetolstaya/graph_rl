@@ -120,4 +120,4 @@ def make_env():
 
 fname = sys.argv[1]
 
-generate_expert_traj(env=make_env(), save_path='data/' + fname, n_episodes=500)
+generate_expert_traj(env=make_env(), save_path='data/' + fname, n_episodes=4000)

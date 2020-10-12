@@ -11,7 +11,7 @@ from stable_baselines.common import BaseRLModel
 from stable_baselines.common.vec_env import SubprocVecEnv, VecNormalize
 from rl_comm.dataset import ExpertDataset
 
-from rl_comm.gnn_fwd import GnnFwd, RecurrentGnnFwd
+from rl_comm.gnn_fwd import GnnFwd, RecurrentGnnFwd, MultiGnnFwd, MultiAgentGnnFwd
 from rl_comm.ppo2 import PPO2
 from rl_comm.utils import ckpt_file, callback
 
@@ -132,14 +132,21 @@ def run_experiment(args, section_name=''):
         'num_processing_steps': json.loads(args.get('aggregation', '[1,1,1,1,1,1,1,1,1,1]')),
         'latent_size': args.getint('latent_size', 16),
         'n_layers': args.getint('n_layers', 2),
-        'reducer': args.get('reducer', 'max'),
+        'reducer': args.get('reducer', 'max')
     }
     policy_type = args.get('policy', 'GNNFwd')
 
     if policy_type == 'GNNFwd':
         policy_fn = GnnFwd
+    elif policy_type == 'MultiGNNFwd':
+        policy_fn = MultiGnnFwd
+        policy_param['n_gnn_layers'] = args.getint('n_gnn_layers', 1)
     elif policy_type == 'RecurrentGNNFwd':
         policy_fn = RecurrentGnnFwd
+        policy_param['state_shape'] = args.getint('rnn_state_shape', 16)
+    elif policy_type == 'MultiAgentGNNFwd':
+        policy_fn = MultiAgentGnnFwd
+        policy_param['n_gnn_layers'] = args.getint('n_gnn_layers', 1)
     else:
         raise ValueError('Unknown policy type.')
 
