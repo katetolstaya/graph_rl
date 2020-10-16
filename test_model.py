@@ -81,13 +81,6 @@ if __name__ == '__main__':
 
     policy_kwargs = model_params['policy_kwargs']
 
-    # policy_kwargs = {
-    #     # 'num_processing_steps': [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],  #[1,1,1,1,1,1,3,3,3,1,1,1,1,1,1], #[1,1,1,3,1,1,3,1,1,1,3,1,1,1,1],
-    #     'num_processing_steps': [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
-    #     'n_layers': 2,
-    #     'latent_size': 16,
-    # }
-
     new_model = PPO2(
         policy=gnn_fwd.MultiGnnFwd,
         # policy=gnn_fwd.MultiAgentGnnFwd,

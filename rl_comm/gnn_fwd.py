@@ -8,6 +8,10 @@ from gym.spaces import MultiDiscrete
 import numpy as np
 
 
+# from rl_comm.models import NonLinearGraphNet as model_module
+# from rl_comm.models import AggregationNet as model_module
+
+
 class GnnFwd(ActorCriticPolicy):
     """
     Policy object that implements actor critic, using a MLP (2 layers of 64)
@@ -22,10 +26,15 @@ class GnnFwd(ActorCriticPolicy):
     """
 
     def __init__(self, sess, ob_space, ac_space, n_env, n_steps, n_batch, reuse=False,
-                 num_processing_steps=None, latent_size=None, n_layers=None, reducer=None):
+                 num_processing_steps=None, latent_size=None, n_layers=None, reducer=None, model_type=None):
 
         super(GnnFwd, self).__init__(sess, ob_space, ac_space, n_env, n_steps, n_batch, reuse,
                                      scale=False)
+
+        if model_type == 'identity':
+            model_module = models.AggregationNet
+        elif model_type == 'nonlinear':
+            model_module = models.NonLinearGraphNet
 
         batch_size, n_node, nodes, n_edge, edges, senders, receivers, globs = CoverageEnv.unpack_obs(
             self.processed_obs, ob_space)
@@ -41,10 +50,10 @@ class GnnFwd(ActorCriticPolicy):
 
         with tf.variable_scope("model", reuse=reuse):
             with tf.variable_scope("value", reuse=reuse):
-                self.value_model = models.LinearGraphNet(num_processing_steps=num_processing_steps,
-                                                             latent_size=latent_size,
-                                                             n_layers=n_layers, reducer=reducer,
-                                                             node_output_size=1, name="value_model")
+                self.value_model = model_module(num_processing_steps=num_processing_steps,
+                                                latent_size=latent_size,
+                                                n_layers=n_layers, reducer=reducer,
+                                                node_output_size=1, name="value_model")
                 value_graph = self.value_model(agent_graph)
 
                 # sum the outputs of robot nodes to compute value
@@ -60,11 +69,11 @@ class GnnFwd(ActorCriticPolicy):
                 self.q_value = None  # unused by PPO2
 
             with tf.variable_scope("policy", reuse=reuse):
-                self.policy_model = models.LinearGraphNet(num_processing_steps=num_processing_steps,
-                                                              latent_size=latent_size,
-                                                              n_layers=n_layers, reducer=reducer,
-                                                              edge_output_size=1, out_init_scale=1.0,
-                                                              name="policy_model")
+                self.policy_model = model_module(num_processing_steps=num_processing_steps,
+                                                 latent_size=latent_size,
+                                                 n_layers=n_layers, reducer=reducer,
+                                                 edge_output_size=1, out_init_scale=1.0,
+                                                 name="policy_model")
                 policy_graph = self.policy_model(agent_graph)
                 edge_values = policy_graph.edges
 
@@ -126,9 +135,15 @@ class MultiGnnFwd(ActorCriticPolicy):
     """
 
     def __init__(self, sess, ob_space, ac_space, n_env, n_steps, n_batch, reuse=False,
-                 num_processing_steps=None, latent_size=None, n_layers=None, reducer=None, n_gnn_layers=None):
+                 num_processing_steps=None, latent_size=None, n_layers=None, reducer=None, n_gnn_layers=None,
+                 model_type=None):
 
         super(MultiGnnFwd, self).__init__(sess, ob_space, ac_space, n_env, n_steps, n_batch, reuse, scale=False)
+
+        if model_type == 'identity':
+            model_module = models.AggregationNet
+        elif model_type == 'nonlinear':
+            model_module = models.NonLinearGraphNet
 
         batch_size, n_node, nodes, n_edge, edges, senders, receivers, globs = CoverageEnv.unpack_obs(
             self.processed_obs, ob_space)
@@ -145,18 +160,18 @@ class MultiGnnFwd(ActorCriticPolicy):
         with tf.variable_scope("model", reuse=reuse):
             with tf.variable_scope("value", reuse=reuse):
                 for i in range(n_gnn_layers - 1):
-                    self.value_model_i = models.LinearGraphNet(num_processing_steps=num_processing_steps,
-                                                                   latent_size=latent_size,
-                                                                   n_layers=n_layers, reducer=reducer,
-                                                                   node_output_size=latent_size,
-                                                                   name="value_model" + str(i))
+                    self.value_model_i = model_module(num_processing_steps=num_processing_steps,
+                                                      latent_size=latent_size,
+                                                      n_layers=n_layers, reducer=reducer,
+                                                      node_output_size=latent_size,
+                                                      name="value_model" + str(i))
                     agent_graph = self.value_model_i(agent_graph)
 
                 # The readout GNN layer
-                self.value_model = models.LinearGraphNet(num_processing_steps=num_processing_steps,
-                                                             latent_size=latent_size,
-                                                             n_layers=n_layers, reducer=reducer,
-                                                             node_output_size=1, name="value_model")
+                self.value_model = model_module(num_processing_steps=num_processing_steps,
+                                                latent_size=latent_size,
+                                                n_layers=n_layers, reducer=reducer,
+                                                node_output_size=1, name="value_model")
                 value_graph = self.value_model(agent_graph)
 
                 # sum the outputs of robot nodes to compute value
@@ -171,19 +186,19 @@ class MultiGnnFwd(ActorCriticPolicy):
 
             with tf.variable_scope("policy", reuse=reuse):
                 for i in range(n_gnn_layers - 1):
-                    self.policy_model_i = models.LinearGraphNet(num_processing_steps=num_processing_steps,
-                                                                    latent_size=latent_size,
-                                                                    n_layers=n_layers, reducer=reducer,
-                                                                    node_output_size=latent_size,
-                                                                    name="policy_model" + str(i))
+                    self.policy_model_i = model_module(num_processing_steps=num_processing_steps,
+                                                       latent_size=latent_size,
+                                                       n_layers=n_layers, reducer=reducer,
+                                                       node_output_size=latent_size,
+                                                       name="policy_model" + str(i))
                     agent_graph = self.policy_model_i(agent_graph)
 
                 # The readout GNN layer
-                self.policy_model = models.LinearGraphNet(num_processing_steps=num_processing_steps,
-                                                              latent_size=latent_size,
-                                                              n_layers=n_layers, reducer=reducer,
-                                                              edge_output_size=1, out_init_scale=1.0,
-                                                              name="policy_model")
+                self.policy_model = model_module(num_processing_steps=num_processing_steps,
+                                                 latent_size=latent_size,
+                                                 n_layers=n_layers, reducer=reducer,
+                                                 edge_output_size=1, out_init_scale=1.0,
+                                                 name="policy_model")
                 policy_graph = self.policy_model(agent_graph)
                 edge_values = policy_graph.edges
 
@@ -245,11 +260,17 @@ class RecurrentGnnFwd(RecurrentActorCriticPolicy):
     """
 
     def __init__(self, sess, ob_space, ac_space, n_env, n_steps, n_batch, reuse=False,
-                 num_processing_steps=None, latent_size=None, n_layers=None, reducer=None, state_shape=16):
+                 num_processing_steps=None, latent_size=None, n_layers=None, reducer=None, state_shape=16,
+                 model_type=None):
 
         super(RecurrentGnnFwd, self).__init__(sess, ob_space, ac_space, n_env, n_steps, n_batch, reuse=reuse,
                                               state_shape=[CoverageEnv.get_number_nodes(ob_space) * state_shape * 2],
                                               scale=False)
+        if model_type == 'identity':
+            model_module = models.AggregationNet
+        elif model_type == 'nonlinear':
+            model_module = models.NonLinearGraphNet
+
         cur_state = self.states_ph
 
         value_fn = []
@@ -282,10 +303,10 @@ class RecurrentGnnFwd(RecurrentActorCriticPolicy):
 
             with tf.variable_scope("model", reuse=reuse):
                 with tf.variable_scope("value", reuse=reuse):
-                    self.value_model = models.AggregationDiffNet(num_processing_steps=num_processing_steps,
-                                                                 latent_size=latent_size,
-                                                                 n_layers=n_layers, reducer=reducer,
-                                                                 node_output_size=1 + state_shape, name="value_model")
+                    self.value_model = model_module(num_processing_steps=num_processing_steps,
+                                                    latent_size=latent_size,
+                                                    n_layers=n_layers, reducer=reducer,
+                                                    node_output_size=1 + state_shape, name="value_model")
                     value_graph = self.value_model(agent_graph2)
 
                     # sum the outputs of robot nodes to compute value
@@ -301,12 +322,12 @@ class RecurrentGnnFwd(RecurrentActorCriticPolicy):
                     state2 = value_graph.nodes[:, 1:] * node_type_mask_float
 
                 with tf.variable_scope("policy", reuse=reuse):
-                    self.policy_model = models.AggregationDiffNet(num_processing_steps=num_processing_steps,
-                                                                  latent_size=latent_size,
-                                                                  n_layers=n_layers, reducer=reducer,
-                                                                  node_output_size=state_shape,
-                                                                  edge_output_size=1, out_init_scale=1.0,
-                                                                  name="policy_model")
+                    self.policy_model = model_module(num_processing_steps=num_processing_steps,
+                                                     latent_size=latent_size,
+                                                     n_layers=n_layers, reducer=reducer,
+                                                     node_output_size=state_shape,
+                                                     edge_output_size=1, out_init_scale=1.0,
+                                                     name="policy_model")
                     policy_graph = self.policy_model(agent_graph1)
                     state1 = policy_graph.nodes * node_type_mask_float
 
@@ -380,10 +401,16 @@ class MultiAgentGnnFwd(ActorCriticPolicy):
     """
 
     def __init__(self, sess, ob_space, ac_space, n_env, n_steps, n_batch, reuse=False,
-                 num_processing_steps=None, latent_size=None, n_layers=None, reducer=None, n_gnn_layers=None):
+                 num_processing_steps=None, latent_size=None, n_layers=None, reducer=None, n_gnn_layers=None,
+                 model_type=None):
 
         super(MultiAgentGnnFwd, self).__init__(sess, ob_space, ac_space, n_env, n_steps, n_batch, reuse,
-                                     scale=False)
+                                               scale=False)
+
+        if model_type == 'identity':
+            model_module = models.AggregationNet
+        elif model_type == 'nonlinear':
+            model_module = models.NonLinearGraphNet
 
         batch_size, n_node, nodes, n_edge, edges, senders, receivers, globs = CoverageEnv.unpack_obs(
             self.processed_obs, ob_space)
@@ -392,31 +419,31 @@ class MultiAgentGnnFwd(ActorCriticPolicy):
 
         value_models = []
         policy_models = []
-        for i in range(n_gnn_layers-1):
-            value_models_i = models.AggregationDiffNet(num_processing_steps=num_processing_steps,
-                                                       latent_size=latent_size,
-                                                       n_layers=n_layers, reducer=reducer,
-                                                       node_output_size=latent_size,
-                                                       name="value_model" + str(i))
+        for i in range(n_gnn_layers - 1):
+            value_models_i = model_module(num_processing_steps=num_processing_steps,
+                                          latent_size=latent_size,
+                                          n_layers=n_layers, reducer=reducer,
+                                          node_output_size=latent_size,
+                                          name="value_model" + str(i))
             value_models.append(value_models_i)
-            policy_model_i = models.AggregationDiffNet(num_processing_steps=num_processing_steps,
-                                                       latent_size=latent_size,
-                                                       n_layers=n_layers, reducer=reducer,
-                                                       node_output_size=latent_size,
-                                                       name="policy_model" + str(i))
+            policy_model_i = model_module(num_processing_steps=num_processing_steps,
+                                          latent_size=latent_size,
+                                          n_layers=n_layers, reducer=reducer,
+                                          node_output_size=latent_size,
+                                          name="policy_model" + str(i))
             policy_models.append(policy_model_i)
 
-        value_model = models.AggregationDiffNet(num_processing_steps=num_processing_steps,
-                                                latent_size=latent_size,
-                                                n_layers=n_layers, reducer=reducer,
-                                                node_output_size=1, name="value_model")
+        value_model = model_module(num_processing_steps=num_processing_steps,
+                                   latent_size=latent_size,
+                                   n_layers=n_layers, reducer=reducer,
+                                   node_output_size=1, name="value_model")
         value_models.append(value_model)
 
-        policy_model = models.AggregationDiffNet(num_processing_steps=num_processing_steps,
-                                                 latent_size=latent_size,
-                                                 n_layers=n_layers, reducer=reducer,
-                                                 edge_output_size=1, out_init_scale=1.0,
-                                                 name="policy_model")
+        policy_model = model_module(num_processing_steps=num_processing_steps,
+                                    latent_size=latent_size,
+                                    n_layers=n_layers, reducer=reducer,
+                                    edge_output_size=1, out_init_scale=1.0,
+                                    name="policy_model")
         policy_models.append(policy_model)
 
         policies = []
@@ -427,7 +454,8 @@ class MultiAgentGnnFwd(ActorCriticPolicy):
 
             nodes = nodes * tf.constant([[1.0, 1.0, 1.0, 0.0]])
             indices = tf.reshape(tf.stack([robot_indices + n_agent, 3 * tf.ones_like(robot_indices)], axis=1), (-1, 2))
-            nodes = tf.tensor_scatter_nd_update(nodes, indices, tf.reshape(tf.ones_like(robot_indices, dtype=tf.float32), (-1,)))
+            nodes = tf.tensor_scatter_nd_update(nodes, indices,
+                                                tf.reshape(tf.ones_like(robot_indices, dtype=tf.float32), (-1,)))
 
             agent_graph = graphs.GraphsTuple(
                 nodes=nodes,
@@ -451,7 +479,6 @@ class MultiAgentGnnFwd(ActorCriticPolicy):
                     masked_nodes = tf.boolean_mask(value_graph.nodes, node_type_mask, axis=0)
                     masked_nodes = tf.reshape(masked_nodes, (batch_size, 1))
                     values.append(masked_nodes)
-                    # self._value_fn = tf.reduce_sum(masked_nodes, axis=1, keepdims=True)
 
                 with tf.variable_scope("policy", reuse=reuse):
 
@@ -471,7 +498,6 @@ class MultiAgentGnnFwd(ActorCriticPolicy):
                     else:
                         n_actions = tf.cast(ac_space.n, tf.int32)
 
-                    # self._policy = tf.reshape(masked_edges, (batch_size, n_actions))
                     policies.append(tf.reshape(masked_edges, (batch_size, n_actions)))
 
         self._value_fn = tf.reduce_sum(tf.concat(values, axis=1), axis=1, keepdims=True)

@@ -47,8 +47,6 @@ def train_helper(env_param, test_env_param, train_param, pretrain_param, policy_
         ckpt_idx += 1
     else:
         print('\nCreating new model.\n')
-        # lr_schedule = LinearSchedule(schedule_timesteps=1e6, initial_p=train_param['train_lr'],
-        #                              final_p=0.01 * train_param['train_lr'])
 
         model = PPO2(
             policy=policy_fn,
@@ -131,8 +129,9 @@ def run_experiment(args, section_name=''):
     policy_param = {
         'num_processing_steps': json.loads(args.get('aggregation', '[1,1,1,1,1,1,1,1,1,1]')),
         'latent_size': args.getint('latent_size', 16),
-        'n_layers': args.getint('n_layers', 2),
-        'reducer': args.get('reducer', 'max')
+        'n_layers': args.getint('n_layers', 3),
+        'reducer': args.get('reducer', 'mean'),
+        'model_type': args.get('model_type', 'identity')
     }
     policy_type = args.get('policy', 'GNNFwd')
 
@@ -180,9 +179,9 @@ def run_experiment(args, section_name=''):
     if 'pretrain' in args and args.getboolean('pretrain'):
         pretrain_param = {
             'pretrain_dataset': args.get('pretrain_dataset'),
-            'pretrain_epochs': args.getint('pretrain_epochs', 2000),
+            'pretrain_epochs': args.getint('pretrain_epochs', 100),
             'pretrain_checkpoint_epochs': args.getint('pretrain_checkpoint_epochs', 2),
-            'pretrain_batch': args.getint('pretrain_batch', 20),
+            'pretrain_batch': args.getint('pretrain_batch', 50),
             'pretrain_lr': args.getfloat('pretrain_lr', 1e-4),
             'pretrain_ent_coef': args.getfloat('pretrain_ent_coef', 1e-6),
             'pretrain_lr_decay_factor': args.getfloat('pretrain_lr_decay_factor', 0.97),

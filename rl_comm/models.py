@@ -22,7 +22,7 @@ class Identity(snt.AbstractModule):
         return tf.identity(inputs)
 
 
-class AggregationDiffNet(snt.AbstractModule):
+class AggregationNet(snt.AbstractModule):
     """
     Aggregation Net with learned aggregation filter
     """
@@ -37,7 +37,7 @@ class AggregationDiffNet(snt.AbstractModule):
                  reducer=None,
                  out_init_scale=5.0,
                  name="AggregationNet"):
-        super(AggregationDiffNet, self).__init__(name=name)
+        super(AggregationNet, self).__init__(name=name)
 
         if num_processing_steps is None:
             self._proc_hops = [1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
@@ -120,7 +120,7 @@ class AggregationDiffNet(snt.AbstractModule):
         return self._output_transform(utils_tf.concat(output_ops, axis=1))
 
 
-class LinearGraphNet(snt.AbstractModule):
+class NonLinearGraphNet(snt.AbstractModule):
     """
     Aggregation Net with learned aggregation filter
     """
@@ -135,7 +135,7 @@ class LinearGraphNet(snt.AbstractModule):
                  reducer=None,
                  out_init_scale=5.0,
                  name="AggregationNet"):
-        super(LinearGraphNet, self).__init__(name=name)
+        super(NonLinearGraphNet, self).__init__(name=name)
 
         if num_processing_steps is None:
             self._proc_hops = [1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
@@ -169,8 +169,8 @@ class LinearGraphNet(snt.AbstractModule):
         def make_mlp():
             return snt.nets.MLP([latent_size] * n_layers, activate_final=False)
 
-        def make_linear():
-            return snt.Linear(latent_size)
+        # def make_linear():
+        #     return snt.Linear(latent_size)
 
         self._core = modules.GraphNetwork(
             edge_model_fn=make_mlp,
