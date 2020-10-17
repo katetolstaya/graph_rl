@@ -169,9 +169,6 @@ class NonLinearGraphNet(snt.AbstractModule):
         def make_mlp():
             return snt.nets.MLP([latent_size] * n_layers, activate_final=False)
 
-        # def make_linear():
-        #     return snt.Linear(latent_size)
-
         self._core = modules.GraphNetwork(
             edge_model_fn=make_mlp,
             node_model_fn=make_mlp,

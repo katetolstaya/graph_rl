@@ -26,7 +26,7 @@ class GnnFwd(ActorCriticPolicy):
     """
 
     def __init__(self, sess, ob_space, ac_space, n_env, n_steps, n_batch, reuse=False,
-                 num_processing_steps=None, latent_size=None, n_layers=None, reducer=None, model_type=None):
+                 num_processing_steps=None, latent_size=None, n_layers=None, reducer=None, model_type=None, n_node_feat=None):
 
         super(GnnFwd, self).__init__(sess, ob_space, ac_space, n_env, n_steps, n_batch, reuse,
                                      scale=False)
@@ -37,7 +37,7 @@ class GnnFwd(ActorCriticPolicy):
             model_module = models.NonLinearGraphNet
 
         batch_size, n_node, nodes, n_edge, edges, senders, receivers, globs = CoverageEnv.unpack_obs(
-            self.processed_obs, ob_space)
+            self.processed_obs, ob_space, n_node_feat)
 
         agent_graph = graphs.GraphsTuple(
             nodes=nodes,
@@ -136,7 +136,7 @@ class MultiGnnFwd(ActorCriticPolicy):
 
     def __init__(self, sess, ob_space, ac_space, n_env, n_steps, n_batch, reuse=False,
                  num_processing_steps=None, latent_size=None, n_layers=None, reducer=None, n_gnn_layers=None,
-                 model_type=None):
+                 model_type=None, n_node_feat=None):
 
         super(MultiGnnFwd, self).__init__(sess, ob_space, ac_space, n_env, n_steps, n_batch, reuse, scale=False)
 
@@ -146,7 +146,7 @@ class MultiGnnFwd(ActorCriticPolicy):
             model_module = models.NonLinearGraphNet
 
         batch_size, n_node, nodes, n_edge, edges, senders, receivers, globs = CoverageEnv.unpack_obs(
-            self.processed_obs, ob_space)
+            self.processed_obs, ob_space, n_node_feat)
 
         agent_graph = graphs.GraphsTuple(
             nodes=nodes,
@@ -261,10 +261,10 @@ class RecurrentGnnFwd(RecurrentActorCriticPolicy):
 
     def __init__(self, sess, ob_space, ac_space, n_env, n_steps, n_batch, reuse=False,
                  num_processing_steps=None, latent_size=None, n_layers=None, reducer=None, state_shape=16,
-                 model_type=None):
+                 model_type=None, n_node_feat=None):
 
         super(RecurrentGnnFwd, self).__init__(sess, ob_space, ac_space, n_env, n_steps, n_batch, reuse=reuse,
-                                              state_shape=[CoverageEnv.get_number_nodes(ob_space) * state_shape * 2],
+                                              state_shape=[CoverageEnv.get_number_nodes(ob_space, n_node_feat) * state_shape * 2],
                                               scale=False)
         if model_type == 'identity':
             model_module = models.AggregationNet
@@ -402,7 +402,7 @@ class MultiAgentGnnFwd(ActorCriticPolicy):
 
     def __init__(self, sess, ob_space, ac_space, n_env, n_steps, n_batch, reuse=False,
                  num_processing_steps=None, latent_size=None, n_layers=None, reducer=None, n_gnn_layers=None,
-                 model_type=None):
+                 model_type=None, n_node_feat=None):
 
         super(MultiAgentGnnFwd, self).__init__(sess, ob_space, ac_space, n_env, n_steps, n_batch, reuse,
                                                scale=False)
@@ -413,7 +413,7 @@ class MultiAgentGnnFwd(ActorCriticPolicy):
             model_module = models.NonLinearGraphNet
 
         batch_size, n_node, nodes, n_edge, edges, senders, receivers, globs = CoverageEnv.unpack_obs(
-            self.processed_obs, ob_space)
+            self.processed_obs, ob_space, n_node_feat)
 
         n_robots = len(ac_space.nvec)
 

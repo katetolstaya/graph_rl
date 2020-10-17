@@ -8,10 +8,6 @@ from rl_comm.ppo2 import PPO2
 from stable_baselines.common.vec_env import SubprocVecEnv
 from stable_baselines.common.base_class import BaseRLModel
 
-import os
-import tensorflow as tf
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
-
 
 def make_env():
     # env_name = "CoverageFull-v0"
@@ -21,12 +17,12 @@ def make_env():
     return my_env
 
 
-def eval_model(env, model, N, render_mode='none'):
+def eval_model(env, model, n_episodes):
     """
     Evaluate a model against an environment over N games.
     """
-    results = {'reward': np.zeros(N)}
-    for k in range(N):
+    results = {'reward': np.zeros(n_episodes)}
+    for k in range(n_episodes):
         done = False
         obs = env.reset()
         # Run one game.
@@ -37,13 +33,14 @@ def eval_model(env, model, N, render_mode='none'):
     return results
 
 
-def load_model(model_name, vec_env):
+def load_model(model_name, vec_env, new_model=None):
     model_params, params = BaseRLModel._load_from_file(model_name)
 
-    new_model = PPO2(
-        policy=gnn_fwd.GnnFwd,
-        policy_kwargs=model_params['policy_kwargs'],
-        env=vec_env)
+    if new_model is None:
+        new_model = PPO2(
+            policy=gnn_fwd.MultiGnnFwd,
+            policy_kwargs=model_params['policy_kwargs'],
+            env=vec_env)
 
     # update new model's parameters
     new_model.load_parameters(params)
@@ -57,6 +54,7 @@ if __name__ == '__main__':
     vec_env = SubprocVecEnv([make_env])
 
     ckpt_dir = 'models/' + fname + '/ckpt'
+    new_model = None
 
     try:
         ckpt_list = sorted(glob.glob(str(ckpt_dir) + '/*.pkl'))
@@ -69,22 +67,21 @@ if __name__ == '__main__':
     best_idx = 0
 
     for i in range(0, ckpt_idx, 5):
-        print('Current best:')
-        print(best_idx)
-        print(best_score)
-
         model_name = ckpt_dir + '/ckpt_' + str(i).zfill(3) + '.pkl'
-        print('Testing model ' + model_name)
-        results = eval_model(env, load_model(model_name, vec_env), 50, render_mode='none')
+        new_model = load_model(model_name, vec_env, new_model)
+        results = eval_model(env, new_model, 25)
         new_score = np.mean(results['reward'])
-        print(i)
-        print(new_score)
+        print('Testing ' + model_name + ' : ' + str(new_score))
 
         if new_score > best_score:
             best_score = new_score
             best_idx = i
 
     model_name = ckpt_dir + '/ckpt_' + str(best_idx).zfill(3) + '.pkl'
-    results = eval_model(env, load_model(model_name, vec_env), 100, render_mode='none')
-    print('reward,          mean = {:.1f}, std = {:.1f}'.format(np.mean(results['reward']), np.std(results['reward'])))
-    print('')
+    new_model = load_model(model_name, vec_env, new_model)
+    n_episodes = 100
+    results = eval_model(env, new_model, n_episodes)
+    mean_reward = np.mean(results['reward'])
+    std_reward = np.std(results['reward'])
+    print('Reward over {} episodes: mean = {:.1f}, std = {:.1f}'.format(n_episodes, mean_reward, std_reward))
+    quit()

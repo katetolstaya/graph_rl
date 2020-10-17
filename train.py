@@ -131,7 +131,8 @@ def run_experiment(args, section_name=''):
         'latent_size': args.getint('latent_size', 16),
         'n_layers': args.getint('n_layers', 3),
         'reducer': args.get('reducer', 'mean'),
-        'model_type': args.get('model_type', 'identity')
+        'model_type': args.get('model_type', 'identity'),
+        'n_node_feat': args.getint('n_node_feat', 3)
     }
     policy_type = args.get('policy', 'GNNFwd')
 
@@ -181,11 +182,11 @@ def run_experiment(args, section_name=''):
             'pretrain_dataset': args.get('pretrain_dataset'),
             'pretrain_epochs': args.getint('pretrain_epochs', 100),
             'pretrain_checkpoint_epochs': args.getint('pretrain_checkpoint_epochs', 2),
-            'pretrain_batch': args.getint('pretrain_batch', 50),
-            'pretrain_lr': args.getfloat('pretrain_lr', 1e-4),
+            'pretrain_batch': args.getint('pretrain_batch', 32),
+            'pretrain_lr': args.getfloat('pretrain_lr', 1e-3),
             'pretrain_ent_coef': args.getfloat('pretrain_ent_coef', 1e-6),
-            'pretrain_lr_decay_factor': args.getfloat('pretrain_lr_decay_factor', 0.97),
-            'pretrain_lr_decay_steps': args.getfloat('pretrain_lr_decay_steps', 5000),
+            'pretrain_lr_decay_factor': args.getfloat('pretrain_lr_decay_factor', 0.95),
+            'pretrain_lr_decay_steps': args.getfloat('pretrain_lr_decay_steps', 200),
         }
     else:
         pretrain_param = None
