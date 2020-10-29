@@ -109,7 +109,7 @@ class AggregationNet(snt.AbstractModule):
 
     def _build(self, input_op):
         latent = self._encoder(input_op)
-        output_ops = [latent]
+        output_ops = [self._decoder(latent)]
         for i in range(self._num_processing_steps):
             for j in range(self._proc_hops[i]):
                 for c in self._cores:
@@ -197,7 +197,7 @@ class NonLinearGraphNet(snt.AbstractModule):
 
     def _build(self, input_op):
         latent = self._encoder(input_op)
-        output_ops = [latent]
+        output_ops = [self._decoder(latent)]
         for i in range(self._num_processing_steps):
             for j in range(self._proc_hops[i]):
                 latent = self._core(latent)

@@ -2,6 +2,7 @@ import numpy as np
 import gym
 import gym_flock
 import copy
+import timeit
 
 import rl_comm.gnn_fwd as gnn_fwd
 from stable_baselines.common.vec_env import SubprocVecEnv
@@ -34,13 +35,14 @@ if __name__ == '__main__':
     vec_env = SubprocVecEnv([make_env])
 
     # Specify pre-trained model checkpoint file.
-    model_name = 'models/imitation_test/ckpt/ckpt_036.pkl'
+    model_name = 'models/nl2_1_19_16/ckpt/ckpt_048.pkl'
+    # model_name = 'models/imitation_test/ckpt/ckpt_036.pkl'
 
     # load the dictionary of parameters from file
     model_params, params = BaseRLModel._load_from_file(model_name)
 
     new_model = PPO2(
-        policy=gnn_fwd.GnnFwd,
+        policy=gnn_fwd.MultiGnnFwd,
         policy_kwargs=model_params['policy_kwargs'],
         env=vec_env)
 
@@ -119,7 +121,9 @@ if __name__ == '__main__':
         return marker_array
 
     obs = env.reset()
+    total_reward = 0
 
+    start_time = timeit.default_timer()
     while True:
 
         marker_publisher.publish(get_markers())
@@ -127,7 +131,9 @@ if __name__ == '__main__':
         # update state and get new observation
         arl_env.update_state(x)
         obs, reward, _, _ = env.step(None)
-        print(reward)
+        total_reward += reward
+        elapsed = timeit.default_timer() - start_time
+        print('Time: ' + str(elapsed) + ' , Cum. Reward: ' + str(total_reward))
 
         action, states = model.predict(obs, deterministic=True)
 

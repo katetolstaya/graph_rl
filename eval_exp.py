@@ -7,11 +7,14 @@ import rl_comm.gnn_fwd as gnn_fwd
 from rl_comm.ppo2 import PPO2
 from stable_baselines.common.vec_env import SubprocVecEnv
 from stable_baselines.common.base_class import BaseRLModel
+import timeit
 
 
 def make_env():
     # env_name = "CoverageFull-v0"
-    env_name = "CoverageARL-v0"
+    # env_name = "ExploreEnv-v1"
+    env_name = "CoverageARL-v1"
+    # env_name = 'ExploreFullEnv-v0'
     my_env = gym.make(env_name)
     my_env = gym.wrappers.FlattenDictWrapper(my_env, dict_keys=my_env.env.keys)
     return my_env
@@ -30,6 +33,7 @@ def eval_model(env, model, n_episodes):
             action, states = model.predict(obs, deterministic=True)
             obs, rewards, done, info = env.step(action)
             results['reward'][k] += rewards
+        print(results['reward'][k])
     return results
 
 
@@ -63,24 +67,28 @@ if __name__ == '__main__':
         print('Invalid experiment folder name!')
         raise
 
-    best_score = -np.Inf
-    best_idx = 0
+    # best_score = -np.Inf
+    # best_idx = 0
+    #
+    # for i in range(0, ckpt_idx, 2):
+    #     model_name = ckpt_dir + '/ckpt_' + str(i).zfill(3) + '.pkl'
+    #     new_model = load_model(model_name, vec_env, new_model)
+    #     results = eval_model(env, new_model, 25)
+    #     new_score = np.mean(results['reward'])
+    #     print('Testing ' + model_name + ' : ' + str(new_score))
+    #
+    #     if new_score > best_score:
+    #         best_score = new_score
+    #         best_idx = i
 
-    for i in range(0, ckpt_idx, 5):
-        model_name = ckpt_dir + '/ckpt_' + str(i).zfill(3) + '.pkl'
-        new_model = load_model(model_name, vec_env, new_model)
-        results = eval_model(env, new_model, 25)
-        new_score = np.mean(results['reward'])
-        print('Testing ' + model_name + ' : ' + str(new_score))
-
-        if new_score > best_score:
-            best_score = new_score
-            best_idx = i
-
-    model_name = ckpt_dir + '/ckpt_' + str(best_idx).zfill(3) + '.pkl'
+    model_name = ckpt_dir + '/ckpt_' + str(ckpt_idx).zfill(3) + '.pkl'
+    # model_name = ckpt_dir + '/ckpt_' + str(best_idx).zfill(3) + '.pkl'
     new_model = load_model(model_name, vec_env, new_model)
+    start_time = timeit.default_timer()
     n_episodes = 100
     results = eval_model(env, new_model, n_episodes)
+    elapsed = timeit.default_timer() - start_time
+    print('Elapsed time: ' + str(elapsed))
     mean_reward = np.mean(results['reward'])
     std_reward = np.std(results['reward'])
     print('Reward over {} episodes: mean = {:.1f}, std = {:.1f}'.format(n_episodes, mean_reward, std_reward))

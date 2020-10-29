@@ -16,19 +16,21 @@ from rl_comm.ppo2 import PPO2
 from rl_comm.utils import ckpt_file, callback
 
 
-def train_helper(env_param, test_env_param, train_param, pretrain_param, policy_fn, policy_param, directory):
+def train_helper(env_param, test_env_param, train_param, pretrain_param, policy_fn, policy_param, directory, env=None, test_env=None):
     save_dir = Path(directory)
     tb_dir = save_dir / 'tb'
     ckpt_dir = save_dir / 'ckpt'
     for d in [save_dir, tb_dir, ckpt_dir]:
         d.mkdir(parents=True, exist_ok=True)
 
-    env = SubprocVecEnv([env_param['make_env']] * train_param['n_env'])
+    if env is None:
+        if 'normalize_reward' in train_param and train_param['normalize_reward']:
+            env = VecNormalize(env, norm_obs=False, norm_reward=True)
+        else:
+            env = SubprocVecEnv([env_param['make_env']] * train_param['n_env'])
 
-    if 'normalize_reward' in train_param and train_param['normalize_reward']:
-        env = VecNormalize(env, norm_obs=False, norm_reward=True)
-    # test_env = SubprocVecEnv([test_env_param['make_env']] * train_param['n_env'])
-    test_env = SubprocVecEnv([test_env_param['make_env']])
+    if test_env is None:
+        test_env = SubprocVecEnv([test_env_param['make_env']])
 
     if train_param['use_checkpoint']:
         # Find latest checkpoint index.
@@ -122,9 +124,14 @@ def train_helper(env_param, test_env_param, train_param, pretrain_param, policy_
         ckpt_idx += 1
 
     print('Finished.')
+    # env.close()
+    # test_env.close()
+    del model
+
+    return env, test_env
 
 
-def run_experiment(args, section_name=''):
+def run_experiment(args, section_name='', env=None, test_env=None):
 
     policy_param = {
         'num_processing_steps': json.loads(args.get('aggregation', '[1,1,1,1,1,1,1,1,1,1]')),
@@ -193,14 +200,16 @@ def run_experiment(args, section_name=''):
 
     directory = Path('models/' + args.get('name') + section_name)
 
-    train_helper(
+    env, test_env = train_helper(
         env_param=env_param,
         test_env_param=test_env_param,
         train_param=train_param,
         pretrain_param=pretrain_param,
         policy_fn=policy_fn,
         policy_param=policy_param,
-        directory=directory)
+        directory=directory,
+        env=env, test_env=test_env)
+    return env, test_env
 
 
 def main():
@@ -208,11 +217,12 @@ def main():
     config_file = path.join(path.dirname(__file__), fname)
     config = configparser.ConfigParser()
     config.read(config_file)
-
     if config.sections():
+        env = None
+        test_env = None
         for section_name in config.sections():
             print(section_name)
-            run_experiment(config[section_name], section_name)
+            env, test_env = run_experiment(config[section_name], section_name, env, test_env)
     else:
         run_experiment(config[config.default_section])
 
